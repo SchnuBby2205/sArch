@@ -5,7 +5,7 @@ installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkPartitions
   getInput "Type YES to continue (STRG+C to exit now)..." check "N"; [[ "$check" != "YES" ]] && exitWithError "Formatting was not confirmed!" || printf "\n"
   myPrint countdown 3 "Starting installation in"; printf "\n"
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step Installing "Base system..."
-    dryRun runCMDS 0 Formatting drives... 0 7 20 "mkfs.fat -F 32 ${boot} $debugstring" "mkswap ${swap} $debugstring" "swapon ${swap} $debugstring" "mkfs.ext4 -F ${root} $debugstring"
+    printf "formatting $boot\n\n" runCMDS 0 Formatting drives... 0 7 20 "mkfs.fat -F 32 ${boot} $debugstring" "mkswap ${swap} $debugstring" "swapon ${swap} $debugstring" "mkfs.ext4 -F ${root} $debugstring"
     dryRun runCMDS 0 Mounting partitions... 7 8 20 "mount --mkdir ${root} /mnt $debugstring" "mount --mkdir ${boot} /mnt/boot $debugstring" 
     dryRun runCMDS 0 "Setting up" pacman... 8 13 20 "pacman -Syy $debugstring" "reflector --sort rate --latest 20 --protocol https --country Germany --save /etc/pacman.d/mirrorlist $debugstring" "sed -i '/ParallelDownloads/s/^#//' /etc/pacman.conf"
     dryRun runCMDS 0 Running pacstrap... 13 20 20 "pacstrap -K /mnt base base-devel ${kernel} linux-firmware ${cpu} efibootmgr grub sudo $debugstring" "genfstab -U /mnt >> /mnt/etc/fstab" "cp ./${scriptname} /mnt"

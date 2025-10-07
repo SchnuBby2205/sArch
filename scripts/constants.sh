@@ -1,3 +1,4 @@
+## Constants for the install.sh script
 scriptname=$(basename "$0")
 logFile="/var/log/ArchInstall.log"
 RED="\e[31m" GREEN="\e[32m" YELLOW="\e[1;33m" WHITE="\e[1;37m" NC="\e[0m"

@@ -1,0 +1,6 @@
+AMD drivers...
+5
+mesa{,-utils} 
+lib32{-mesa,-vulkan-radeon,-vulkan-icd-loader} 
+vulkan{-radeon,-icd-loader} 
+libva{-mesa-driver,-utils}

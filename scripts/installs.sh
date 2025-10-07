@@ -57,11 +57,11 @@ installConfigs() { checkDebugFlag; Banner
     safeCMD mv $HOME/.config/hypr $HOME/.config/hypr_bak; safeCMD mv $HOME/$sARCH_CONFIGS/hypr $HOME/.config/hypr
     dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok
-  #safeCMD rm $HOME/${scriptname}
-  #sed -i "/${scriptname}/d" $HOME/.config/hypr/schnubby/userprefs.conf
   firefox --ProfileManager
-  [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "Y"
-  [[ "$backup" =~ ^[yY]$ || -n "$defaults" ]] && installBackup
+  [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "y"
+  [[ "$backup" =~ ^[yY]$ ]] && installBackup
+  #safeCMD rm $HOME/$sARCH_MAIN
+  safeCMD mv $HOME/$sARCH_MAIN $HOME/${sARCH_MAIN}_finished
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }

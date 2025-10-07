@@ -1,5 +1,5 @@
 Audio dependencies...
-5
+10
 pipewire{,-alsa,-audio,-pulse}
 gst-plugin-pipewire
 wireplumber

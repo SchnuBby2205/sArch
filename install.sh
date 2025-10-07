@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export sARCH_MAIN="/sARCH"
+export sARCH_MAIN="sARCH"
 export sARCH_SCRIPTS="$sARCH_MAIN/scripts"
 export sARCH_CONFIGS="$sARCH_MAIN/configs"
 

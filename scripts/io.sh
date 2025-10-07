@@ -30,3 +30,5 @@ myPasswd() {
   done
   myPrint print red "Maximum tries reached. Script will end now."; exit 1
 }
+log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$logFile"; }
+addToBashrc() { grep -qxF "$1" ~/.bashrc || echo "$1" >> ~/.bashrc; }

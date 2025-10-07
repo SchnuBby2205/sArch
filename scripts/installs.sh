@@ -24,7 +24,7 @@ installArchCHRoot() { checkDebugFlag
   [[ -z "$user" ]] && getInput "\nEnter your normal username: " user "schnubby"; useradd -mG wheel ${user}
   myPrint print yellow "\nEnter your normal user password\n\n"; myPasswd "${user}"
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
-  safeCMD mv ./${scriptname} /home/${user}/; addToBashrc "./${scriptname} installDE"
+  safeCMD mv "/$sARCH_MAIN" "/home/${user}/"; addToBashrc "$HOME/$sARCH_MAIN/${scriptname} installDE"
 }
 installDE() { checkDebugFlag
   [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"
@@ -33,23 +33,18 @@ installDE() { checkDebugFlag
   sudo pacman -Syy $debugstring
   myPrint countdown 3 "Starting installation in"
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step Installing Dependencies...
-    dryRun runCMDS 0 Installing "System dependencies..." 0 5 20 "sudo pacman --noconfirm -S --needed hyprland xdg-desktop-portal-{hyprland,gtk} sddm swww polkit-gnome xdg-user-dirs networkmanager $debugstring"
-    dryRun runCMDS 0 Installing "Audio dependencies..." 5 10 20 "sudo pacman --noconfirm -S --needed pipewire{,-alsa,-audio,-pulse} gst-plugin-pipewire wireplumber pavucontrol pamixer $debugstring"
-    dryRun runCMDS 0 Installing "Additional programs..." 10 19 20 "sudo pacman --noconfirm -S --needed firefox kitty dolphin ark unzip neovim fzf zsh lutris steam teamspeak3 lazygit git $debugstring"
-    dryRun runCMDS 0 Installing Fonts... 19 20 20 "sudo pacman --noconfirm -S --needed ttf-jetbrains-mono-nerd $debugstring"
+    s=0; for r in systemdeps audiodeps programs fonts; do readList "$sARCH_CONFIGS/$r"; dryRun runCMDS 0 Installing $name $s $value 20 "$pacmanRun ${list[@]} $debugstring"; s=$value; done
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok
   safeCMD git clone https://aur.archlinux.org/yay.git $debugstring; cd yay; safeCMD makepkg -si; cd ..; safeCMD rm ./yay; printf "\n"
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step Running "Post install..."
     dryRun runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
     dryRun runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell --noconfirm $debugstring"
-    dryRun runCMDS 0 Installing "Custom configs..." 15 17 20 "git clone --depth 1 https://github.com/SchnuBby2205/HyprlandConfigs.git $HOME/.config/hypr/schnubby $debugstring"
-    dryRun runCMDS 0 Installing myShell... 17 20 20 "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
+    dryRun runCMDS 0 Installing myShell... 17 20 20 "safeCMD git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok && myPrint step Starting Services...
-    dryRun runCMDS 0 Starting "Greeter (SDDM)..." 0 7 20 "sudo systemctl enable sddm.service $debugstring"
-    dryRun runCMDS 0 Starting "swww-daemon..." 7 15 20 "echo -e 'exec-once=swww-daemon' >> $HOME/.config/hypr/schnubby/userprefs.conf"
-    dryRun runCMDS 0 Starting myShell... 15 20 20 "echo -e 'exec-once=quickshell --path $HOME/.config/quickshell/myShell/shell.qml' >> $HOME/.config/hypr/schnubby/userprefs.conf" 
+    dryRun runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
+    dryRun runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok
-  sed -i "/${scriptname}/d" $HOME/.bashrc; echo exec-once=kitty ./${scriptname} installConfigs >> $HOME/.config/hypr/schnubby/userprefs.conf
+  sed -i "/${scriptname}/d" $HOME/.bashrc; echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   myPrint countdown 3 "Reboot in"; reboot
 }
 installConfigs() { checkDebugFlag; Banner
@@ -57,25 +52,20 @@ installConfigs() { checkDebugFlag; Banner
   [[ -z "$gpu" ]] && getInput "Enter your GPU (amd or nvidia): " gpu "amd"
   sudo pacman -Syy $debugstring
   [[ "$debug" =~ ^[nN]$ ]] && myPrint step Running "Final steps..."
-    case $gpu in
-      amd) dryRun runCMDS 0 Installing "AMD drivers..." 0 5 20 "sudo pacman --noconfirm -S --needed mesa{,-utils} lib32{-mesa,-vulkan-radeon,-vulkan-icd-loader} vulkan{-radeon,-icd-loader} libva{-mesa-driver,-utils} $debugstring";;
-      nvidia) dryRun runCMDS 0 Installing "NVIDIA drivers..." 0 5 20 "sudo pacman --noconfirm -S --needed nvidia{-dkms,-utils,-settings} lib32{-nvidia-utils, -vulkan-icd-loader} vulkan-icd-loader $debugstring";;
-      *) exitWithError "No valid GPU specified!";;
-    esac
-      dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
-      dryRun runCMDS 0 Installing STEAM... 10 19 20 "steam $debugstring"
-      dryRun runCMDS 0 Configuring Hyprland... 19 20 20 "mv $HOME/.config/hypr/hyprland.conf $HOME/.config/hypr/hyprland.bak" "mv $HOME/.config/hypr/schnubby/hyprland.conf $HOME/.config/hypr/" "rm -rf $HOME/.config/hypr/hyprland.bak" # HIER CONFIGS VERTEILEN LAZYVIM, KITTY, WINDOWRULES ETC...!!
-    [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok
-    #sudo rm -rf $HOME/${scriptname}
-    safeCMD rm $HOME/${scriptname}
-    sed -i "/${scriptname}/d" $HOME/.config/hypr/schnubby/userprefs.conf
-    firefox --ProfileManager
-    [[ -z "$defaults" ]] && getInput "\nLoad SchnuBby specific configs (git, lutris, fstab) (y/n)?\n" schnubby "Y"
-    [[ "$schnubby" =~ ^[yY]$ || -n "$defaults" ]] && installSchnuBby
-    myPrint print green "Installation finished! System will reboot...\n\n"
-    myPrint countdown 3 "Reboot in"; reboot
+    readList "$sARCH_CONFIGS/$gpu"; dryRun runCMDS 0 Installing $name 0 $value 20 "$pacmanRun ${list[@]} $debugstring"
+    dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
+    safeCMD mv $HOME/.config/hypr $HOME/.config/hypr_bak; safeCMD mv $HOME/$sARCH_CONFIGS/hypr $HOME/.config/hypr
+    dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
+  [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok
+  #safeCMD rm $HOME/${scriptname}
+  #sed -i "/${scriptname}/d" $HOME/.config/hypr/schnubby/userprefs.conf
+  firefox --ProfileManager
+  [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "Y"
+  [[ "$backup" =~ ^[yY]$ || -n "$defaults" ]] && installBackup
+  myPrint print green "Installation finished! System will reboot...\n\n"
+  myPrint countdown 3 "Reboot in"; reboot
 }
-installSchnuBby() { checkDebugFlag; [[ "$debug" =~ ^[nN]$ ]] && myPrint step Installing "SchnuBby specifics..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
+installBackup() { checkDebugFlag; [[ "$debug" =~ ^[nN]$ ]] && myPrint step Installing "Backup..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
   fstab) dryRun runCMDS 1 Configuring fstab... 0 2 20 "sudo echo -e '/dev/nvme0n1p4      	/programmieren     	ext4      	rw,relatime	0 1' >> /etc/fstab" "sudo echo -e '/dev/nvme0n1p6      	/spiele     	ext4      	rw,relatime	0 1' >> /etc/fstab";;
   autologin) dryRun runCMDS 1 Setting autologin... 2 5 20 "sudo echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=${user}' >> /etc/sddm.conf.d/autologin.conf";;
   lutris) [[ -d "$HOME/.local/share/lutris" ]] && dryRun runCMDS 0 Backing lutris... 5 6 20 "mv $HOME/.local/share/lutris $HOME/.local/share/lutris_bak"; [[ ! -d "$HOME/.local/share/lutris" ]] && runCMDS 0 Configuring lutris... 6 7 20 "ln -s /programmieren/backups/.local/share/lutris $HOME/.local/share/lutris";;
@@ -85,6 +75,6 @@ installSchnuBby() { checkDebugFlag; [[ "$debug" =~ ^[nN]$ ]] && myPrint step Ins
   teamspeak3) [[ -f "$HOME/.ts3client" ]] && dryRun runCMDS 0 Removing .ts3client... 13 14 20 "rm -rf $HOME/.ts3client"; runCMDS 0 Configuring .ts3client... 14 15 20 "ln -sf /programmieren/backups/.ts3client $HOME/.ts3client";;
   grub) sudo sed -i "s/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g" /etc/default/grub; runCMDS 1 Regenerating GRUB... 15 20 20 "sudo grub-mkconfig -o /boot/grub/grub.cfg $debugstring";;
   firefox) ff=$HOME/.mozilla/firefox/$(ls $HOME/.mozilla/firefox | grep "Default User"); rm -rf "$ff"; ln -sf /programmieren/backups/FireFox/3665cjzf.default-release "$ff";;
-  *) exitWithError "Error setting SchnuBby secifics!";;
+  *) exitWithError "Error installing Backup!";;
   esac; done; [[ "$debug" =~ ^[nN]$ ]] && myPrint step ok;
 }

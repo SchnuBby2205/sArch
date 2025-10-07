@@ -4,7 +4,7 @@ export sARCH_MAIN="/sARCH"
 export sARCH_SCRIPTS="$sARCH_MAIN/scripts"
 export sARCH_CONFIGS="$sARCH_MAIN/configs"
 
-source "$sARCH_SCRIPTS/constants.sh"
+source "$sARCH_SCRIPTS/constants"
 source "$sARCH_SCRIPTS/io.sh"
 source "$sARCH_SCRIPTS/checks.sh"
 source "$sARCH_SCRIPTS/commands.sh"

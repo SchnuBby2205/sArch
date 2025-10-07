@@ -9,4 +9,4 @@ runCFDiskIfNeeded(){
 validatePartition() { lsblk -o NAME|grep -qw "${1#/dev/}"||{ exitWithError "$1: Partition does not exist!"; }; }
 checkPartitions() { [[ -z "$boot" ]] && getInput "Enter boot partition: " boot; [[ -z "$swap" ]] && getInput "Enter swap partition: " swap; [[ -z "$root" ]] && getInput "Enter root partition: " root; }
 validateUser() { [[ "$1" =~ ^[a-z_][a-z0-9_-]*$ ]] || exitWithError "Invalid username!"; }
-checkDebugFlag() { debugstring=$([[ "$debug" =~ ^[yY]$ ]] && echo "" || echo " &>/dev/null"); }
+checkDebugFlag() { debugstring=$([[ "$debug" == true ]] && echo "" || echo " &>/dev/null"); }

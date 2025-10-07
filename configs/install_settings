@@ -1,6 +1,6 @@
 ## All the settings sARCH needs for an installation
-debug="n"
-dryRun=true
+debug=false
+dryRun=false
 boot="/dev/vda1"
 swap="/dev/vda2"
 root="/dev/vda3"

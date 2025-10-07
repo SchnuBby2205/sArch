@@ -32,3 +32,4 @@ myPasswd() {
 }
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$logFile"; }
 addToBashrc() { grep -qxF "$1" ~/.bashrc || echo "$1" >> ~/.bashrc; }
+readList(){ list=""; while IFS= read -r line; do list+="${line} "; done < "$1"; }

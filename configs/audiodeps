@@ -1,0 +1,5 @@
+pipewire{,-alsa,-audio,-pulse}
+gst-plugin-pipewire
+wireplumber
+pavucontrol
+pamixer

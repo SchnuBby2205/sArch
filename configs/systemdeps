@@ -1,0 +1,7 @@
+hyprland
+xdg-desktop-portal-{hyprland,gtk}
+sddm
+swww
+polkit-gnome
+xdg-user-dirs
+networkmanager

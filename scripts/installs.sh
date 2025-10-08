@@ -13,7 +13,7 @@ installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkPartitions
   cp -r . /mnt/home/sArch
   arch-chroot /mnt /bin/bash -c "cd /home/sArch && ./install.sh installArchCHRoot"
   #arch-chroot /mnt "/mnt/home/sArch/${scriptname} installArchCHRoot"
-  umount -R /mnt $debugstring; printf "\n"; myPrint countdown 3 "Installation complete! Reboot in"; reboot
+  umount -R /mnt; printf "\n"; myPrint countdown 3 "Installation complete! Reboot in"; reboot
 }
 installArchCHRoot() { checkDebugFlag
   [[ "$debug" == false ]] && myPrint step Configuring "arch-chroot..."

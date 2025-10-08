@@ -28,7 +28,7 @@ installArchCHRoot() { checkDebugFlag
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
   #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
   #addToBashrc "$HOME/sARCH/${scriptname} installDE"
-  echo -e "/home/sARCH/$scriptname installDE"
+  echo -e "/home/sARCH/$scriptname installDE" >> "/home/${user}/.bashrc"
 }
 installDE() { checkDebugFlag
   [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"

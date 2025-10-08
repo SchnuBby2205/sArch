@@ -8,7 +8,7 @@ installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkPartitions
     dryRun runCMDS 0 Formatting drives... 0 7 20 "mkfs.fat -F 32 ${boot} $debugstring" "mkswap ${swap} $debugstring" "swapon ${swap} $debugstring" "mkfs.ext4 -F ${root} $debugstring"
     dryRun runCMDS 0 Mounting partitions... 7 8 20 "mount --mkdir ${root} /mnt $debugstring" "mount --mkdir ${boot} /mnt/boot $debugstring" 
     dryRun runCMDS 0 "Setting up" pacman... 8 13 20 "pacman -Syy $debugstring" "reflector --sort rate --latest 20 --protocol https --country Germany --save /etc/pacman.d/mirrorlist $debugstring" "sed -i '/ParallelDownloads/s/^#//' /etc/pacman.conf"
-    dryRun runCMDS 0 Running pacstrap... 13 20 20 "pacstrap -K /mnt base base-devel ${kernel} linux-firmware ${cpu} efibootmgr grub sudo $debugstring" "genfstab -U /mnt >> /mnt/etc/fstab" "cp ./${scriptname} /mnt"
+    dryRun runCMDS 0 Running pacstrap... 13 20 20 "pacstrap -K /mnt base base-devel ${kernel} linux-firmware ${cpu} efibootmgr grub sudo networkmanager $debugstring" "genfstab -U /mnt >> /mnt/etc/fstab" "cp ./${scriptname} /mnt"
   [[ "$debug" == false ]] && myPrint step ok
   cp -r . /mnt/home/sArch
   arch-chroot /mnt /bin/bash -c "cd /home/sArch && ./install.sh installArchCHRoot"
@@ -28,13 +28,16 @@ installArchCHRoot() { checkDebugFlag
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
   #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
   #addToBashrc "$HOME/sARCH/${scriptname} installDE"
-  echo -e "/home/sARCH/$scriptname installDE" >> "/home/${user}/.bashrc"
+  systemctl enable NetworkManager
+  cd ..
+  mv /home/sArch /home/$user/
+  echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { checkDebugFlag
   [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"
   Banner
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
-  sudo pacman -Syy $debugstring
+  bash -c "sudo pacman -Syy $debugstring"
   myPrint countdown 3 "Starting installation in"
   [[ "$debug" == false ]] && myPrint step Installing Dependencies...
     s=0; for r in systemdeps audiodeps programs fonts; do readList "$sARCH_CONFIGS/$r"; dryRun runCMDS 0 Installing $name $s $value 20 "$pacmanRun ${list[@]} $debugstring"; s=$value; done

@@ -26,9 +26,9 @@ installArchCHRoot() { checkDebugFlag
   [[ -z "$user" ]] && getInput "\nEnter your normal username: " user "schnubby"; useradd -mG wheel ${user}
   myPrint print yellow "\nEnter your normal user password\n\n"; myPasswd "${user}"
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
-  safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
-  addToBashrc "$HOME/sARCH/${scriptname} installDE"
-  #echo -e "$HOME/sA
+  #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
+  #addToBashrc "$HOME/sARCH/${scriptname} installDE"
+  echo -e "/home/sARCH/$scriptname installDE"
 }
 installDE() { checkDebugFlag
   [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"

@@ -28,9 +28,9 @@ installArchCHRoot() { checkDebugFlag
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
   #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
   #addToBashrc "$HOME/sARCH/${scriptname} installDE"
-  systemctl enable NetworkManager
+  bash -c "systemctl enable NetworkManager $debugstring"
   cd ..
-  mv /home/sArch /home/$user/
+  mv /home/sArch /home/$user/ 
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { checkDebugFlag

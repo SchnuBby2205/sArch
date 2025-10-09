@@ -1,3 +1,7 @@
+#!/bin/bash
+# @name Prompts
+# @brief Inquirer.js inspired prompts
+
 ## Functions that output something or read something
 Banner() {
   clear
@@ -33,3 +37,69 @@ myPasswd() {
 log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$logFile"; }
 addToBashrc() { grep -qxF "$1" $HOME/.bashrc || echo "$1" >> $HOME/.bashrc; }
 readList(){ { read -r name; read -r value; mapfile -t list; } < "$1"; }
+_read_stdin() {
+	# shellcheck disable=SC2162,SC2068
+	read $@ </dev/tty
+}
+_get_cursor_row() {
+    local IFS=';'
+    # shellcheck disable=SC2162,SC2034
+    _read_stdin -sdR -p $'\E[6n' ROW COL;
+    echo "${ROW#*[}";
+}
+_cursor_blink_on() { echo -en "\033[?25h" >&2; }
+_cursor_blink_off() { echo -en "\033[?25l" >&2; }
+_cursor_to() { echo -en "\033[$1;$2H" >&2; }
+_new_line_foreach_item() {
+    count=0
+    while [[ $count -lt $1  ]];
+    do
+        echo "" >&2
+        ((count++))
+    done
+}
+list() {
+    _prompt_text "$1 "
+
+    local opts=("${@:2}")
+    local opts_count=$(($# -1))
+    _new_line_foreach_item "${#opts[@]}"
+
+    # determine current screen position for overwriting the options
+    local lastrow; lastrow=$(_get_cursor_row)
+    local startrow; startrow=$((lastrow - opts_count + 1))
+
+    # ensure cursor and input echoing back on upon a ctrl+c during read -s
+    trap "_cursor_blink_on; stty echo; exit" 2
+    _cursor_blink_off
+
+    local selected=0
+    while true; do
+        # print options by overwriting the last lines
+        local idx=0
+        for opt in "${opts[@]}"; do
+            _cursor_to $((startrow + idx))
+            if [ "$idx" -eq "$selected" ]; then
+                printf "\033[0m\033[36m❯\033[0m \033[36m%s\033[0m" "$opt" >&2
+            else
+                printf "  %s" "$opt" >&2
+            fi
+            ((idx++))
+        done
+
+        # user key control
+        case $(_key_input) in
+            enter) break; ;;
+            up) selected=$(_decrement_selected "${selected}" "${opts_count}"); ;;
+            down) selected=$(_increment_selected "${selected}" "${opts_count}"); ;;
+        esac
+    done
+
+    echo -en "\n" >&2
+
+    # cursor position back to normal
+    _cursor_to "${lastrow}"
+    _cursor_blink_on
+
+    echo -n "${selected}"
+}

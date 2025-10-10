@@ -46,7 +46,7 @@ installDE() { Banner; checkDebugFlag
       install="${list[@]}"
       sleep 5
       dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun $install $debugstring"
-      s=(($value))
+      s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok
   bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"
@@ -63,7 +63,9 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
     runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
-  sed -i "/${scriptname}/d" $HOME/.bashrc; echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
+  sed -i "/${scriptname}/d" $HOME/.bashrc; 
+  #echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
+  mv "$HOME/sArch/config/hypr" "$HOME/.config/"
   myPrint countdown 3 "Reboot in"; reboot
 }
 installConfigs() { Banner; checkDebugFlag

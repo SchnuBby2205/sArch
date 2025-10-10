@@ -39,7 +39,7 @@ installDE() { Banner; checkDebugFlag
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
   myPrint countdown 3 "Starting installation in"
-  [[ "$debug" == false ]] && myPrint step Installing Dependencies...
+  [[ "$debug" == false ]] && myPrint step Installing "Dependencies..."
     s=0; for r in systemdeps audiodeps programs fonts; do readList "$sARCH_INSTALLCONFIGS/$r"; dryRun runCMDS 0 Installing $name $s $value 20 "$pacmanRun ${list[@]} $debugstring"; s=$value; done
   [[ "$debug" == false ]] && myPrint step ok
   safeCMD git clone https://aur.archlinux.org/yay.git $debugstring; cd yay; safeCMD makepkg -si; cd ..; safeCMD rm ./yay; printf "\n"

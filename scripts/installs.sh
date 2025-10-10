@@ -65,7 +65,7 @@ installDE() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step ok
   sed -i "/${scriptname}/d" $HOME/.bashrc; 
   #echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
-  mv "$HOME/sArch/config/hypr" "$HOME/.config/"
+  mv "$HOME/sArch/configs/hypr" "$HOME/.config/"
   Banner
   myPrint countdown 3 "Reboot in"; reboot
 }

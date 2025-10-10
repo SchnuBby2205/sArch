@@ -72,7 +72,7 @@ installDE() { Banner; checkDebugFlag
 installConfigs() { Banner; checkDebugFlag
   sudo pacman -Syy $debugstring
   [[ "$debug" == false ]] && myPrint step Running "Final steps..."
-    readList "$sARCH_CONFIGS/$gpu"
+    readList "$sARCH_INSTALLCONFIGS/$gpu"
     install="${list[@]}"
     runCMDS 0 Installing $name 0 $value 20 "$pacmanRun $install $debugstring"
     dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
@@ -83,7 +83,7 @@ installConfigs() { Banner; checkDebugFlag
   [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "y"
   [[ "$backup" =~ ^[yY]$ ]] && installBackup
   #safeCMD rm $HOME/$sARCH_MAIN
-  safeCMD mv $HOME/$sARCH_MAIN $HOME/${sARCH_MAIN}_finished
+  mv $HOME/sArch $HOME/sArch_finished
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }

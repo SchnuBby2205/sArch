@@ -72,7 +72,7 @@ installDE() { Banner; checkDebugFlag
 installConfigs() { Banner; checkDebugFlag
   bash -c "sudo pacman -Syy $debugstring"
   [[ "$debug" == false ]] && myPrint step Running "Final steps..."
-    readList "$sARCH_INSTALLCONFIGS/$gpus"
+    readList "$sARCH_INSTALLCONFIGS/$gpu"
     install="${list[@]}"
     dryRun runCMDS 0 Installing $name 0 $value 20 "$pacmanRun $install $debugstring"
     dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"

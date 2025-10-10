@@ -43,7 +43,9 @@ installDE() { Banner; checkDebugFlag
     s=0
     for r in systemdeps audiodeps programs fonts; do
       readList "$sARCH_INSTALLCONFIGS/$r"
-      dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun ${list[@]} $debugstring"
+      echo -e $list
+      sleep 5
+      dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun $list $debugstring"
       s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok

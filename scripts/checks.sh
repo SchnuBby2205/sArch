@@ -18,6 +18,7 @@ checkPartitions() {
 validateUser() { [[ "$1" =~ ^[a-z_][a-z0-9_-]*$ ]] || exitWithError "Invalid username!"; }
 checkDebugFlag() { debugstring=$([[ "$debug" == true ]] && echo "" || echo " &>/dev/null"); }
 checkInstallSettings() {
+  clear;Banner
   if [[ ("$1" == "boot" || "$1" == "swap" || "$1" == "root") || -z "$1" ]]; then
     checkPartitions
     parts="$?"

@@ -21,9 +21,11 @@ installArchCHRoot() { Banner; checkDebugFlag
     dryRun runCMDS 0 "Setting up" locales... 7 14 20 "sed -e '/${locale}/s/^#*//' -i /etc/locale.gen" "locale-gen $debugstring" "echo LANG=${locale} >> /etc/locale.conf" "echo KEYMAP=${keymap} >> /etc/vconsole.conf"
     dryRun runCMDS 0 "Setting up" GRUB... 14 20 20 "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB $debugstring" "grub-mkconfig -o /boot/grub/grub.cfg $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
-  [[ -z "$hostname" ]] && getInput "\nEnter your Hostname: " hostname "SchnuBbyLinux"; echo ${hostname} >> /etc/hostname
+  echo ${hostname} >> /etc/hostname
+  Banner
   myPrint print yellow "\nEnter your NEW root password\n\n"; myPasswd root
-  [[ -z "$user" ]] && getInput "\nEnter your normal username: " user "schnubby"; useradd -mG wheel ${user}
+  useradd -mG wheel ${user}
+  Banner
   myPrint print yellow "\nEnter your normal user password\n\n"; myPasswd "${user}"
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
   #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
@@ -34,7 +36,6 @@ installArchCHRoot() { Banner; checkDebugFlag
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { Banner; checkDebugFlag
-  [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
   myPrint countdown 3 "Starting installation in"
@@ -54,8 +55,6 @@ installDE() { Banner; checkDebugFlag
   myPrint countdown 3 "Reboot in"; reboot
 }
 installConfigs() { Banner; checkDebugFlag
-  [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"
-  [[ -z "$gpu" ]] && getInput "Enter your GPU (amd or nvidia): " gpu "amd"
   sudo pacman -Syy $debugstring
   [[ "$debug" == false ]] && myPrint step Running "Final steps..."
     readList "$sARCH_CONFIGS/$gpu"; dryRun runCMDS 0 Installing $name 0 $value 20 "$pacmanRun ${list[@]} $debugstring"

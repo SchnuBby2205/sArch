@@ -76,7 +76,6 @@ installConfigs() { Banner; checkDebugFlag
     install="${list[@]}"
     dryRun runCMDS 0 Installing "$name" 0 $value 20 "$pacmanRun $install $debugstring"
     dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
-    safeCMD mv $HOME/.config/hypr $HOME/.config/hypr_bak; safeCMD mv $HOME/$sARCH_CONFIGS/hypr $HOME/.config/hypr
     dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   firefox --ProfileManager

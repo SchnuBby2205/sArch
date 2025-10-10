@@ -18,7 +18,7 @@ checkPartitions() {
 validateUser() { [[ "$1" =~ ^[a-z_][a-z0-9_-]*$ ]] || exitWithError "Invalid username!"; }
 checkDebugFlag() { debugstring=$([[ "$debug" == true ]] && echo "" || echo " &>/dev/null"); }
 checkInstallSettings() {
-  clear;Banner
+  Banner
   if [[ ("$1" == "boot" || "$1" == "swap" || "$1" == "root") || -z "$1" ]]; then
     checkPartitions
     parts="$?"
@@ -34,7 +34,7 @@ checkInstallSettings() {
         printf -v "$p" "${partitions[$part]}"
         sed -i "/$p/d" "$sARCH_INSTALLCONFIGS/install_settings"
         echo -e "$p=\"${!p}\"" >> "$sARCH_INSTALLCONFIGS/install_settings"
-        clear;Banner
+        Banner
       done
     fi
     [[ -n "$1" ]] && showSettings
@@ -51,7 +51,7 @@ checkInstallSettings() {
         sed -i "/$v/d" "$sARCH_INSTALLCONFIGS/install_settings"
         echo -e "$v=\"${!v}\"" >> "$sARCH_INSTALLCONFIGS/install_settings"
       fi
-      clear;Banner
+      Banner
     done
     [[ -n "$1" ]] && showSettings
   fi
@@ -70,7 +70,7 @@ checkInstallSettings() {
         sed -i "/$v/d" "$sARCH_INSTALLCONFIGS/install_settings"
         echo -e "$v=\"${!v}\"" >> "$sARCH_INSTALLCONFIGS/install_settings"
       fi
-      clear;Banner
+      Banner
     done
     [[ -n "$1" ]] && showSettings
   fi
@@ -93,7 +93,7 @@ checkInstallSettings() {
       fi
       sed -i "/$v/d" "$sARCH_INSTALLCONFIGS/install_settings"
       echo -e "$v=\"${!v}\"" >> "$sARCH_INSTALLCONFIGS/install_settings"
-      clear;Banner
+      Banner
     done 
     [[ -n "$1" ]] && showSettings
   fi

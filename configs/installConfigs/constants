@@ -13,7 +13,7 @@ ERROR="${RED}${CROSS}${NC}"
 MYOK="${GREEN}${CHECK}${NC}"
 UP="\e[A"
 CLEAR="\r                                        \r"
-pacmanRun=(sudo pacman -S --noconfirm --needed)
+pacmanRun="sudo pacman -S --noconfirm --needed"
 declare -A arrPartitions
 arrPartitions[1]="boot"
 arrPartitions[10]="swap"

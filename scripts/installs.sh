@@ -47,7 +47,7 @@ installDE() { Banner; checkDebugFlag
       s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok
-  safeCMD "git clone https://aur.archlinux.org/yay.git yay $debugstring"; cd yay; safeCMD makepkg -si; cd ..; safeCMD rm ./yay; printf "\n"
+  git clone https://aur.archlinux.org/yay.git yay $debugstring; cd yay; makepkg -si; cd ..; rm ./yay; printf "\n"
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
     dryRun runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
     dryRun runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell --noconfirm $debugstring"

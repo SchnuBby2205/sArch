@@ -1,6 +1,6 @@
 ## All Functions that install the system and configure it (the functions are chained together)
 installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkInstallSettings
-  for p in boot swap root; do validatePartition ${!p}; myPrint print green "\n${p^} partition: "; printf "${WHITE}${!p}${NC}"; done
+  for p in boot swap root; do validatePartition ${!p}; myPrint print green "${p^} partition: "; printf "${WHITE}${!p}${NC}\n"; done
   myPrint print red "\n\n!!ATTENTION!!\nThese partitions will be WIPED AND FORMATTED without another Warning!! Please check them TWICE before you continue!!\n!!ATTENTION!!\n\n"
   getInput "Type YES to continue (STRG+C to exit now)..." check "N"; [[ "$check" != "YES" ]] && exitWithError "Formatting was not confirmed!" || printf "\n"
   myPrint countdown 3 "Starting installation in"; Banner

@@ -34,7 +34,7 @@ myPasswd() {
   done
   myPrint print red "Maximum tries reached. Script will end now."; exit 1
 }
-log() { echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$logFile"; }
+log() { }#echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$logFile"; }
 addToBashrc() { grep -qxF "$1" $HOME/.bashrc || echo "$1" >> $HOME/.bashrc; }
 readList(){ { read -r name; read -r value; mapfile -t list; } < "$1"; }
 _read_stdin() {

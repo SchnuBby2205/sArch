@@ -39,7 +39,7 @@ installDE() { Banner; checkDebugFlag
   myPrint countdown 3 "Resuming installation in"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
-  Banner
+  #Banner
   [[ "$debug" == false ]] && myPrint step Installing "Dependencies..."
     s=0
     for r in systemdeps audiodeps programs fonts; do
@@ -54,7 +54,7 @@ installDE() { Banner; checkDebugFlag
   makepkg -si
   cd ..
   rm -rf ./yay
-  Banner
+  #Banner
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
     runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
     runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell-git --noconfirm $debugstring"

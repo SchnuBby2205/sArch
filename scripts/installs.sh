@@ -33,13 +33,14 @@ installArchCHRoot() { Banner; checkDebugFlag
   bash -c "systemctl enable NetworkManager $debugstring"
   cd ..
   mv /home/sArch /home/$user/ 
+  chown -r "$user:$user" /home/$user/sArch
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { Banner; checkDebugFlag
   myPrint countdown 3 "Resuming installation in"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
-  #Banner
+  Banner
   [[ "$debug" == false ]] && myPrint step Installing "Dependencies..."
     s=0
     for r in systemdeps audiodeps programs fonts; do
@@ -49,12 +50,12 @@ installDE() { Banner; checkDebugFlag
       s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok
-  git clone https://aur.archlinux.org/yay.git
+  bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"
   cd yay
   makepkg -si
   cd ..
   rm -rf ./yay
-  #Banner
+  Banner
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
     runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
     runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell-git --noconfirm $debugstring"

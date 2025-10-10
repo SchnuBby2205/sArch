@@ -64,7 +64,7 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   sed -i "/${scriptname}/d" $HOME/.bashrc
-  mv "$HOME/sArch/hypr" "$HOME/.config/"
+  #mv "$HOME/sArch/hypr" "$HOME/.config/"
   # echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   myPrint countdown 3 "Reboot in"; reboot
 }

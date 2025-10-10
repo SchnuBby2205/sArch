@@ -33,7 +33,7 @@ installArchCHRoot() { Banner; checkDebugFlag
   bash -c "systemctl enable NetworkManager $debugstring"
   cd ..
   mv /home/sArch /home/$user/ 
-  chown -r "$user:$user" /home/$user/sArch
+  chown -R "$user:$user" /home/$user/sArch
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { Banner; checkDebugFlag

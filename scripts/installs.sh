@@ -83,8 +83,9 @@ installConfigs() { Banner; checkDebugFlag
   firefox --ProfileManager
   [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "y"
   [[ "$backup" =~ ^[yY]$ ]] && installBackup
-  #safeCMD rm $HOME/$sARCH_MAIN
+  #safeCMD rm $HOME/$sARCH_MAIN  
   mv "$HOME/sArch" "$HOME/sArch_finished"
+  sed -i "/${scriptname}/d" $HOME/.config/hypr/userprefs.conf
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }

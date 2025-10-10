@@ -36,7 +36,7 @@ installArchCHRoot() { Banner; checkDebugFlag
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { Banner; checkDebugFlag
-  myPrint countdown 3 "Starting installation in"
+  myPrint countdown 3 "Resuming installation in"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
   Banner

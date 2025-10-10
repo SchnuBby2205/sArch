@@ -49,7 +49,7 @@ installDE() { Banner; checkDebugFlag
       s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok
-  bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"
+  git clone https://aur.archlinux.org/yay.git
   cd yay
   makepkg -si
   cd ..

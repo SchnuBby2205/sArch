@@ -39,6 +39,7 @@ installDE() { Banner; checkDebugFlag
   myPrint countdown 3 "Starting installation in"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
+  Banner
   [[ "$debug" == false ]] && myPrint step Installing "Dependencies..."
     s=0
     for r in systemdeps audiodeps programs fonts; do

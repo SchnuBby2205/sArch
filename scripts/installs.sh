@@ -36,9 +36,9 @@ installArchCHRoot() { Banner; checkDebugFlag
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 installDE() { Banner; checkDebugFlag
+  myPrint countdown 3 "Starting installation in"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
-  myPrint countdown 3 "Starting installation in"
   [[ "$debug" == false ]] && myPrint step Installing "Dependencies..."
     s=0; for r in systemdeps audiodeps programs fonts; do readList "$sARCH_INSTALLCONFIGS/$r"; dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun ${list[@]} $debugstring"; s=$value; done
   [[ "$debug" == false ]] && myPrint step ok

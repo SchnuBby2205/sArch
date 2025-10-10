@@ -50,6 +50,29 @@ _get_cursor_row() {
 _cursor_blink_on() { echo -en "\033[?25h" >&2; }
 _cursor_blink_off() { echo -en "\033[?25l" >&2; }
 _cursor_to() { echo -en "\033[$1;$2H" >&2; }
+_key_input() {
+    local ESC=$'\033'
+    local IFS=''
+
+    _read_stdin -rsn1 a
+    # is the first character ESC?
+	# shellcheck disable=SC2154
+    if [[ "$ESC" == "$a" ]]; then
+        _read_stdin -rsn2 b
+    fi
+
+	# shellcheck disable=SC2154
+    local input="${a}${b}"
+    # shellcheck disable=SC1087
+    case "$input" in
+        "$ESC[A" | "k") echo up ;;
+        "$ESC[B" | "j") echo down ;;
+        "$ESC[C" | "l") echo right ;;
+        "$ESC[D" | "h") echo left ;;
+        '') echo enter ;;
+        ' ') echo space ;;
+    esac
+}
 _new_line_foreach_item() {
     count=0
     while [[ $count -lt $1  ]];
@@ -58,6 +81,31 @@ _new_line_foreach_item() {
         ((count++))
     done
 }
+# display prompt text without linebreak
+_prompt_text() {
+    echo -en "\033[32m?${NC}${YELLOW} ${1}${NC} " >&2
+}
+
+# decrement counter $1, considering out of range for $2
+_decrement_selected() {
+    local selected=$1;
+    ((selected--))
+    if [ "${selected}" -lt 0 ]; then
+        selected=$(($2 - 1));
+    fi
+    echo -n $selected
+}
+
+# increment counter $1, considering out of range for $2
+_increment_selected() {
+    local selected=$1;
+    ((selected++));
+    if [ "${selected}" -ge "${opts_count}" ]; then
+        selected=0;
+    fi
+    echo -n $selected
+}
+
 list() {
     _prompt_text "$1 "
 
@@ -102,4 +150,49 @@ list() {
     _cursor_blink_on
 
     echo -n "${selected}"
+}
+main() {
+    Banner
+    choice=$(list "Main Menu" ${menuEntries[@]})
+    if [[ ${menuEntries[$choice]} == "Settings" ]]; then showSettings; fi
+    if [[ ${menuEntries[$choice]} == "Install" ]]; then
+        clear
+        Banner
+        installentries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Back")
+        installchoice=$(list "Install" "${installentries[@]}")
+        if [[ "${installentries[$installchoice]}" == "Back" ]]; then            
+            main
+        else
+            if [[ "${installentries[$installchoice]}" == "Base System" ]]; then installBaseSystem; fi
+            if [[ "${installentries[$installchoice]}" == "Arch-Chroot" ]]; then installArchCHRoot; fi
+            if [[ "${installentries[$installchoice]}" == "Desktop" ]]; then installDE; fi
+            if [[ "${installentries[$installchoice]}" == "Configs" ]]; then installConfigs; fi
+            if [[ "${installentries[$installchoice]}" == "Backups" ]]; then installBackup; fi
+        fi
+    fi
+    if [[ ${menuEntries[$choice]} == "Exit" ]]; then clear; exit 0; fi
+}
+showSettings() {
+    clear
+    Banner
+    entries=(
+        "boot=$boot"
+        "swap=$swap"
+        "root=$root"
+        "hostname=$hostname"
+        "user=$user"
+        "cpu=$cpu"
+        "gpu=$gpu"
+        "timezone=$timezone"
+        "locale=$locale"
+        "keymap=$keymap"
+        "kernel=$kernel"
+        "Back"
+    )
+    choice=$(list "settings" ${entries[@]})
+    if [[ "${entries[$choice]}" == "Back" ]]; then
+        main
+    else
+        checkInstallSettings "${entries[$choice]%=*}"
+    fi
 }

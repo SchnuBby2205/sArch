@@ -76,13 +76,14 @@ installConfigs() { Banner; checkDebugFlag
     install="${list[@]}"
     dryRun runCMDS 0 Installing "$name" 0 $value 20 "$pacmanRun $install $debugstring"
     dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
+    #mv "$HOME/.config/hypr" $HOME/.config/hypr_bak; safeCMD mv $HOME/$sARCH_CONFIGS/hypr $HOME/.config/hypr
     dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   firefox --ProfileManager
   [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "y"
   [[ "$backup" =~ ^[yY]$ ]] && installBackup
   #safeCMD rm $HOME/$sARCH_MAIN
-  mv $HOME/sArch $HOME/sArch_finished
+  mv "$HOME/sArch" "$HOME/sArch_finished"
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }

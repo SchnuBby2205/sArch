@@ -46,7 +46,7 @@ installDE() { Banner; checkDebugFlag
       install="${list[@]}"
       sleep 5
       dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun $install $debugstring"
-      s=$value
+      $s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok
   bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"

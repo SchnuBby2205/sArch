@@ -45,7 +45,6 @@ installDE() { Banner; checkDebugFlag
     for r in systemdeps audiodeps programs fonts; do
       readList "$sARCH_INSTALLCONFIGS/$r"
       install="${list[@]}"
-      sleep 5
       dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun $install $debugstring"
       $s=$value
     done

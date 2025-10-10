@@ -13,7 +13,7 @@ installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkInstallSet
   cp -r . /mnt/home/sArch
   arch-chroot /mnt /bin/bash -c "cd /home/sArch && ./install.sh installArchCHRoot"
   #arch-chroot /mnt "/mnt/home/sArch/${scriptname} installArchCHRoot"
-  umount -R /mnt; printf "\n"; myPrint countdown 3 "Installation complete! Reboot in"; reboot
+  umount -R /mnt; Banner; myPrint countdown 3 "Installation complete! Reboot in"; reboot
 }
 installArchCHRoot() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step Configuring "arch-chroot..."
@@ -23,10 +23,10 @@ installArchCHRoot() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step ok
   echo ${hostname} >> /etc/hostname
   Banner
-  myPrint print yellow "\nEnter your NEW root password\n\n"; myPasswd root
+  myPrint print yellow "Enter your NEW root password\n\n"; myPasswd root
   useradd -mG wheel ${user}
   Banner
-  myPrint print yellow "\nEnter your normal user password\n\n"; myPasswd "${user}"
+  myPrint print yellow "Enter your normal user password\n\n"; myPasswd "${user}"
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
   #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
   #addToBashrc "$HOME/sARCH/${scriptname} installDE"

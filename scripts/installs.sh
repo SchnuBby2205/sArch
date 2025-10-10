@@ -49,16 +49,12 @@ installDE() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step ok
   bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"; cd yay; makepkg -si; cd ..; rm ./yay; printf "\n"
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
-    #dryRun runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
-    #dryRun runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell --noconfirm $debugstring"
-    # Hier gehts wieder schief
-    bash -c "sudo mkdir /etc/sddm.conf.d"
-    bash -c "yay -S quickshell --noconfirm $debugstring"
-    bash -c "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
-    #dryRun runCMDS 0 Installing myShell... 17 20 20 "safeCMD git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
+    runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
+    runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell --noconfirm $debugstring"
+    runCMDS 0 Installing myShell... 17 20 20 "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...
-    dryRun runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
-    dryRun runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
+    runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
+    runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   sed -i "/${scriptname}/d" $HOME/.bashrc; echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   myPrint countdown 3 "Reboot in"; reboot

@@ -1,0 +1,4 @@
+## All the settings sARCH needs for an installation
+## !!!! he File needs a empty line at the END !!!!
+debug=false
+dryRun=false

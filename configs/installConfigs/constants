@@ -1,0 +1,32 @@
+## Constants for the install.sh script
+scriptname=$(basename "$0")
+logFile="/var/log/ArchInstall.log"
+RED="\e[31m"
+GREEN="\e[32m"
+YELLOW="\e[1;33m"
+WHITE="\e[1;37m"
+NC="\e[0m"
+CROSS="\u2717"
+CHECK="\u2713"
+RUNNING="${YELLOW}•${NC}"
+ERROR="${RED}${CROSS}${NC}"
+MYOK="${GREEN}${CHECK}${NC}"
+UP="\e[A"
+CLEAR="\r                                        \r"
+pacmanRun="sudo pacman -S --noconfirm --needed"
+declare -A arrPartitions
+arrPartitions[1]="boot"
+arrPartitions[10]="swap"
+arrPartitions[100]="root"
+arrPartitions[11]="boot swap"
+arrPartitions[101]="boot root"
+arrPartitions[110]="boot swap"
+arrPartitions[111]="boot swap root"
+declare -A checkDefaults
+checkDefaults["hostname"]="sArch"
+checkDefaults["user"]="schnubby"
+checkDefaults["timezone"]="Europe/Berlin"
+checkDefaults["locale"]="de_DE.UTF-8"
+checkDefaults["keymap"]="de-latin1"
+checkDefaults["kernel"]="linux-lts"
+menuEntries=("Settings" "Install" "Exit")

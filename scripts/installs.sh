@@ -15,7 +15,7 @@ installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkInstallSet
   #arch-chroot /mnt "/mnt/home/sArch/${scriptname} installArchCHRoot"
   umount -R /mnt; printf "\n"; myPrint countdown 3 "Installation complete! Reboot in"; reboot
 }
-installArchCHRoot() { checkDebugFlag
+installArchCHRoot() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step Configuring "arch-chroot..."
     dryRun runCMDS 0 Setting localtime... 0 7 20 "ln -sf /usr/share/zoneinfo/${timezone} /etc/localtime $debugstring" "hwclock --systohc $debugstring"
     dryRun runCMDS 0 "Setting up" locales... 7 14 20 "sed -e '/${locale}/s/^#*//' -i /etc/locale.gen" "locale-gen $debugstring" "echo LANG=${locale} >> /etc/locale.conf" "echo KEYMAP=${keymap} >> /etc/vconsole.conf"
@@ -33,9 +33,8 @@ installArchCHRoot() { checkDebugFlag
   mv /home/sArch /home/$user/ 
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
-installDE() { checkDebugFlag
+installDE() { Banner; checkDebugFlag
   [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"
-  Banner
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
   bash -c "sudo pacman -Syy $debugstring"
   myPrint countdown 3 "Starting installation in"
@@ -54,7 +53,7 @@ installDE() { checkDebugFlag
   sed -i "/${scriptname}/d" $HOME/.bashrc; echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   myPrint countdown 3 "Reboot in"; reboot
 }
-installConfigs() { checkDebugFlag; Banner
+installConfigs() { Banner; checkDebugFlag
   [[ -z "$user" ]] && getInput "Enter your normal username: " user "schnubby"
   [[ -z "$gpu" ]] && getInput "Enter your GPU (amd or nvidia): " gpu "amd"
   sudo pacman -Syy $debugstring
@@ -72,7 +71,7 @@ installConfigs() { checkDebugFlag; Banner
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }
-installBackup() { checkDebugFlag; [[ "$debug" == false ]] && myPrint step Installing "Backup..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
+installBackup() { Banner; checkDebugFlag; [[ "$debug" == false ]] && myPrint step Installing "Backup..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
   fstab) dryRun runCMDS 1 Configuring fstab... 0 2 20 "sudo echo -e '/dev/nvme0n1p4      	/programmieren     	ext4      	rw,relatime	0 1' >> /etc/fstab" "sudo echo -e '/dev/nvme0n1p6      	/spiele     	ext4      	rw,relatime	0 1' >> /etc/fstab";;
   autologin) dryRun runCMDS 1 Setting autologin... 2 5 20 "sudo echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=${user}' >> /etc/sddm.conf.d/autologin.conf";;
   lutris) [[ -d "$HOME/.local/share/lutris" ]] && dryRun runCMDS 0 Backing lutris... 5 6 20 "mv $HOME/.local/share/lutris $HOME/.local/share/lutris_bak"; [[ ! -d "$HOME/.local/share/lutris" ]] && runCMDS 0 Configuring lutris... 6 7 20 "ln -s /programmieren/backups/.local/share/lutris $HOME/.local/share/lutris";;

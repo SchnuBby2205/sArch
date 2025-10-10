@@ -189,7 +189,7 @@ showSettings() {
         "kernel=$kernel"
         "Back"
     )
-    choice=$(list "settings" ${entries[@]})
+    choice=$(list "Settings" ${entries[@]})
     if [[ "${entries[$choice]}" == "Back" ]]; then
         main
     else

@@ -1,4 +1,5 @@
 // default config
+@import "colors.rasi"
 
 configuration {
     show-icons: false;

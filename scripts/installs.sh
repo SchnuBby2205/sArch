@@ -57,8 +57,9 @@ installDE() { Banner; checkDebugFlag
   rm -rf ./yay
   Banner
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
-    runCMDS 1 Creating "SDDM config directory..." 0 2 20 "sudo mkdir /etc/sddm.conf.d"
-    runCMDS 0 Installing Quickshell... 2 15 20 "yay -S quickshell-git --noconfirm $debugstring"
+    runCMDS 1 Creating "SDDM config directory..." 0 1 20 "sudo mkdir /etc/sddm.conf.d"
+    runCMDS 0 Installing pywalfox... 2 3 20 "yay -S python-pywalfox --noconfirm $debugstring"
+    runCMDS 0 Installing Quickshell... 3 15 20 "yay -S quickshell-git --noconfirm $debugstring"
     runCMDS 0 Installing myShell... 17 20 20 "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
     bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/create_thumbnails.sh /bin"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...

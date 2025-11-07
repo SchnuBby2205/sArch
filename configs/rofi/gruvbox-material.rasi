@@ -81,7 +81,7 @@ case-indicator {
 prompt {
   margin: 0px 1em 0em 0em;
 }
-
+/*
 listview {
   padding: 8px;
   border-radius: 0px; /* Removed rounded corners */
@@ -89,6 +89,16 @@ listview {
   border-color: @gruv0;
   background-color: @transparent;
   dynamic: false;
+}
+*/
+listview, inputbar, message {
+  padding: 0.5em;  
+  columns: 4;
+  //lines:   4;
+}
+listview {
+  border:       0px 5px 5px 5px;
+  border-radius: 0px 0px 10px 10px;
 }
 
 element {
@@ -98,8 +108,15 @@ element {
   color: @foreground;
   text-color: @gruv6;
   background-color: @transparent;
+  orientation: vertical;
+  children: [element-icon, element-text];
 }
-
+element-icon {
+  size: 4em;
+  margin: 0 10 0 0;
+  vertical-align: 0.5;
+  text-color: @gruv6;
+}
 element.normal.active {
   background-color: @yellow;
 }
@@ -125,8 +142,7 @@ element.alternate.normal {
   background-color: @transparent;
 }
 
-element-text,
-element-icon {
+element-text {
   size: 3ch;
   margin: 0 10 0 0;
   vertical-align: 0.5;

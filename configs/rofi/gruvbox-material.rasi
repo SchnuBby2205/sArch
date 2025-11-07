@@ -3,14 +3,15 @@
 
 * {
   //gruv0: #282828;
-  gruv0: @secondary-container;
+  gruv0: @on-secondary;
   gruv1: #32302f;
   gruv2: #45403d;
   gruv3: #5a524c;
 
   gruv4: #fbf1c7;
   gruv5: #f4e8be;
-  gruv6: #eee0b7;
+  //gruv6: #eee0b7;
+  gruv6: @inverse-surface;
 
   gruv7: #a89984;
   gruv8: #928374;
@@ -32,7 +33,7 @@
   highlight: underline bold #eee0b7;
 
   //transparent: rgba(0, 0, 0, 0.1);
-  transparent: @primary-container;
+  transparent: @on-primary;
 }
 
 window {

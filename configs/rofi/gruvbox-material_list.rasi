@@ -3,7 +3,7 @@
 
 * {
   //gruv0: #282828;
-  gruv0: @on-secondary;
+  gruv0: @secondary-container;
   gruv1: #32302f;
   gruv2: #45403d;
   gruv3: #5a524c;
@@ -33,7 +33,7 @@
   highlight: underline bold #eee0b7;
 
   //transparent: rgba(0, 0, 0, 0.1);
-  transparent: @on-primary;
+  transparent: @primary-container;
 }
 
 window {

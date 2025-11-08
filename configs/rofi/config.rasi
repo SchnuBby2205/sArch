@@ -16,4 +16,4 @@ configuration {
     dpi: 110;
 }
 
-@theme "~/.config/rofi/gruvbox-material.rasi"
+//@theme "~/.config/rofi/gruvbox-material.rasi"

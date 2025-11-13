@@ -89,24 +89,30 @@ installConfigs() { Banner; checkDebugFlag
     dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   firefox --ProfileManager
-  [[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "y"
-  [[ "$backup" =~ ^[yY]$ ]] && installBackup
+  #[[ -z "$defaults" ]] && getInput "\nLoad Backup configs (git, lutris, fstab) (y/n)?\n" backup "y"
+  #[[ "$backup" =~ ^[yY]$ ]] && installBackup
   #safeCMD rm $HOME/$sARCH_MAIN  
   mv "$HOME/sArch" "$HOME/sArch_finished"
   sed -i "/${scriptname}/d" $HOME/.config/hypr/userprefs.conf
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }
-installBackup() { Banner; checkDebugFlag; [[ "$debug" == false ]] && myPrint step Installing "Backup..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
-  fstab) dryRun runCMDS 1 Configuring fstab... 0 2 20 "sudo echo -e '/dev/nvme0n1p4      	/programmieren     	ext4      	rw,relatime	0 1' >> /etc/fstab" "sudo echo -e '/dev/nvme0n1p6      	/spiele     	ext4      	rw,relatime	0 1' >> /etc/fstab";;
-  autologin) dryRun runCMDS 1 Setting autologin... 2 5 20 "sudo echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=${user}' >> /etc/sddm.conf.d/autologin.conf";;
-  lutris) [[ -d "$HOME/.local/share/lutris" ]] && dryRun runCMDS 0 Backing lutris... 5 6 20 "mv $HOME/.local/share/lutris $HOME/.local/share/lutris_bak"; [[ ! -d "$HOME/.local/share/lutris" ]] && runCMDS 0 Configuring lutris... 6 7 20 "ln -s /programmieren/backups/.local/share/lutris $HOME/.local/share/lutris";;
-  zshhist) [[ -f "$HOME/.zsh_history" ]] && dryRun runCMDS 0 Removing .zsh_history... 7 8 20 "rm -rf $HOME/.zsh_history"; runCMDS 0 Configuring .zsh_history... 7 9 20 "ln -sf /programmieren/backups/.zsh_history $HOME/.zsh_history";;
-  gitconf) [[ ! -f "$HOME/.gitconfig" ]] && dryRun runCMDS 0 Configuring git... 9 11 20 "ln -sf /programmieren/backups/.gitconfig $HOME/.gitconfig";;
-  gitcred) [[ ! -f "$HOME/.git-credentials" ]] && dryRun runCMDS 0 Configuring git credentials... 11 13 20 "ln -sf /programmieren/backups/.git-credentials $HOME/.git-credentials";;
-  teamspeak3) [[ -f "$HOME/.ts3client" ]] && dryRun runCMDS 0 Removing .ts3client... 13 14 20 "rm -rf $HOME/.ts3client"; runCMDS 0 Configuring .ts3client... 14 15 20 "ln -sf /programmieren/backups/.ts3client $HOME/.ts3client";;
-  grub) sudo sed -i "s/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g" /etc/default/grub; runCMDS 1 Regenerating GRUB... 15 20 20 "sudo grub-mkconfig -o /boot/grub/grub.cfg $debugstring";;
-  firefox) ff=$HOME/.mozilla/firefox/$(ls $HOME/.mozilla/firefox | grep "Default User"); rm -rf "$ff"; ln -sf /programmieren/backups/FireFox/3665cjzf.default-release "$ff";;
-  *) exitWithError "Error installing Backup!";;
-  esac; done; [[ "$debug" == false ]] && myPrint step ok;
-}
+#echo '/dev/nvme0n1p4   /programmieren   ext4   rw,relatime   0 1' | sudo tee -a /etc/fstab
+#echo '/dev/nvme0n1p6   /spiele          ext4   rw,relatime   0 1' | sudo tee -a /etc/fstab
+#echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=schnubby' | sudo tee /etc/sddm.conf.d/autologin.conf
+#
+#echo '/dev/nvme0n1p4   /programmieren   ext4   rw,relatime   0 1' | sudo tee -a /etc/fstab >/dev/null && echo '/dev/nvme0n1p6   /spiele          ext4   rw,relatime   0 1' | sudo tee -a /etc/fstab >/dev/null && echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=schnubby' | sudo tee /etc/sddm.conf.d/autologin.conf >/dev/null && sudo sed -i "s/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g" /etc/default/grub && sudo grub-mkconfig -o /boot/grub/grub.cfg
+#
+#installBackup() { Banner; checkDebugFlag; [[ "$debug" == false ]] && myPrint step Installing "Backup..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
+#  fstab) dryRun runCMDS 1 Configuring fstab... 0 2 20 "sudo echo -e '/dev/nvme0n1p4      	/programmieren     	ext4      	rw,relatime	0 1' >> /etc/fstab" "sudo echo -e '/dev/nvme0n1p6      	/spiele     	ext4      	rw,relatime	0 1' >> /etc/fstab";;
+#  autologin) dryRun runCMDS 1 Setting autologin... 2 5 20 "sudo echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=${user}' >> /etc/sddm.conf.d/autologin.conf";;
+#  lutris) [[ -d "$HOME/.local/share/lutris" ]] && dryRun runCMDS 0 Backing lutris... 5 6 20 "mv $HOME/.local/share/lutris $HOME/.local/share/lutris_bak"; [[ ! -d "$HOME/.local/share/lutris" ]] && runCMDS 0 Configuring lutris... 6 7 20 "ln -s /programmieren/backups/.local/share/lutris $HOME/.local/share/lutris";;
+#  zshhist) [[ -f "$HOME/.zsh_history" ]] && dryRun runCMDS 0 Removing .zsh_history... 7 8 20 "rm -rf $HOME/.zsh_history"; runCMDS 0 Configuring .zsh_history... 7 9 20 "ln -sf /programmieren/backups/.zsh_history $HOME/.zsh_history";;
+#  gitconf) [[ ! -f "$HOME/.gitconfig" ]] && dryRun runCMDS 0 Configuring git... 9 11 20 "ln -sf /programmieren/backups/.gitconfig $HOME/.gitconfig";;
+#  gitcred) [[ ! -f "$HOME/.git-credentials" ]] && dryRun runCMDS 0 Configuring git credentials... 11 13 20 "ln -sf /programmieren/backups/.git-credentials $HOME/.git-credentials";;
+#  teamspeak3) [[ -f "$HOME/.ts3client" ]] && dryRun runCMDS 0 Removing .ts3client... 13 14 20 "rm -rf $HOME/.ts3client"; runCMDS 0 Configuring .ts3client... 14 15 20 "ln -sf /programmieren/backups/.ts3client $HOME/.ts3client";;
+#  grub) sudo sed -i "s/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g" /etc/default/grub; runCMDS 1 Regenerating GRUB... 15 20 20 "sudo grub-mkconfig -o /boot/grub/grub.cfg $debugstring";;
+#  firefox) ff=$HOME/.mozilla/firefox/$(ls $HOME/.mozilla/firefox | grep "Default User"); rm -rf "$ff"; ln -sf /programmieren/backups/FireFox/3665cjzf.default-release "$ff";;
+#  *) exitWithError "Error installing Backup!";;
+#  esac; done; [[ "$debug" == false ]] && myPrint step ok;
+#}

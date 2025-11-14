@@ -10,7 +10,7 @@
     bg2:    @primary-container;
     /*bg1:    #3B4252;
     bg2:    #4C566A80;*/
-    bg3:    @inverse-surface;
+    bg3:    @primary;
     
     fg0:    #D8DEE9;
     fg1:    #ECEFF4;

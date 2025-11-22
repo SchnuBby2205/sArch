@@ -74,7 +74,9 @@ installDE() { Banner; checkDebugFlag
   mv "$HOME/sArch/configs/kitty" "$HOME/.config/"
   mv "$HOME/sArch/configs/rofi" "$HOME/.config/"
   mv "$HOME/sArch/configs/matugen" "$HOME/.config/"
-  mv "$HOME/sArch/configs/yazi" "$HOME/.config/"
+  mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
+  mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/yazi" "$HOME/.config/"
   Banner
   myPrint countdown 3 "Reboot in"; reboot
 }

@@ -25,3 +25,19 @@ post_hook = 'pywalfox update'
 [templates.myshell]
 input_path = '~/.config/matugen/templates/myshell-colors.json'
 output_path = '~/.config/quickshell/myShell/Configs/colors.json'
+
+[templates.kdeglobals]
+input_path = '~/.config/matugen/templates/kdeglobals'
+output_path = '~/.config/kdeglobals'
+
+[templates.qt5ct]
+input_path = '~/.config/matugen/templates/qtct-colors.conf'
+output_path = '~/.config/qt5ct/colors/matugen.conf'
+
+[templates.qt6ct]
+input_path = '~/.config/matugen/templates/qtct-colors.conf'
+output_path = '~/.config/qt6ct/colors/matugen.conf'
+
+[templates.kdecolors]
+input_path = "~/.config/matugen/templates/kde.colors"
+output_path = '~/.local/share/color-schemes/MaterialYou.colors'

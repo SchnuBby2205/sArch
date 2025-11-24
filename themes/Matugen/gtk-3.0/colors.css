@@ -4,20 +4,23 @@
 */
 notebook> header.top > tabs > tab:checked
 {
-    box-shadow: inset 0 -4px #f4bd6f;
+    box-shadow: inset 0 -4px #b2c5ff;
 }
 scale > trough > highlight {
-    background: #ddc2a1;
+    background: #c0c6dd;
 }
 scale > trough > slider {
-    background-color: #ddc2a1;
+    background-color: #c0c6dd;
 }
 scale:hover > trough {
-    background: #ddc2a1;
+    background: #c0c6dd;
 }
 scale:hover > trough > highlight {
-    background: #f4bd6f;
+    background: #b2c5ff;
 }
 scale:hover > trough > slider {
-    background: #f4bd6f;
+    background: #b2c5ff;
+}
+progressbar > trough > progress {
+    background-color: #b2c5ff;
 }

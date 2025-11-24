@@ -21,3 +21,6 @@ scale:hover > trough > highlight {
 scale:hover > trough > slider {
     background: {{colors.primary.default.hex}};
 }
+progressbar > trough > progress {
+    background-color: {{colors.primary.default.hex}};
+}

@@ -88,8 +88,8 @@ installDE() { Banner; checkDebugFlag
   mkdir -p "$HOME/.themes"
   mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"
   #mv "$HOME/sArch/configs/yazi" "$HOME/.config/"
-  #Banner
-  #myPrint countdown 3 "Reboot in"; reboot
+  Banner
+  myPrint countdown 3 "Reboot in"; reboot
 }
 installConfigs() { Banner; checkDebugFlag
   bash -c "sudo pacman -Syy $debugstring"

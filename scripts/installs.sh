@@ -86,10 +86,10 @@ installDE() { Banner; checkDebugFlag
   #mv "$HOME/sArch/bin/sarch_volume.sh" "/bin"
   # gtk-themes
   mkdir -p "$HOME/.themes"
-  mv "$HOME/sArch/configs/themes/Matugen" "$HOME/.themes/"
+  mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"
   #mv "$HOME/sArch/configs/yazi" "$HOME/.config/"
   Banner
-  myPrint countdown 3 "Reboot in"; reboot
+  #myPrint countdown 3 "Reboot in"; reboot
 }
 installConfigs() { Banner; checkDebugFlag
   bash -c "sudo pacman -Syy $debugstring"

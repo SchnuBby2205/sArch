@@ -79,10 +79,11 @@ installDE() { Banner; checkDebugFlag
   #mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
   #mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
   # binaries
-  mv "$HOME/sArch/bin/sarch_change_wallpaper.sh" "/bin"
-  mv "$HOME/sArch/bin/sarch_create_thumbnails.sh" "/bin"
-  mv "$HOME/sArch/bin/sarch_powermenu.sh" "/bin"
-  mv "$HOME/sArch/bin/sarch_volume.sh" "/bin"
+  cp -r "$HOME/sArch/bin/*.*" "/bin"
+  #mv "$HOME/sArch/bin/sarch_change_wallpaper.sh" "/bin"
+  #mv "$HOME/sArch/bin/sarch_create_thumbnails.sh" "/bin"
+  #mv "$HOME/sArch/bin/sarch_powermenu.sh" "/bin"
+  #mv "$HOME/sArch/bin/sarch_volume.sh" "/bin"
   # gtk-themes
   mkdir -p "$HOME/.themes"
   mv "$HOME/sArch/configs/themes/Matugen" "$HOME/.themes/"

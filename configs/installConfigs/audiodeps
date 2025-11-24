@@ -5,3 +5,4 @@ gst-plugin-pipewire
 wireplumber
 pavucontrol
 pamixer
+alsa-utils

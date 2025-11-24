@@ -79,7 +79,7 @@ installDE() { Banner; checkDebugFlag
   #mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
   #mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
   # binaries
-  sudo cp -r "$HOME/sArch/bin/" "/bin"
+  sudo cp -r "$HOME/sArch/bin/*" "/bin"
   #mv "$HOME/sArch/bin/sarch_change_wallpaper.sh" "/bin"
   #mv "$HOME/sArch/bin/sarch_create_thumbnails.sh" "/bin"
   #mv "$HOME/sArch/bin/sarch_powermenu.sh" "/bin"

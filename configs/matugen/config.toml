@@ -25,14 +25,18 @@ output_path = '~/.config/rofi/power.rasi'
 input_path = '~/.config/matugen/templates/rofi-colors-launcher.rasi'
 output_path = '~/.config/rofi/launcher.rasi'
 
+[templates.rofivolume]
+input_path = '~/.config/matugen/templates/rofi-colors-volume.rasi'
+output_path = '~/.config/rofi/volume.rasi'
+
 [templates.pywalfox]
 input_path = '~/.config/matugen/templates/pywalfox-colors.json'
 output_path = '~/.cache/wal/colors.json'
 post_hook = 'pywalfox update'
 
-[templates.myshell]
-input_path = '~/.config/matugen/templates/myshell-colors.json'
-output_path = '~/.config/quickshell/myShell/Configs/colors.json'
+#[templates.myshell]
+#input_path = '~/.config/matugen/templates/myshell-colors.json'
+#output_path = '~/.config/quickshell/myShell/Configs/colors.json'
 
 [templates.kdeglobals]
 input_path = '~/.config/matugen/templates/kdeglobals'

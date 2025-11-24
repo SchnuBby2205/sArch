@@ -59,11 +59,11 @@ installDE() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
     runCMDS 1 Creating "SDDM config directory..." 0 1 20 "sudo mkdir /etc/sddm.conf.d"
     runCMDS 0 Installing pywalfox... 2 3 20 "yay -S python-pywalfox --noconfirm $debugstring"
-    runCMDS 0 Installing Quickshell... 3 15 20 "yay -S quickshell-git --noconfirm $debugstring"
-    runCMDS 0 Installing myShell... 17 20 20 "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
-    bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/create_thumbnails.sh /bin"
-    bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/reload_shell.sh /bin"
-    bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/change_wallpaper.sh /bin"
+    #runCMDS 0 Installing Quickshell... 3 15 20 "yay -S quickshell-git --noconfirm $debugstring"
+    #runCMDS 0 Installing myShell... 17 20 20 "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
+    #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/create_thumbnails.sh /bin"
+    #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/reload_shell.sh /bin"
+    #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/change_wallpaper.sh /bin"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...
     runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
     runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
@@ -71,14 +71,18 @@ installDE() { Banner; checkDebugFlag
   sed -i "/${scriptname}/d" $HOME/.bashrc; 
   #echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   # configs
-  mv "$HOME/sArch/configs/hypr" "$HOME/.config/"
-  mv "$HOME/sArch/configs/kitty" "$HOME/.config/"
-  mv "$HOME/sArch/configs/rofi" "$HOME/.config/"
-  mv "$HOME/sArch/configs/matugen" "$HOME/.config/"
-  mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
-  mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/gtk-3.0" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/gtk-4.0" "$HOME/.config/"
+  find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"
+  #mv "$HOME/sArch/configs/hypr" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/kitty" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/rofi" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/matugen" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
+  # binaries
+  mv "$HOME/sArch/bin/sarch_change_wallpaper.sh" "/bin"
+  mv "$HOME/sArch/bin/sarch_create_thumbnails.sh" "/bin"
+  mv "$HOME/sArch/bin/sarch_powermenu.sh" "/bin"
+  mv "$HOME/sArch/bin/sarch_volume.sh" "/bin"
   # gtk-themes
   mkdir -p "$HOME/.themes"
   mv "$HOME/sArch/configs/themes/Matugen" "$HOME/.themes/"

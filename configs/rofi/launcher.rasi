@@ -23,9 +23,9 @@ configuration {
 * {
     font:                        "JetBrains Mono Nerd Font 10";
     background:                  #101010;
-    background-alt:              #bfc6dc;
+    background-alt:              #bec6dc;
     foreground:                  #FFFFFF;
-    selected:                    #adc6ff;
+    selected:                    #aac7ff;
     active:                      #909090;
     urgent:                      #707070;
 }
@@ -71,7 +71,7 @@ inputbar {
     spacing:                     10px;
     padding:                     100px 40px;
     background-color:            transparent;
-    background-image:            url("/home/schnubby/Bilder/Wallpapers/dark-waves.jpg", height);
+    background-image:            url("/home/schnubby/Bilder/Wallpapers/dark-star.jpg", height);
     text-color:                  @foreground;
     orientation:                 horizontal;
     children:                    [ "textbox-prompt-colon", "entry" ];

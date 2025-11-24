@@ -77,8 +77,8 @@ installDE() { Banner; checkDebugFlag
   mv "$HOME/sArch/configs/matugen" "$HOME/.config/"
   mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
   mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
-  mv "$HOME/sArch/configs/gtk-3.0" "$HOME/.config/"
-  mv "$HOME/sArch/configs/gtk-4.0" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/gtk-3.0" "$HOME/.config/"
+  #mv "$HOME/sArch/configs/gtk-4.0" "$HOME/.config/"
   # gtk-themes
   mkdir -p "$HOME/.themes"
   mv "$HOME/sArch/configs/themes/Matugen" "$HOME/.themes/"

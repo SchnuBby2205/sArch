@@ -66,7 +66,8 @@ inputbar {
     background-color:            transparent;
     background-image:            url("/home/schnubby/Bilder/Wallpapers/dark-star.jpg", width);
     text-color:                  @foreground;
-    children:                    [ "textbox-prompt-colon", "dummy", "prompt"];
+/*    children:                    [ "textbox-prompt-colon", "dummy", "prompt"];*/
+    children:                    ["dummy"];
 }
 
 dummy{

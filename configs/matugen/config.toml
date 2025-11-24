@@ -17,6 +17,14 @@ post_hook = 'pkill -SIGUSR1 kitty'
 input_path = '~/.config/matugen/templates/rofi-colors.rasi'
 output_path = '~/.config/rofi/colors.rasi'
 
+[templates.rofipower]
+input_path = '~/.config/matugen/templates/rofi-colors-power.rasi'
+output_path = '~/.config/rofi/power.rasi'
+
+[templates.rofilauncher]
+input_path = '~/.config/matugen/templates/rofi-colors-launcher.rasi'
+output_path = '~/.config/rofi/launcher.rasi'
+
 [templates.pywalfox]
 input_path = '~/.config/matugen/templates/pywalfox-colors.json'
 output_path = '~/.cache/wal/colors.json'

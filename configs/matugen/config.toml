@@ -63,3 +63,7 @@ post_hook = 'gsettings set org.gnome.desktop.interface gtk-theme ""; gsettings s
 [templates.gtk4-colors]
 input_path = '~/.config/matugen/templates/gtk-colors.css'
 output_path = '~/.themes/Matugen/gtk-4.0/colors.css'
+
+[templates.btop]
+input_path = '~/.config/matugen/templates/btop.theme'
+output_path = '~/.config/btop/themes/matugen.theme'

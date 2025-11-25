@@ -44,6 +44,6 @@
     surface-container: {{colors.surface_container.default.hex}};
     surface-container-high: {{colors.surface_container_high.default.hex}};
     surface-container-highest: {{colors.surface_container_highest.default.hex}};
-    backgroundwidth: url("{{image}}", width);
-    backgroundheight: url("{{image}}", height);
+    backgroundwidth: url("/home/schnubby/.cache/Wallpaper_thumbs/curr", width);
+    backgroundheight: url("/home/schnubby/.cache/Wallpaper_thumbs/curr", width);
 }

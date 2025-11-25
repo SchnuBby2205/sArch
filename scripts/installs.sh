@@ -60,6 +60,7 @@ installDE() { Banner; checkDebugFlag
     runCMDS 1 Creating "SDDM config directory..." 0 1 20 "sudo mkdir /etc/sddm.conf.d"
     runCMDS 0 Installing pywalfox... 2 3 20 "yay -S python-pywalfox --noconfirm $debugstring"
     #runCMDS 0 Installing Quickshell... 3 15 20 "yay -S quickshell-git --noconfirm $debugstring"
+    runCMDS 0 Downloading Wallpapers... 3 15 20 "git clone --depth 1 https://github.com/mylinuxforwork/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
     #runCMDS 0 Installing myShell... 17 20 20 "git clone --depth 1 https://github.com/SchnuBby2205/myShell.git $HOME/.config/quickshell/myShell $debugstring"
     #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/create_thumbnails.sh /bin"
     #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/reload_shell.sh /bin"
@@ -72,22 +73,16 @@ installDE() { Banner; checkDebugFlag
   #echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   # configs
   find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"
-  #mv "$HOME/sArch/configs/hypr" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/kitty" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/rofi" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/matugen" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/qt6ct" "$HOME/.config/"
-  #mv "$HOME/sArch/configs/qt5ct" "$HOME/.config/"
   # binaries
-  sudo cp -r "$HOME/sArch/bin/*" "/bin"
-  #mv "$HOME/sArch/bin/sarch_change_wallpaper.sh" "/bin"
-  #mv "$HOME/sArch/bin/sarch_create_thumbnails.sh" "/bin"
-  #mv "$HOME/sArch/bin/sarch_powermenu.sh" "/bin"
-  #mv "$HOME/sArch/bin/sarch_volume.sh" "/bin"
+  mv "$HOME/sArch/bin" "$HOME/.config/sArch/bin"
   # gtk-themes
   mkdir -p "$HOME/.themes"
   mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"
-  #mv "$HOME/sArch/configs/yazi" "$HOME/.config/"
+  # fonts
+  mkdir -p "$HOME/.local/share/fonts"
+  mv "$HOME/sArch/fonts" "$HOME/.local/share/fonts"
+  fc-cache
+  ~/.config/sArch/bin/sarch_create_thumbnails.sh
   Banner
   myPrint countdown 3 "Reboot in"; reboot
 }

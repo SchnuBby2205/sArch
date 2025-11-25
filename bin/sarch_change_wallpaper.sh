@@ -1,6 +1,6 @@
 #!/bin/bash
 
-./sarch_create_thumbnails.sh
+~/.config/sArch/bin/sarch_create_thumbnails.sh
 
 wallpaperDir=$HOME/Bilder/Wallpapers/
 cacheDir=$HOME/.cache/Wallpaper_thumbs/

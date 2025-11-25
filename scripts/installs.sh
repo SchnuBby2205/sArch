@@ -113,6 +113,8 @@ installConfigs() { Banner; checkDebugFlag
 #echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=schnubby' | sudo tee /etc/sddm.conf.d/autologin.conf
 #
 #echo '/dev/nvme0n1p4   /programmieren   ext4   rw,relatime   0 1' | sudo tee -a /etc/fstab >/dev/null && echo '/dev/nvme0n1p6   /spiele          ext4   rw,relatime   0 1' | sudo tee -a /etc/fstab >/dev/null && echo -e '\n[Autologin]\nRelogin=false\nSession=hyprland\nUser=schnubby' | sudo tee /etc/sddm.conf.d/autologin.conf >/dev/null && sudo sed -i "s/GRUB_TIMEOUT=5/GRUB_TIMEOUT=0/g" /etc/default/grub && sudo grub-mkconfig -o /boot/grub/grub.cfg
+#ff=$HOME/.mozilla/firefox/$(ls $HOME/.mozilla/firefox | grep "Default User"); rm -rf "$ff"; ln -sf /programmieren/backups/FireFox/3665cjzf.default-release "$ff"
+#Achtung git lutris und ts3 nur linken
 #
 #installBackup() { Banner; checkDebugFlag; [[ "$debug" == false ]] && myPrint step Installing "Backup..."; sudo mount --mkdir /dev/nvme0n1p4 /programmieren $debugstring; for s in fstab autologin lutris zshhist gitconfig gitcred teamspeak3 grub firefox; do case $s in
 #  fstab) dryRun runCMDS 1 Configuring fstab... 0 2 20 "sudo echo -e '/dev/nvme0n1p4      	/programmieren     	ext4      	rw,relatime	0 1' >> /etc/fstab" "sudo echo -e '/dev/nvme0n1p6      	/spiele     	ext4      	rw,relatime	0 1' >> /etc/fstab";;

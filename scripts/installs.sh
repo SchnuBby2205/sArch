@@ -74,7 +74,8 @@ installDE() { Banner; checkDebugFlag
   # configs
   find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"
   # binaries
-  mv "$HOME/sArch/bin" "$HOME/.config/sArch/bin"
+  mkdir -p "$HOME/.config/sArch"
+  mv "$HOME/sArch/bin" "$HOME/.config/sArch"
   # gtk-themes
   mkdir -p "$HOME/.themes"
   mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"

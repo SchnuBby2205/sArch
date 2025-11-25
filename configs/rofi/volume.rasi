@@ -7,6 +7,8 @@
  * Rofi Version: 1.7.3
  **/
 
+ @import "colors.rasi"
+
 /*****----- Configuration -----*****/
 configuration {
     show-icons:                 false;
@@ -16,9 +18,9 @@ configuration {
 * {
     font:                        "JetBrains Mono Nerd Font 10";
     background:                  #131D1F;
-    background-alt:              #bec6dc;
+    background-alt:              @secondary;
     foreground:                  #FFFFFF;
-    selected:                    #aac7ff;
+    selected:                    @primary;
     active:                      #E9CC9D;
     urgent:                      #FEA861;
 }
@@ -64,7 +66,7 @@ inputbar {
     border-radius:               40px;
     border-color:                @selected;
     background-color:            transparent;
-    background-image:            url("/home/schnubby/Bilder/Wallpapers/dark-star.jpg", width);
+    background-image:            @backgroundwidth;
     text-color:                  @foreground;
 /*    children:                    [ "textbox-prompt-colon", "dummy", "prompt"];*/
     children:                    ["dummy"];

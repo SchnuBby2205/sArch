@@ -44,7 +44,8 @@ window {
     border-radius:               10px;
     border-color:                @selected;
     cursor:                      "default";
-    background-color:            @background;
+    /*background-color:            @background;*/
+    background-color: #000000b0;
 }
 
 /*****----- Main Box -----*****/

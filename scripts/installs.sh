@@ -103,6 +103,8 @@ installConfigs() { Banner; checkDebugFlag
   #safeCMD rm $HOME/$sARCH_MAIN  
   mv "$HOME/sArch" "$HOME/sArch_finished"
   sed -i "/${scriptname}/d" $HOME/.config/hypr/userprefs.conf
+  RANDOM_WP=$(find "$HOME/Bilder/Wallpapers/" -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n 1)
+  matugen image ${RANDOM_WP}
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
 }

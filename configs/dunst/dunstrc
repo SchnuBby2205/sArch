@@ -1,0 +1,19 @@
+#############
+# Please only edit this part
+[global]
+origin = bottom-center
+follow = mouse
+############
+corner_radius = 10
+progress_bar_corner_radius = 10
+layer = top
+#icon_theme = "Matugen"
+alignment = center
+format = "<b>%a</b>\n%c\n%s"
+history_ignore = true
+foreground = "#000000FF"
+font = "Monospace 8"
+############
+background = "#ffb4a7B0"
+frame_color = "#e7bdb5FF"
+highlight = "#e7bdb5FF"

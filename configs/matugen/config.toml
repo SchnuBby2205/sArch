@@ -67,3 +67,8 @@ output_path = '~/.themes/Matugen/gtk-4.0/colors.css'
 [templates.btop]
 input_path = '~/.config/matugen/templates/btop.theme'
 output_path = '~/.config/btop/themes/matugen.theme'
+
+[templates.dunst]
+input_path = '~/.config/matugen/templates/dunstrc.colors'
+output_path = '~/.config/dunst/dunstrc'
+post_hook = 'dunstctl reload'

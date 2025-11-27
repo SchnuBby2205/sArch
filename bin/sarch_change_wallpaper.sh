@@ -18,5 +18,9 @@ magick "${wallpaperDir}${wallpaper}" -thumbnail 500x500^ -gravity center -extent
 magick "${wallpaperDir}${wallpaper}" -thumbnail 1000x500^ -gravity center -extent 1000x500 -quality 70 "${cacheDir}curr_wide"
 sed -i ':a;$!N;$!ba;s/,\s*}/}/' ~/.config/quickshell/myShell/Configs/colors.json
 
+if [[ -n "$wallpaper" ]]; then
+    dunstify -a "Themes" -u low -t 1000 -c "Wallpaper changed" "${wallpaper}"
+fi
+
 cd $returnDir
 #/bin/reload_shell.sh

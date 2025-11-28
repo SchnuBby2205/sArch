@@ -46,5 +46,5 @@
     surface-container-highest: {{colors.surface_container_highest.default.hex}};
     backgroundwidth: url("/home/schnubby/.cache/Wallpaper_thumbs/curr_wide", width);
     backgroundheight: url("/home/schnubby/.cache/Wallpaper_thumbs/curr", width);
-mainfont: "Graffiti 15";
+mainfont: "Graffiti Youth 20";
 }

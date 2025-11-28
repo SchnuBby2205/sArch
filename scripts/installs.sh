@@ -65,6 +65,11 @@ installDE() { Banner; checkDebugFlag
     #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/create_thumbnails.sh /bin"
     #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/reload_shell.sh /bin"
     #bash -c "sudo cp $HOME/.config/quickshell/myShell/Bin/change_wallpaper.sh /bin"
+  [[ "$debug" == false ]] && myPrint step ok && myPrint step Creatings Theme...
+    runCMDS 0 Copying configs... 0 3 20 'find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"'
+    runCMDS 0 Copying binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'mv "$HOME/sArch/bin" "$HOME/.config/sArch"'
+    runCMDS 0 Installing gtk-themes... 6 10 20 'mkdir -p "$HOME/.themes"' 'mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"'
+    runCMDS 0 Caching "fonts and wallpapers..." 10 20 20 'mkdir -p "$HOME/.local/share/fonts"' 'mv "$HOME/sArch/fonts" "$HOME/.local/share/"' 'fc-cache' '~/.config/sArch/bin/sarch_create_thumbnails.sh'
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...
     runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
     runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
@@ -72,18 +77,18 @@ installDE() { Banner; checkDebugFlag
   sed -i "/${scriptname}/d" $HOME/.bashrc; 
   #echo exec-once=kitty $HOME/$sARCH_MAIN/${scriptname} installConfigs >> $HOME/.config/hypr/hyprland.conf
   # configs
-  find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"
+  #find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"
   # binaries
-  mkdir -p "$HOME/.config/sArch"
-  mv "$HOME/sArch/bin" "$HOME/.config/sArch"
+  #mkdir -p "$HOME/.config/sArch"
+  #mv "$HOME/sArch/bin" "$HOME/.config/sArch"
   # gtk-themes
-  mkdir -p "$HOME/.themes"
-  mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"
+  #mkdir -p "$HOME/.themes"
+  #mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"
   # fonts
-  mkdir -p "$HOME/.local/share/fonts"
-  mv "$HOME/sArch/fonts" "$HOME/.local/share/fonts"
-  fc-cache
-  ~/.config/sArch/bin/sarch_create_thumbnails.sh
+  #mkdir -p "$HOME/.local/share/fonts"
+  #mv "$HOME/sArch/fonts" "$HOME/.local/share/"
+  #fc-cache
+  #~/.config/sArch/bin/sarch_create_thumbnails.sh
   Banner
   myPrint countdown 3 "Reboot in"; reboot
 }

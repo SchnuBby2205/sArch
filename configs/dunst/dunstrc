@@ -1,9 +1,10 @@
 #############
 # Please only edit this part
 [global]
-origin = bottom-center
-follow = mouse
+origin = center
+font = "Graffiti 15"
 ############
+follow = mouse
 corner_radius = 10
 progress_bar_corner_radius = 10
 layer = top
@@ -12,8 +13,7 @@ alignment = center
 format = "<b>%a</b>\n%c\n%s"
 history_ignore = true
 foreground = "#000000FF"
-font = "Monospace 8"
 ############
-background = "#ffb4a7B0"
-frame_color = "#e7bdb5FF"
-highlight = "#e7bdb5FF"
+background = "#8fcef3B0"
+frame_color = "#b5c9d7FF"
+highlight = "#b5c9d7FF"

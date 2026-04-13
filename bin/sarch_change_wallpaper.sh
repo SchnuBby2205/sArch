@@ -25,11 +25,13 @@ i=0
 while IFS= read -r color; do
     iconfile="${icondir}/${i}.png"
     magick -size 32x32 xc:"${color}" "${iconfile}"
-    rofi_input+="${i}: ${color}\0icon\x1f${iconfile}\n"
+    #rofi_input+="${i}: ${color}\0icon\x1f${iconfile}\n"
+    rofi_input+="${i}: <span foreground='${color}'>${color}</span>\0icon\x1f${iconfile}\n"
     ((i++))
 done <<< "$colors"
 
-selected=$(echo -e "$rofi_input" | rofi -dmenu -p "Source Color" -theme gruvbox-material_icons.rasi)
+#selected=$(echo -e "$rofi_input" | rofi -dmenu -p "Source Color" -theme gruvbox-material_icons.rasi)
+selected=$(echo -e "$rofi_input" | rofi -dmenu -p "Source Color" -markup-rows -theme launcher.rasi)
 color_index=$(echo "$selected" | grep -oP '^\d+')
 color_index=${color_index:-0}
 

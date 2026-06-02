@@ -20,3 +20,15 @@ require("input")
 
 -- Keybindings
 require("keybindings")
+
+-- Monitors 
+require("monitors")
+
+-- Autostarts
+require("autostart")
+
+-- Workspaces
+require("workspaces")
+
+-- Window rules
+require("windowrules")

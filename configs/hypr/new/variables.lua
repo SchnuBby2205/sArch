@@ -1,0 +1,5 @@
+mainMod = "SUPER"
+terminal = "kitty"
+fileManager = "dolphin"
+editor = "code"
+browser = "firefox"

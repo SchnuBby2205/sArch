@@ -1,3 +1,4 @@
 -- Autostarts
-hl.exec_once("hyprctl dispatch workspace Main")
-hl.exec_once("awww-daemon")
+hl.on("hyprland.start", function () 
+    hl.exec_cmd("awww-daemon")
+end)

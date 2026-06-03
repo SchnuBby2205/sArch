@@ -1,11 +1,5 @@
 -- Workspace configs
-hl.config(
-    {
-        workspace = {
-            "1,defaultName:Main,monitor:DP-1",
-            "2,defaultName:Second,monitor:DP-1",
-            "3,defaultName:Launcher,monitor:DP-1",
-            "4,defaultName:TV,monitor:DP-2"
-        }
-    }
-)
+hl.workspace_rule({ workspace = "1", monitor = "DP-1", default = true })
+hl.workspace_rule({ workspace = "2", monitor = "DP-1" })
+hl.workspace_rule({ workspace = "3", monitor = "DP-1" })
+hl.workspace_rule({ workspace = "4", monitor = "DP-2", default = true })

@@ -30,7 +30,7 @@ hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "e-1" }))
 -- Drag and resize Windows
 hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(), { mouse = true })
 hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true })
-h1.bind(mainMod .. " + mouse:274", h1.dsp.window.fullscreen(), { mouse = true })
+hl.bind(mainMod .. " + mouse:274", hl.dsp.window.fullscreen(), { mouse = true })
 
 -- Starting programs
 hl.bind(mainMod .. " + Backspace", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_powermenu.sh"))

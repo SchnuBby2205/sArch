@@ -1,14 +1,37 @@
 -- Windowrules
-hl.config({
-    windowrule = {
-        "fullscreen 1, match:workspace 4",
-        "workspace 1, match:class steam_app_default, match:title Hearthstone",
-        "opacity 0.8 0.8, match:class ^(.*)$",
-        "float 1, match:class ^org.pulseaudio.pavucontrol$",
-        "center 1, match:class ^org.pulseaudio.pavucontrol$",
-    },
-
-    layerrule = {
-        "blur 1, match:class ^(rofi)$",
-    },
-})
+hl.window_rule(
+    {
+        name = "Fullescreen on workspace 4",
+        match = { workspace = "4" },
+        fullscreen = true
+    }    
+)
+hl.window_rule(
+    {
+        name = "Opacity for Windows",
+        match = { class = "^(.*)$" },
+        opacity = "0.9 0.5"
+    }
+)
+hl.window_rule(
+    {
+        name = "Center pavucontrol",
+        match = { class = "^org.pulseaudio.pavucontrol$" },
+        float = true,
+        center = true
+    }
+)
+hl.window_rule(
+    {
+        name = "Hearthstone to Workspace 1",
+        match = { class = "steam_app_default", title = "Hearthstone" },
+        workspace = "1"
+    }
+)
+hl.layer_rule(
+    {
+        name = "Blur for rofi",
+        match = { class = "^(rofi)$" },
+        blur = true
+    }
+)

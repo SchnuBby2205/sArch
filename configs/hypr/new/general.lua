@@ -32,6 +32,19 @@ hl.config(
         misc = {
             force_default_wallpaper = -1,
             disable_hyprland_logo = false
+        },
+        input = {
+            kb_layout = "de",
+            kb_variant = "",
+            kb_model = "",
+            kb_options = "",
+            kb_rules = "",
+            follow_mouse = 1,
+            sensitivity = 0,
+            accel_profile = "flat",
+            touchpad = {
+                natural_scroll = false
+            }
         }
     }
 )

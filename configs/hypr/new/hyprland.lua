@@ -15,9 +15,6 @@ require("decorations")
 -- Animations
 require("animations")
 
--- Input
-require("input")
-
 -- Keybindings
 require("keybindings")
 

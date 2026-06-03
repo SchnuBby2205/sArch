@@ -20,7 +20,7 @@ for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
     hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
     hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
-    hl.bind(mainMod .. " + CTRL + " .. key, function() hl.dispatch(hl.dsp.exec_cmd("hyprctl dispatch movetoworkspacesilent " .. i)) end)
+    hl.bind(mainMod .. " + CTRL + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 
 -- Cycle through Workspaces with Mousewheel

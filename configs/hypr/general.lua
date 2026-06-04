@@ -18,11 +18,11 @@ hl.config(
             },
             resize_on_border = false,
             allow_tearing = false,
-            layout = "dwindle"
+            --layout = "dwindle"
         },
-        dwindle = {
-            preserve_split = true
-        },
+        --dwindle = {
+            --preserve_split = true
+        --},
         master = {
             new_status = "master"
         },

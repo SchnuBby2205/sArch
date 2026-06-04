@@ -47,3 +47,7 @@ hl.bind("F12", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%+ u
 hl.bind("F11", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%- unmute"), { repeating = true, locked = true })
 hl.bind("F10", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh toggle"), { repeating = true, locked = true })
 hl.bind("F9", hl.dsp.exec_cmd("pavucontrol"), { repeating = true, locked = true })
+
+-- for scrolling workspace 2
+hl.bind(mainMod .. " + CTRL + mouse_up", hl.dsp.layout("move +col"))  -- Fenster nach rechts verschieben
+hl.bind(mainMod .. " + CTRL + mouse_down",  hl.dsp.layout("move -col"))  -- Spalte nach links tauschen

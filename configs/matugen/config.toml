@@ -1,6 +1,12 @@
+# OLD SYNTAX
+#[config.wallpaper]
+#command="awww"
+#arguments=["img", "--transition-type", "center", "--transition-step", "15", "--transition-fps", "60"]
+#set=true
+
+# NEW SYNTAX
 [config.wallpaper]
-command="awww"
-arguments=["img", "--transition-type", "center", "--transition-step", "15", "--transition-fps", "60"]
+command="awww img --transition-type center --transition-step 15 --transition-fps 60 {{ image }}"
 set=true
 
 [templates.hyprland]

@@ -100,6 +100,7 @@ def load_categories(ini_path: str) -> dict:
             "fields":       _parse_fields(s),
             "new_template": s.get("new_template", ""),  # Lua-Template für neuen Eintrag
             "append_file":  s.get("append_file", s.get("config_file","")),
+            "visible":      s.get("visible", "true").lower() != "false",
         }
         categories.setdefault(cat, []).append(entry)
     return categories
@@ -144,17 +145,17 @@ def _find_all_indexed_blocks(lines: list, index_field: str) -> list:
             blk_start = i
             depth     = opens - closes
             idx_val   = None
-            # Inline: index_field schon auf dieser Zeile?
-            m = pat_field.search(line)
-            if m:
-                idx_val = _read_str_after(line, pat_field)
-        elif blk_start is not None:
-            depth += opens - closes
+
+        if blk_start is not None:
+            # index_field auf dieser Zeile suchen (auch Einzeiler)
             m = pat_field.search(line)
             if m and idx_val is None:
                 idx_val = _read_str_after(line, pat_field)
+            # Tiefe für Folgezeilen aktualisieren (erste Zeile schon oben gezählt)
+            if i > blk_start:
+                depth += opens - closes
 
-        # Block endet wenn depth <= 0
+        # Block endet wenn depth <= 0 (nach idx_val-Suche)
         if blk_start is not None and depth <= 0:
             if idx_val:
                 results.append((idx_val, blk_start, i))
@@ -225,14 +226,77 @@ def read_current_string(config_file: str, entry: dict, fallback: str) -> str:
     except OSError: pass
     return fallback
 
+def _parse_hl_bind(line: str) -> dict:
+    """
+    Parst eine hl.bind()-Zeile und gibt die Felder als Dict zurück.
+    Format: hl.bind(KEYBIND, COMMAND(ARG), { description = "..." })
+    """
+    result = {"use_mainmod": "no", "modifier": "none", "key": "",
+              "command": "", "argument": "", "description": ""}
+    m = re.match(r'hl\.bind\s*\(', line)
+    if not m: return result
+    inner = line[m.end():]
+
+    known_mods = {"CTRL","ALT","SHIFT","SUPER","HYPER","META"}
+
+    if "mainMod" in inner:
+        result["use_mainmod"] = "yes"
+        mm = re.search(r'mainMod\s*\.\.\s*"\s*\+\s*([^"]*)"\s*,', inner)
+        if mm:
+            parts = [p.strip() for p in mm.group(1).split("+") if p.strip()]
+            mods  = [p for p in parts if p.upper() in known_mods]
+            keys  = [p for p in parts if p.upper() not in known_mods]
+            result["modifier"] = mods[0] if mods else "none"
+            result["key"]      = keys[0] if keys else ""
+    else:
+        km = re.match(r'\s*"([^"]+)"\s*,', inner)
+        if km:
+            parts = [p.strip() for p in km.group(1).split("+") if p.strip()]
+            mods  = [p for p in parts if p.upper() in known_mods]
+            keys  = [p for p in parts if p.upper() not in known_mods]
+            result["modifier"] = mods[0] if mods else "none"
+            result["key"]      = keys[0] if keys else ""
+
+    # Befehl: hl.dsp.xxx( – auch Punkte im Namen erlaubt (window.close)
+    cm = re.search(r'(hl\.dsp\.[\w.]+)\s*\(', inner)
+    if cm:
+        result["command"] = cm.group(1)
+        arg_start = cm.end()
+        arg_inner = inner[arg_start:]
+        # Nur bis zum ersten ) lesen – das ist das Ende der Befehlsklammer
+        close = arg_inner.find(")")
+        if close > 0:
+            arg_str = arg_inner[:close].strip()
+            result["argument"] = arg_str
+        # close == 0: leere Klammern, Argument bleibt ""
+
+    # description aus { description = "..." }
+    desc_m = re.search(r'description\s*=\s*"([^"]*)"', inner)
+    if desc_m:
+        result["description"] = desc_m.group(1)
+
+    return result
+
+
 def read_keybind_fields(config_file: str, entry: dict) -> dict:
-    """Liest alle Feldwerte eines keybind-Eintrags aus dem Block."""
+    """
+    Liest Keybind-Felder aus der Datei.
+    Für hl.bind()-Zeilen: spezieller Parser.
+    Für Block-Felder (window_rule etc.): key=value Suche.
+    """
     result = {}
     if not config_file or not os.path.exists(config_file): return result
     try:
         with open(config_file) as f: lines = f.readlines()
         start, end = _get_search_range(lines, entry)
-        block_text = "".join(lines[start:end+1])
+
+        # Prüfe ob der Block eine hl.bind()-Zeile enthält
+        for line in lines[start:end+1]:
+            if line.lstrip().startswith("--"): continue
+            if re.match(r'\s*hl\.bind\s*\(', line):
+                return _parse_hl_bind(line.strip())
+
+        # Fallback: key=value Suche für Block-Einträge (window_rule etc.)
         for field in entry.get("fields", []):
             key = field.get("key","")
             if not key: continue
@@ -287,14 +351,69 @@ def write_value(config_file: str, entry: dict, value) -> bool:
         return True
     except OSError: return False
 
+def _build_hl_bind(fv: dict) -> str:
+    """Baut eine hl.bind()-Zeile aus den Feldwerten neu auf."""
+    use_mm  = fv.get("use_mainmod", "no") == "yes"
+    mod     = fv.get("modifier", "none")
+    key     = fv.get("key", "")
+    command = fv.get("command", "hl.dsp.exec_cmd")
+    arg     = fv.get("argument", "")
+    desc    = fv.get("description", "")
+
+    # Keybind-String zusammenbauen
+    key_parts = []
+    if mod and mod != "none":
+        key_parts.append(mod)
+    if key:
+        key_parts.append(key)
+    key_str = " + ".join(key_parts)
+
+    if use_mm:
+        bind_key = f'mainMod .. " + {key_str}"' if key_str else 'mainMod'
+    else:
+        bind_key = f'"{key_str}"'
+
+    # Befehl mit Argument
+    if arg:
+        cmd_str = f'{command}({arg})'
+    else:
+        cmd_str = f'{command}()'
+
+    # description anhängen wenn vorhanden
+    if desc:
+        return f'hl.bind({bind_key}, {cmd_str}, {{ description = "{desc}" }})'
+    else:
+        return f'hl.bind({bind_key}, {cmd_str})'
+
+
 def write_keybind_fields(config_file: str, entry: dict, field_values: dict) -> bool:
-    """Schreibt mehrere Felder auf einmal in den Block."""
+    """
+    Schreibt Keybind-Felder zurück in die Datei.
+    Für hl.bind()-Zeilen: baut die ganze Zeile neu auf.
+    Für Block-Einträge (window_rule etc.): key=value Suche.
+    """
     if not config_file: return False
     try:
         with open(config_file) as f: lines = f.readlines()
     except OSError: return False
 
     start, end = _get_search_range(lines, entry)
+
+    # Prüfe ob es eine hl.bind()-Zeile ist
+    for i in range(start, end+1):
+        line = lines[i]
+        if line.lstrip().startswith("--"): continue
+        if re.match(r'\s*hl\.bind\s*\(', line):
+            indent    = len(line) - len(line.lstrip())
+            new_line  = " " * indent + _build_hl_bind(field_values) + "\n"
+            lines[i]  = new_line
+            try:
+                with open(config_file, "r+") as f:
+                    f.seek(0); f.writelines(lines); f.truncate()
+                return True
+            except OSError: return False
+
+    # Fallback: key=value Suche für Block-Einträge
     for key, value in field_values.items():
         pattern = _make_pattern(key)
         for i in range(start, end+1):
@@ -302,12 +421,12 @@ def write_keybind_fields(config_file: str, entry: dict, field_values: dict) -> b
             if line.lstrip().startswith("--"): continue
             m = pattern.search(line)
             if m:
-                before = line[:m.end()]
-                after  = line[m.end():]
+                before    = line[:m.end()]
+                after     = line[m.end():]
                 new_after = re.sub(r'"[^"]*"', f'"{value}"', after, count=1)
                 if new_after == after:
                     new_after = re.sub(r'[\w_@x.+:-]+', str(value), after, count=1)
-                lines[i] = before + new_after
+                lines[i]  = before + new_after
                 break
 
     try:
@@ -315,6 +434,39 @@ def write_keybind_fields(config_file: str, entry: dict, field_values: dict) -> b
             f.seek(0); f.writelines(lines); f.truncate()
         return True
     except OSError: return False
+
+def delete_entry(config_file: str, entry: dict) -> bool:
+    """
+    Löscht den Block/die Zeile die durch index_field/index_value identifiziert wird.
+    Für hl.bind()-Einzeiler: genau diese Zeile löschen.
+    Für mehrzeilige Blöcke (window_rule): start bis end löschen.
+    """
+    if not config_file: return False
+    try:
+        with open(config_file) as f: lines = f.readlines()
+    except OSError: return False
+
+    start, end = _get_search_range(lines, entry)
+    if start == 0 and end == len(lines)-1 and not entry.get("index_value"):
+        print("WARN: delete_entry – kein spezifischer Block gefunden", flush=True)
+        return False
+
+    # Leere Zeilen direkt vor dem Block mitentfernen
+    while start > 0 and lines[start-1].strip() == "":
+        start -= 1
+    # Leere Zeilen direkt nach dem Block mitentfernen
+    after = end + 1
+    while after < len(lines) and lines[after].strip() == "":
+        after += 1
+
+    del lines[start:after]
+
+    try:
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
 
 def _build_windowrule(vals: dict) -> str:
     """Baut eine hl.window_rule() aus den Feldwerten, lässt leere Felder weg."""
@@ -358,10 +510,12 @@ def append_new_entry(config_file: str, template: str, vals: dict = None) -> bool
     try:
         if template == "__windowrule__" and vals:
             text = _build_windowrule(vals)
+        elif template == "__keybind__" and vals:
+            text = _build_hl_bind(vals)
         else:
             text = template
         with open(config_file, "a") as f:
-            f.write("\n" + text + "\n")
+            f.write(text + "\n")
         return True
     except OSError: return False
 
@@ -607,17 +761,34 @@ class SettingsApp(Adw.Application):
     def _add_keybind(self, group, cat_name, s):
         """
         Zeigt eine expandierbare Row mit mehreren Unterfeldern.
-        fields = JSON-Array von {key, label, type: dropdown|text, options: [...]}
+        - Titel = gelesener description-Wert (oder label als Fallback)
+        - visible = false in INI blendet die Row aus (für new_template Einträge)
         """
+        # visible-Flag: Template-Einträge ausblenden
+        if not s.get("visible", True):
+            return
+
         fields       = s.get("fields", [])
         current_vals = read_keybind_fields(s["config_file"], s)
 
-        # Expandable Row
-        exp_row = Adw.ExpanderRow()
-        exp_row.set_title(s["label"])
-        if s["description"]: exp_row.set_subtitle(s["description"])
+        # Titel: description-Wert aus der Datei, Fallback auf INI-label
+        row_title = current_vals.get("description", "") or s["label"]
 
-        widgets = {}  # key → widget
+        # Modifier-Zusammenfassung als Subtitle
+        use_mm = current_vals.get("use_mainmod","no") == "yes"
+        mod    = current_vals.get("modifier","none")
+        key    = current_vals.get("key","")
+        parts  = []
+        if use_mm:  parts.append("mainMod")
+        if mod and mod != "none": parts.append(mod)
+        if key: parts.append(key)
+        subtitle = " + ".join(parts) if parts else ""
+
+        exp_row = Adw.ExpanderRow()
+        exp_row.set_title(row_title)
+        if subtitle: exp_row.set_subtitle(subtitle)
+
+        widgets = {}
 
         for field in fields:
             fkey   = field.get("key","")
@@ -627,24 +798,78 @@ class SettingsApp(Adw.Application):
             fval   = current_vals.get(fkey, fopts[0] if fopts else "")
 
             if ftype == "dropdown":
-                fidx  = fopts.index(fval) if fval in fopts else 0
+                # Wenn gelesener Wert nicht in options: vorne einfügen
+                effective_opts = list(fopts)
+                if fval and fval not in effective_opts:
+                    effective_opts.insert(0, fval)
+                fidx  = effective_opts.index(fval) if fval in effective_opts else 0
                 combo = Adw.ComboRow()
                 combo.set_title(flabel)
-                combo.set_model(Gtk.StringList.new(fopts))
+                combo.set_model(Gtk.StringList.new(effective_opts))
                 combo.set_selected(fidx)
                 exp_row.add_row(combo)
-                widgets[fkey] = ("dropdown", combo, fopts)
+                widgets[fkey] = ("dropdown", combo, effective_opts)
             else:
-                # Texteingabe
                 text_row = Adw.EntryRow()
                 text_row.set_title(flabel)
                 text_row.set_text(str(fval))
                 exp_row.add_row(text_row)
                 widgets[fkey] = ("text", text_row, [])
 
+        # Mülltonne-Button als Suffix im ExpanderRow-Header
+        del_btn = Gtk.Button()
+        del_btn.set_icon_name("user-trash-symbolic")
+        del_btn.add_css_class("flat")
+        del_btn.add_css_class("destructive-action")
+        del_btn.set_tooltip_text("Eintrag löschen")
+        del_btn.set_valign(Gtk.Align.CENTER)
+
+        # Closure für delete-Callback
+        def make_del_cb(entry_s, cat, grp, row):
+            def cb(_btn):
+                dialog = Adw.AlertDialog(
+                    heading="Wirklich löschen?",
+                    body=f"\"{row.get_title()}\" wird dauerhaft aus der Datei entfernt.",
+                )
+                dialog.add_response("cancel", "Abbrechen")
+                dialog.add_response("delete", "Löschen")
+                dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+                dialog.set_default_response("cancel")
+                def on_response(d, response):
+                    if response != "delete": return
+                    ok = delete_entry(entry_s["config_file"], entry_s)
+                    if ok:
+                        # Seite neu aufbauen damit die Row wirklich verschwindet
+                        self._all_categories = load_categories(self.ini_path)
+                        self._build_all_categories()
+                        idx = list(self._all_categories.keys()).index(cat_name) if cat_name in self._all_categories else 0
+                        sidebar_row = self._sidebar_list.get_row_at_index(idx)
+                        if sidebar_row:
+                            self._sidebar_list.select_row(sidebar_row)
+                            self._show_category(sidebar_row.get_name())
+                        toast = Adw.Toast(title="Eintrag gelöscht.")
+                        toast.set_timeout(3)
+                        self._toast_overlay.add_toast(toast)
+                    else:
+                        self._show_error_dialog([f"Löschen fehlgeschlagen: {entry_s['config_file']}"])
+                dialog.connect("response", on_response)
+                dialog.present(self._win)
+            return cb
+
+        entry_snapshot = {
+            "config_file": s["config_file"],
+            "config_key":  s["config_key"],
+            "parent_key":  s["parent_key"],
+            "index_field": s["index_field"],
+            "index_value": s["index_value"],
+            "format":      s["format"],
+        }
+        del_btn.connect("clicked", make_del_cb(entry_snapshot, cat_name, group, exp_row))
+        exp_row.add_suffix(del_btn)
+
         group.add(exp_row)
 
-        uid = f"keybind|{s['config_file']}|{s.get('index_value','')}|{s.get('index_field','')}"
+        uid = f"multisetting|{s['config_file']}|{s.get('index_value','')}|{fkey}"
         self.category_pending[cat_name][uid] = {
             "type":"multisetting", "widgets":widgets, "fields":fields,
             "config_file":s["config_file"], "config_key":s["config_key"],

@@ -5,4 +5,3 @@ hl.window_rule({ name = "Center pavucontrol", match = { class = "^org.pulseaudio
 hl.window_rule({ name = "Hearthstone to Workspace 1", match = { class = "steam_app_default", title = "Hearthstone" }, workspace = "1" })
 hl.window_rule({ name = "OW to Workspace 1", match = { class = "steam_app_default", title = "Overwatch" }, workspace = "1" })
 hl.window_rule({ name = "Battle.net to Workspace 3", match = { class = "steam_app_default", title = "Battle.net" }, workspace = "3" })
-hl.layer_rule({ name = "Blur for rofi", match = { class = "^(rofi)$" }, blur = true })

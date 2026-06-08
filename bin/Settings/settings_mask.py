@@ -413,27 +413,114 @@ def write_keybind_fields(config_file: str, entry: dict, field_values: dict) -> b
                 return True
             except OSError: return False
 
-    # Fallback: key=value Suche für Block-Einträge
-    for key, value in field_values.items():
-        pattern = _make_pattern(key)
-        for i in range(start, end+1):
-            line = lines[i]
-            if line.lstrip().startswith("--"): continue
-            m = pattern.search(line)
-            if m:
-                before    = line[:m.end()]
-                after     = line[m.end():]
-                new_after = re.sub(r'"[^"]*"', f'"{value}"', after, count=1)
-                if new_after == after:
-                    new_after = re.sub(r'[\w_@x.+:-]+', str(value), after, count=1)
-                lines[i]  = before + new_after
-                break
+    # Block-Einträge (hl.window_rule / hl.layer_rule):
+    # Ganzen Block neu aufbauen analog zu _build_hl_bind
+    block_lines = lines[start:end+1]
+    block_text  = "".join(block_lines)
+
+    # Einrückung der ersten Zeile merken
+    indent = " " * (len(block_lines[0]) - len(block_lines[0].lstrip()))
+
+    # Prüfe welche Funktion verwendet wird (window_rule oder layer_rule)
+    func_m = re.search(r'hl\.(\w+_rule)\s*\(', block_text)
+    func   = func_m.group(1) if func_m else "window_rule"
+
+    # Felder aus field_values lesen
+    name      = field_values.get("name", "")
+    cls       = field_values.get("class", "").strip()
+    title     = field_values.get("title", "").strip()
+    workspace = field_values.get("workspace", "").strip()
+    flt       = field_values.get("float", "").strip()
+    center    = field_values.get("center", "").strip()
+    fullscr   = field_values.get("fullscreen", "").strip()
+
+    # match-Block aufbauen
+    match_parts = []
+    if cls:       match_parts.append(f'class = "{cls}"')
+    if title:     match_parts.append(f'title = "{title}"')
+    if workspace and not cls and not title:
+        match_parts.append(f'workspace = "{workspace}"')
+    match_str = ", ".join(match_parts)
+
+    # Neuen Block zusammensetzen
+    # Felder sammeln
+    fields_out = [f'name = "{name}"']
+    if match_str:
+        fields_out.append(f"match = {{ {match_str} }}")
+    if workspace and (cls or title):
+        fields_out.append(f'workspace = "{workspace}"')
+    for key, val in [("float", flt), ("center", center), ("fullscreen", fullscr)]:
+        if val and val not in ("", "none"):
+            fields_out.append(f"{key} = {val}")
+    # Unbekannte Felder aus Originalblock übernehmen (z.B. opacity, blur)
+    skip_keys = {"name", "match", "workspace", "float", "center", "fullscreen",
+                 "class", "title"}
+    for bl in block_lines:
+        stripped = bl.strip().rstrip(",")
+        km = re.match(r'([\w_]+)\s*=\s*(.+)', stripped)
+        if km and km.group(1) not in skip_keys and not bl.lstrip().startswith("--"):
+            k = km.group(1)
+            v = field_values.get(k, km.group(2).strip().rstrip(","))
+            fields_out.append(f"{k} = {v}")
+    inner = ", ".join(fields_out)
+    new_block = [f"hl.{func}({{ {inner} }})\n"]
+    lines[start:end+1] = new_block
 
     try:
         with open(config_file, "r+") as f:
             f.seek(0); f.writelines(lines); f.truncate()
         return True
     except OSError: return False
+
+def read_variables(config_file: str) -> list:
+    """Liest alle VAR = VALUE Zeilen, gibt [(name, value, line_index)] zurück."""
+    result = []
+    if not config_file or not os.path.exists(config_file): return result
+    try:
+        with open(config_file) as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            stripped = line.strip()
+            if stripped.startswith("--") or not stripped: continue
+            m = re.match(r'([\w_]+)\s*=\s*(.+)', stripped)
+            if m:
+                result.append((m.group(1), m.group(2).strip().rstrip(","), i))
+    except OSError: pass
+    return result
+
+def write_variable(config_file: str, line_index: int, name: str, value: str) -> bool:
+    """Überschreibt eine Variable in der Datei – Wert exakt wie eingegeben."""
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_index >= len(lines): return False
+        # Original-Einrückung beibehalten
+        orig  = lines[line_index]
+        indent = orig[:len(orig) - len(orig.lstrip())]
+        lines[line_index] = f"{indent}{name} = {value}\n"
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def delete_variable(config_file: str, line_index: int) -> bool:
+    """Löscht eine Variablen-Zeile aus der Datei."""
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_index >= len(lines): return False
+        del lines[line_index]
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def append_variable(config_file: str, name: str, value: str) -> bool:
+    """Hängt eine neue Variable ans Ende der Datei."""
+    try:
+        with open(config_file, "a") as f:
+            f.write(f"{name} = {value}\n")
+        return True
+    except OSError: return False
+
 
 def delete_entry(config_file: str, entry: dict) -> bool:
     """
@@ -469,40 +556,23 @@ def delete_entry(config_file: str, entry: dict) -> bool:
 
 
 def _build_windowrule(vals: dict) -> str:
-    """Baut eine hl.window_rule() aus den Feldwerten, lässt leere Felder weg."""
-    lines = ['hl.window_rule(', '    {']
-    lines.append(f'name = "{vals.get("name", "")}",')
-
-    # match-Block: class immer, title nur wenn nicht leer
-    title = vals.get("title", "").strip()
-    cls   = vals.get("class", "").strip()
-    if title:
-        lines.append(f'match = {{ class = "^{cls}$", title = "^{title}$" }},')
-    else:
-        lines.append(f'match = {{ class = "^{cls}$" }},')
-
-    # Optionaler workspace im match-Block wenn class leer
-    ws_match = vals.get("workspace", "").strip()
-    if not cls and ws_match:
-        lines[-1] = lines[-1]  # match schon gesetzt, neu bauen
-        # match nur mit workspace
-        lines.pop()  # entferne letzten match-Eintrag
-        if title:
-            lines.append(f'match = {{ workspace = "{ws_match}", title = "^{title}$" }},')
-        else:
-            lines.append(f'match = {{ workspace = "{ws_match}" }},')
-    elif ws_match:
-        # workspace als eigenständiges Feld außerhalb match
-        lines.append(f'workspace = "{ws_match}",')
-
-    # Optionale Bool-Felder
+    name      = vals.get("name", "")
+    cls       = vals.get("class", "").strip()
+    title     = vals.get("title", "").strip()
+    workspace = vals.get("workspace", "").strip()
+    match_parts = []
+    if cls:   match_parts.append(f'class = "{cls}"')
+    if title: match_parts.append(f'title = "{title}"')
+    if workspace and not cls and not title:
+        match_parts.append(f'workspace = "{workspace}"')
+    match_str = ", ".join(match_parts)
+    fields = [f'name = "{name}"']
+    if match_str: fields.append(f"match = {{ {match_str} }}")
+    if workspace and (cls or title): fields.append(f'workspace = "{workspace}"')
     for key in ("float", "center", "fullscreen"):
         v = vals.get(key, "").strip()
-        if v and v != "":
-            lines.append(f'{key} = {v},')
-
-    lines += ['    }', ')']
-    return "\n".join(lines)
+        if v and v not in ("", "none"): fields.append(f"{key} = {v}")
+    return f'hl.window_rule({{ {", ".join(fields)} }})'
 
 def append_new_entry(config_file: str, template: str, vals: dict = None) -> bool:
     """Hängt einen neuen Eintrag ans Ende der Datei."""
@@ -664,7 +734,10 @@ class SettingsApp(Adw.Application):
                 pref_group.set_header_suffix(add_btn)
 
             for s in entries:
-                if s["type"] == "multisetting":
+                if s["type"] == "variable":
+                    self._add_variable_group(outer_box, cat_name, s)
+                    break  # variable-Typ baut eigene Gruppe
+                elif s["type"] == "multisetting":
                     self._add_keybind(pref_group, cat_name, s)
                 elif s["type"] == "dropdown":
                     self._add_dropdown(pref_group, cat_name, s)
@@ -691,6 +764,131 @@ class SettingsApp(Adw.Application):
         return scroll
 
     # ── Slider ────────────────────────────────────────────────────────────────
+
+    def _add_variable_group(self, outer_box: Gtk.Box, cat_name: str, s: dict):
+        """Zeigt alle Variablen aus der Datei als editierbare Rows."""
+        config_file = s["config_file"]
+        variables   = read_variables(config_file)
+
+        pref_group = Adw.PreferencesGroup()
+        pref_group.set_title(s["label"] or cat_name)
+        if s["description"]: pref_group.set_description(s["description"])
+
+        # + Button
+        add_btn = Gtk.Button()
+        add_btn.set_icon_name("list-add-symbolic")
+        add_btn.add_css_class("flat")
+        add_btn.set_tooltip_text("Neue Variable anlegen")
+        add_btn.connect("clicked", self._on_new_variable, cat_name, config_file, outer_box, s)
+        pref_group.set_header_suffix(add_btn)
+
+        for var_name, var_value, line_idx in variables:
+            row = Adw.ActionRow()
+            row.set_title(var_name)
+            row.set_activatable(False)
+
+            # Wert-Eingabe
+            entry = Gtk.Entry()
+            entry.set_text(var_value)
+            entry.set_hexpand(True)
+            entry.set_valign(Gtk.Align.CENTER)
+            entry.set_margin_start(8)
+            row.add_suffix(entry)
+
+            # Mülltonne
+            del_btn = Gtk.Button()
+            del_btn.set_icon_name("user-trash-symbolic")
+            del_btn.add_css_class("flat")
+            del_btn.add_css_class("destructive-action")
+            del_btn.set_valign(Gtk.Align.CENTER)
+            del_btn.set_tooltip_text("Variable löschen")
+
+            def make_del(cfg, lidx, r, cat, ob, sv):
+                def cb(_):
+                    dialog = Adw.AlertDialog(
+                        heading="Wirklich löschen?",
+                        body=f"Variable \"{r.get_title()}\" wird entfernt.",
+                    )
+                    dialog.add_response("cancel", "Abbrechen")
+                    dialog.add_response("delete", "Löschen")
+                    dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+                    dialog.set_default_response("cancel")
+                    def on_resp(d, resp):
+                        if resp != "delete": return
+                        if delete_variable(cfg, lidx):
+                            self._rebuild_variable_page(cat, ob, sv)
+                            toast = Adw.Toast(title="Variable gelöscht.")
+                            toast.set_timeout(3)
+                            self._toast_overlay.add_toast(toast)
+                    dialog.connect("response", on_resp)
+                    dialog.present(self._win)
+                return cb
+
+            del_btn.connect("clicked", make_del(config_file, line_idx, row, cat_name, outer_box, s))
+            row.add_suffix(del_btn)
+            pref_group.add(row)
+
+            uid = f"variable|{config_file}|{var_name}|{line_idx}"
+            self.category_pending[cat_name][uid] = {
+                "type": "variable", "entry": entry,
+                "config_file": config_file, "var_name": var_name,
+                "line_idx": line_idx, "original": var_value,
+            }
+
+        outer_box.append(pref_group)
+
+    def _rebuild_variable_page(self, cat_name: str, outer_box: Gtk.Box, s: dict):
+        """Baut die Variable-Seite neu auf."""
+        # outer_box leeren
+        child = outer_box.get_first_child()
+        while child:
+            nxt = child.get_next_sibling()
+            outer_box.remove(child)
+            child = nxt
+        self.category_pending[cat_name] = {}
+        # Neu aufbauen
+        self._add_variable_group(outer_box, cat_name, s)
+        # Buttons wieder hinzufügen
+        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+        btn_box.set_halign(Gtk.Align.END); btn_box.set_margin_top(4)
+        reset_btn = Gtk.Button(label="Zurücksetzen")
+        reset_btn.add_css_class("flat")
+        reset_btn.connect("clicked", self._on_reset, cat_name)
+        apply_btn = Gtk.Button(label="Übernehmen")
+        apply_btn.add_css_class("suggested-action")
+        apply_btn.connect("clicked", self._on_apply, cat_name)
+        btn_box.append(reset_btn); btn_box.append(apply_btn)
+        outer_box.append(btn_box)
+
+    def _on_new_variable(self, _btn, cat_name: str, config_file: str,
+                         outer_box: Gtk.Box, s: dict):
+        """Dialog zum Anlegen einer neuen Variable."""
+        dialog = Adw.AlertDialog(heading="Neue Variable", body="Name und Wert eingeben.")
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.set_margin_top(8); box.set_size_request(360, -1)
+        name_entry  = Gtk.Entry(); name_entry.set_placeholder_text("Name (z.B. terminal)")
+        value_entry = Gtk.Entry(); value_entry.set_placeholder_text('Wert (z.B. "kitty")')
+        lbl_n = Gtk.Label(label="Name"); lbl_n.set_halign(Gtk.Align.START); lbl_n.add_css_class("dim-label")
+        lbl_v = Gtk.Label(label="Wert"); lbl_v.set_halign(Gtk.Align.START); lbl_v.add_css_class("dim-label")
+        box.append(lbl_n); box.append(name_entry)
+        box.append(lbl_v); box.append(value_entry)
+        dialog.set_extra_child(box)
+        dialog.add_response("cancel", "Abbrechen")
+        dialog.add_response("create", "Anlegen")
+        dialog.set_default_response("create")
+        dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
+        def on_resp(d, resp):
+            if resp != "create": return
+            n = name_entry.get_text().strip()
+            v = value_entry.get_text().strip()
+            if not n or not v: return
+            if append_variable(config_file, n, v):
+                self._rebuild_variable_page(cat_name, outer_box, s)
+                toast = Adw.Toast(title=f"Variable \"{n}\" angelegt.")
+                toast.set_timeout(3)
+                self._toast_overlay.add_toast(toast)
+        dialog.connect("response", on_resp)
+        dialog.present(self._win)
 
     def _add_slider(self, group, cat_name, s):
         current = read_current_value(s["config_file"], s, s["min"])
@@ -1025,6 +1223,8 @@ class SettingsApp(Adw.Application):
                 entry["scale"].set_value(entry["original"])
             elif entry["type"] == "dropdown":
                 entry["combo"].set_selected(entry["original"])
+            elif entry["type"] == "variable":
+                entry["entry"].set_text(entry["original"])
             # keybind: kein Reset implementiert (komplex, später erweiterbar)
 
     def _on_apply(self, _btn, cat_name: str):
@@ -1053,6 +1253,13 @@ class SettingsApp(Adw.Application):
                         fvals[fkey] = widget.get_text()
                 ok = write_keybind_fields(entry["config_file"], entry, fvals)
 
+            elif entry["type"] == "variable":
+                val = entry["entry"].get_text()
+                ok  = write_variable(
+                    entry["config_file"], entry["line_idx"],
+                    entry["var_name"], val
+                )
+                if ok: entry["original"] = val
             else:
                 ok = True
 

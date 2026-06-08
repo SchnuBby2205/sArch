@@ -29,3 +29,6 @@ require("workspaces")
 
 -- Window rules
 require("windowrules")
+
+-- Layer rules
+require("layerrules")

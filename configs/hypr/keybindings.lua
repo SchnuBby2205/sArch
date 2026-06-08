@@ -1,13 +1,11 @@
--- Variables must be required
-require("variables")
-
 -----------------
 -- Keybindings --
 -----------------
+require("variables")
 
 -- Launching and closing
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal))
-hl.bind(mainMod .. " + Q", hl.dsp.window.close())
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal), { description = "Öffnet das Terminal." })
+hl.bind(mainMod .. " + Q", hl.dsp.window.close(), { description = "Schließt das aktuelle Fenster." })
 
 -- Move focus
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }))
@@ -20,7 +18,7 @@ for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
     hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
     hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
-    hl.bind(mainMod .. " + CTRL + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
+    hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }))
 end
 
 -- Cycle through Workspaces with Mousewheel
@@ -35,11 +33,13 @@ hl.bind(mainMod .. " + mouse:274", hl.dsp.window.fullscreen(), { mouse = true })
 -- Starting programs
 hl.bind(mainMod .. " + Backspace", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_powermenu.sh"))
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("kitty btop"))
-hl.bind(mainMod .. " + F", hl.dsp.exec_cmd(browser))
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(explorer))
+hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("firefox"))
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("dolphin"))
+-- muss man per window rule machen
 hl.bind(mainMod .. " + CTRL + T", hl.dsp.exec_cmd("teamspeak3"), { workspace = 2 })
 hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd("steam"), { workspace = 3 })
 hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("lutris lutris:rungameid/1"), { workspace = 3 })
+--
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("rofi -show drun -theme ~/.config/rofi/launcher.rasi"))
 hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh"))
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_wallpaper.sh"))
@@ -49,5 +49,5 @@ hl.bind("F10", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh toggl
 hl.bind("F9", hl.dsp.exec_cmd("pavucontrol"), { repeating = true, locked = true })
 
 -- for scrolling workspace 2
-hl.bind(mainMod .. " + CTRL + mouse_up", hl.dsp.layout("move +col"))  -- Fenster nach rechts verschieben
-hl.bind(mainMod .. " + CTRL + mouse_down",  hl.dsp.layout("move -col"))  -- Spalte nach links tauschen
+hl.bind(mainMod .. " + ALT + mouse_up", hl.dsp.layout("move +col"))  -- Fenster nach rechts verschieben
+hl.bind(mainMod .. " + ALT + mouse_down",  hl.dsp.layout("move -col"))  -- Spalte nach links tauschen

@@ -1,50 +1,104 @@
-background = "rgba(14140cff)"
-error = "rgba(ffb4abff)"
-error_container = "rgba(93000aff)"
-inverse_on_surface = "rgba(323128ff)"
-inverse_primary = "rgba(666014ff)"
-inverse_surface = "rgba(e7e2d5ff)"
-on_background = "rgba(e7e2d5ff)"
-on_error = "rgba(690005ff)"
-on_error_container = "rgba(ffdad6ff)"
-on_primary = "rgba(353100ff)"
-on_primary_container = "rgba(eee58cff)"
-on_primary_fixed = "rgba(1f1c00ff)"
-on_primary_fixed_variant = "rgba(4d4800ff)"
-on_secondary = "rgba(333117ff)"
-on_secondary_container = "rgba(e9e4beff)"
-on_secondary_fixed = "rgba(1e1c05ff)"
-on_secondary_fixed_variant = "rgba(4a482cff)"
-on_surface = "rgba(e7e2d5ff)"
-on_surface_variant = "rgba(cbc7b5ff)"
-on_tertiary = "rgba(0e3727ff)"
-on_tertiary_container = "rgba(c1ecd5ff)"
-on_tertiary_fixed = "rgba(002114ff)"
-on_tertiary_fixed_variant = "rgba(274e3dff)"
-outline = "rgba(949181ff)"
-outline_variant = "rgba(49473aff)"
-primary = "rgba(d1c973ff)"
-primary_container = "rgba(4d4800ff)"
-primary_fixed = "rgba(eee58cff)"
-primary_fixed_dim = "rgba(d1c973ff)"
-scrim = "rgba(000000ff)"
-secondary = "rgba(cdc8a3ff)"
-secondary_container = "rgba(4a482cff)"
-secondary_fixed = "rgba(e9e4beff)"
-secondary_fixed_dim = "rgba(cdc8a3ff)"
-shadow = "rgba(000000ff)"
-source_color = "rgba(c2b701ff)"
-surface = "rgba(14140cff)"
-surface_bright = "rgba(3b3930ff)"
-surface_container = "rgba(212017ff)"
-surface_container_high = "rgba(2b2a21ff)"
-surface_container_highest = "rgba(36352cff)"
-surface_container_low = "rgba(1d1c14ff)"
-surface_container_lowest = "rgba(0f0e07ff)"
-surface_dim = "rgba(14140cff)"
-surface_tint = "rgba(d1c973ff)"
-surface_variant = "rgba(49473aff)"
-tertiary = "rgba(a6d0b9ff)"
-tertiary_container = "rgba(274e3dff)"
-tertiary_fixed = "rgba(c1ecd5ff)"
-tertiary_fixed_dim = "rgba(a6d0b9ff)"
+--return {
+    --image = "/home/schnubby/Bilder/Wallpapers/colored-silence.jpg",
+
+    background = "0xff19120d"
+
+    error = "0xffffb4ab"
+
+    error_container = "0xff93000a"
+
+    inverse_on_surface = "0xff382e29"
+
+    inverse_primary = "0xff8b4f25"
+
+    inverse_surface = "0xfff0dfd7"
+
+    on_background = "0xfff0dfd7"
+
+    on_error = "0xff690005"
+
+    on_error_container = "0xffffdad6"
+
+    on_primary = "0xff512300"
+
+    on_primary_container = "0xffffdbc8"
+
+    on_primary_fixed = "0xff311300"
+
+    on_primary_fixed_variant = "0xff6e3810"
+
+    on_secondary = "0xff432b1c"
+
+    on_secondary_container = "0xffffdbc8"
+
+    on_secondary_fixed = "0xff2b1709"
+
+    on_secondary_fixed_variant = "0xff5c4130"
+
+    on_surface = "0xfff0dfd7"
+
+    on_surface_variant = "0xffd7c2b8"
+
+    on_tertiary = "0xff323209"
+
+    on_tertiary_container = "0xffe7e5ac"
+
+    on_tertiary_fixed = "0xff1d1d00"
+
+    on_tertiary_fixed_variant = "0xff49491e"
+
+    outline = "0xff9f8d83"
+
+    outline_variant = "0xff52443c"
+
+    primary = "0xffffb689"
+
+    primary_container = "0xff6e3810"
+
+    primary_fixed = "0xffffdbc8"
+
+    primary_fixed_dim = "0xffffb689"
+
+    scrim = "0xff000000"
+
+    secondary = "0xffe5bfa9"
+
+    secondary_container = "0xff5c4130"
+
+    secondary_fixed = "0xffffdbc8"
+
+    secondary_fixed_dim = "0xffe5bfa9"
+
+    shadow = "0xff000000"
+
+    source_color = "0xfffb8326"
+
+    surface = "0xff19120d"
+
+    surface_bright = "0xff413731"
+
+    surface_container = "0xff261e19"
+
+    surface_container_high = "0xff312823"
+
+    surface_container_highest = "0xff3d332d"
+
+    surface_container_low = "0xff221a15"
+
+    surface_container_lowest = "0xff140d08"
+
+    surface_dim = "0xff19120d"
+
+    surface_tint = "0xffffb689"
+
+    surface_variant = "0xff52443c"
+
+    tertiary = "0xffcbc992"
+
+    tertiary_container = "0xff49491e"
+
+    tertiary_fixed = "0xffe7e5ac"
+
+    tertiary_fixed_dim = "0xffcbc992"
+
+--}

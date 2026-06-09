@@ -14,7 +14,7 @@ Features:
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw, Gdk
+from gi.repository import Gtk, Adw, Gdk, Gio
 import configparser, os, sys, re, json, copy
 
 
@@ -101,6 +101,7 @@ def load_categories(ini_path: str) -> dict:
             "new_template": s.get("new_template", ""),  # Lua-Template für neuen Eintrag
             "append_file":  s.get("append_file", s.get("config_file","")),
             "visible":      s.get("visible", "true").lower() != "false",
+            "lua_func":     s.get("lua_func", ""),
         }
         categories.setdefault(cat, []).append(entry)
     return categories
@@ -403,10 +404,25 @@ def write_keybind_fields(config_file: str, entry: dict, field_values: dict) -> b
     for i in range(start, end+1):
         line = lines[i]
         if line.lstrip().startswith("--"): continue
+        # hl.bind()
         if re.match(r'\s*hl\.bind\s*\(', line):
-            indent    = len(line) - len(line.lstrip())
-            new_line  = " " * indent + _build_hl_bind(field_values) + "\n"
-            lines[i]  = new_line
+            indent   = len(line) - len(line.lstrip())
+            new_line = " " * indent + _build_hl_bind(field_values) + "\n"
+            lines[i] = new_line
+            try:
+                with open(config_file, "r+") as f:
+                    f.seek(0); f.writelines(lines); f.truncate()
+                return True
+            except OSError: return False
+        # hl.animation / hl.workspace_rule / hl.layer_rule (einzeilig)
+        lm = re.match(r'\s*(hl\.(?:animation|workspace_rule|layer_rule))\s*\(', line)
+        if lm:
+            func     = lm.group(1)
+            # field_defs aus entry holen (wird als __field_defs__ übergeben)
+            fds      = field_values.pop("__field_defs__", [])
+            indent   = len(line) - len(line.lstrip())
+            new_line = " " * indent + _build_lua_func(func, field_values, fds) + "\n"
+            lines[i] = new_line
             try:
                 with open(config_file, "r+") as f:
                     f.seek(0); f.writelines(lines); f.truncate()
@@ -555,6 +571,283 @@ def delete_entry(config_file: str, entry: dict) -> bool:
     except OSError: return False
 
 
+
+# ── Animations ────────────────────────────────────────────────────────────────
+
+def read_animations(config_file: str) -> list:
+    """Liest alle hl.animation({...}) Einzeiler, gibt Liste von dicts zurück."""
+    result = []
+    if not config_file or not os.path.exists(config_file): return result
+    pat = re.compile(r'hl\.animation\s*\(\{(.+)\}\)')
+    try:
+        with open(config_file) as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith("--"): continue
+            m = pat.search(line)
+            if m:
+                fields = _parse_inline_fields(m.group(1))
+                fields["_line"] = i
+                result.append(fields)
+    except OSError: pass
+    return result
+
+def _parse_inline_fields(s: str) -> dict:
+    """Parst 'key = val, key2 = val2' aus einem inline-Block."""
+    result = {}
+    for m in re.finditer(r'([\w_]+)\s*=\s*("(?:[^"\\]|\\.)*"|true|false|[\d.]+|[\w%]+)', s):
+        result[m.group(1)] = m.group(2).strip()
+    return result
+
+def write_animation(config_file: str, line_idx: int, fields: dict) -> bool:
+    """Schreibt eine hl.animation() Zeile neu."""
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_idx >= len(lines): return False
+        lines[line_idx] = _build_animation(fields) + "\n"
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def delete_line(config_file: str, line_idx: int) -> bool:
+    """Löscht eine einzelne Zeile aus der Datei."""
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_idx >= len(lines): return False
+        del lines[line_idx]
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def _build_animation(fields: dict) -> str:
+    skip = {"_line"}
+    parts = []
+    order = ["leaf","enabled","speed","bezier","spring","style"]
+    seen  = set()
+    for k in order:
+        if k in fields and k not in skip:
+            v = fields[k]
+            # String-Werte in Anführungszeichen wenn kein bool/zahl
+            if v not in ("true","false") and not re.match(r'^[\d.]+$', v):
+                v = f'"{v}"'
+            parts.append(f"{k} = {v}")
+            seen.add(k)
+    for k,v in fields.items():
+        if k not in seen and k not in skip:
+            if v not in ("true","false") and not re.match(r'^[\d.]+$', v):
+                v = f'"{v}"'
+            parts.append(f"{k} = {v}")
+    return f'hl.animation({{ {", ".join(parts)} }})'
+
+def append_animation(config_file: str, fields: dict) -> bool:
+    try:
+        with open(config_file, "a") as f:
+            f.write(_build_animation(fields) + "\n")
+        return True
+    except OSError: return False
+
+
+# ── Autostart ─────────────────────────────────────────────────────────────────
+
+def read_autostarts(config_file: str) -> list:
+    """Liest alle hl.exec_cmd(...) Zeilen innerhalb von hl.on(...)."""
+    result = []
+    if not config_file or not os.path.exists(config_file): return result
+    pat = re.compile(r'hl\.exec_cmd\s*\((.+)\)')
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith("--"): continue
+            m = pat.search(line)
+            if m:
+                cmd = m.group(1).strip()
+                result.append({"cmd": cmd, "_line": i})
+    except OSError: pass
+    return result
+
+def write_autostart(config_file: str, line_idx: int, cmd: str) -> bool:
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_idx >= len(lines): return False
+        indent = "    "
+        lines[line_idx] = f'{indent}hl.exec_cmd({cmd})\n'
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def append_autostart(config_file: str, cmd: str) -> bool:
+    """Fügt einen neuen hl.exec_cmd() vor end) ein."""
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        # Finde "end)" Zeile
+        end_idx = None
+        for i, l in enumerate(lines):
+            if re.search(r'end\s*\)', l):
+                end_idx = i
+                break
+        if end_idx is None:
+            # Ans Ende hängen
+            with open(config_file, "a") as f:
+                f.write(f'    hl.exec_cmd({cmd})\n')
+        else:
+            lines.insert(end_idx, f'    hl.exec_cmd({cmd})\n')
+            with open(config_file, "r+") as f:
+                f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+
+# ── Workspace Rules ───────────────────────────────────────────────────────────
+
+def read_workspace_rules(config_file: str) -> list:
+    """Liest alle hl.workspace_rule({...}) Einzeiler."""
+    result = []
+    if not config_file or not os.path.exists(config_file): return result
+    pat = re.compile(r'hl\.workspace_rule\s*\(\{(.+)\}\)')
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith("--"): continue
+            m = pat.search(line)
+            if m:
+                fields = _parse_inline_fields(m.group(1))
+                fields["_line"] = i
+                result.append(fields)
+    except OSError: pass
+    return result
+
+def _build_workspace_rule(fields: dict) -> str:
+    skip = {"_line"}
+    order = ["workspace","default_name","monitor","layout","default"]
+    parts = []
+    seen  = set()
+    for k in order:
+        if k in fields and k not in skip:
+            v = fields[k]
+            if v not in ("true","false") and not re.match(r'^[\d.]+$', v):
+                v = f'"{v}"'
+            parts.append(f"{k} = {v}")
+            seen.add(k)
+    for k,v in fields.items():
+        if k not in seen and k not in skip:
+            if v not in ("true","false") and not re.match(r'^[\d.]+$', v):
+                v = f'"{v}"'
+            parts.append(f"{k} = {v}")
+    return f'hl.workspace_rule({{ {", ".join(parts)} }})'
+
+def write_workspace_rule(config_file: str, line_idx: int, fields: dict) -> bool:
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_idx >= len(lines): return False
+        lines[line_idx] = _build_workspace_rule(fields) + "\n"
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def append_workspace_rule(config_file: str, fields: dict) -> bool:
+    try:
+        with open(config_file, "a") as f:
+            f.write(_build_workspace_rule(fields) + "\n")
+        return True
+    except OSError: return False
+
+
+# ── Layer Rules ───────────────────────────────────────────────────────────────
+
+def read_layer_rules(config_file: str) -> list:
+    result = []
+    if not config_file or not os.path.exists(config_file): return result
+    pat = re.compile(r'hl\.layer_rule\s*\(\{(.+)\}\)')
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith("--"): continue
+            m = pat.search(line)
+            if m:
+                fields = _parse_inline_fields(m.group(1))
+                fields["_line"] = i
+                result.append(fields)
+    except OSError: pass
+    return result
+
+def _build_layer_rule(fields: dict) -> str:
+    skip = {"_line"}
+    name  = fields.get("name","")
+    cls   = fields.get("class","")
+    parts = [f'name = "{name}"']
+    if cls: parts.append(f'match = {{ class = "{cls}" }}')
+    for k,v in fields.items():
+        if k not in skip | {"name","class","match"}:
+            if v not in ("true","false") and not re.match(r'^[\d.]+$', v):
+                v = f'"{v}"'
+            parts.append(f"{k} = {v}")
+    return f'hl.layer_rule({{ {", ".join(parts)} }})'
+
+def write_layer_rule(config_file: str, line_idx: int, fields: dict) -> bool:
+    try:
+        with open(config_file) as f: lines = f.readlines()
+        if line_idx >= len(lines): return False
+        lines[line_idx] = _build_layer_rule(fields) + "\n"
+        with open(config_file, "r+") as f:
+            f.seek(0); f.writelines(lines); f.truncate()
+        return True
+    except OSError: return False
+
+def append_layer_rule(config_file: str, fields: dict) -> bool:
+    try:
+        with open(config_file, "a") as f:
+            f.write(_build_layer_rule(fields) + "\n")
+        return True
+    except OSError: return False
+
+def _build_lua_func(func: str, fields: dict, field_defs: list) -> str:
+    """
+    Generischer Builder für einzeilige hl.xxx({...}) Calls.
+    Felder mit "block": "name" werden als name = { key = val, ... } gruppiert.
+    Mehrere Felder mit demselben block-Namen landen im selben Sub-Block.
+    Schreibt nur Felder die nicht leer sind, in der Reihenfolge aus field_defs.
+    """
+    skip = {"_line"}
+
+    def _fmt(v: str) -> str:
+        if v in ("true", "false"): return v
+        if re.match(r'^[\d.]+$', v): return v
+        return f'"{v}"'
+
+    # Alle block-Felder vorsammeln: {block_name: [(key, fmtval), ...]}
+    blocks: dict = {}
+    for fd in field_defs:
+        blk = fd.get("block")
+        if not blk: continue
+        k = fd["key"]
+        v = str(fields.get(k, "")).strip()
+        if not v: continue
+        blocks.setdefault(blk, []).append(f"{k} = {_fmt(v)}")
+
+    # Ausgabe in field_defs Reihenfolge, Blöcke einmalig einfügen
+    result_parts = []
+    inserted_blocks: set = set()
+    for fd in field_defs:
+        k   = fd["key"]
+        blk = fd.get("block")
+        if k in skip: continue
+        if blk:
+            if blk not in inserted_blocks and blk in blocks:
+                result_parts.append(f"{blk} = {{ {', '.join(blocks[blk])} }}")
+                inserted_blocks.add(blk)
+        else:
+            v = str(fields.get(k, "")).strip()
+            if not v: continue
+            result_parts.append(f"{k} = {_fmt(v)}")
+
+    return f'{func}({{ {", ".join(result_parts)} }})'
+
+
+
 def _build_windowrule(vals: dict) -> str:
     name      = vals.get("name", "")
     cls       = vals.get("class", "").strip()
@@ -582,6 +875,10 @@ def append_new_entry(config_file: str, template: str, vals: dict = None) -> bool
             text = _build_windowrule(vals)
         elif template == "__keybind__" and vals:
             text = _build_hl_bind(vals)
+        elif template == "__lua_func__" and vals:
+            func      = vals.pop("__lua_func__", "hl.unknown")
+            field_defs = vals.pop("__field_defs__", [])
+            text = _build_lua_func(func, vals, field_defs)
         else:
             text = template
         with open(config_file, "a") as f:
@@ -594,7 +891,8 @@ def append_new_entry(config_file: str, template: str, vals: dict = None) -> bool
 
 class SettingsApp(Adw.Application):
     def __init__(self, ini_path: str):
-        super().__init__(application_id="de.local.settings-mask")
+        super().__init__(application_id="de.local.settings-mask",
+                         flags=Gio.ApplicationFlags.NON_UNIQUE)
         self.ini_path = ini_path
         self.category_pending: dict = {}
         self._all_categories: dict = {}
@@ -734,9 +1032,9 @@ class SettingsApp(Adw.Application):
                 pref_group.set_header_suffix(add_btn)
 
             for s in entries:
-                if s["type"] == "variable":
-                    self._add_variable_group(outer_box, cat_name, s)
-                    break  # variable-Typ baut eigene Gruppe
+                if s["type"] in ("variable","animation","autostart","workspace_rule","layer_rule"):
+                    self._add_special_group(outer_box, cat_name, s)
+                    break
                 elif s["type"] == "multisetting":
                     self._add_keybind(pref_group, cat_name, s)
                 elif s["type"] == "dropdown":
@@ -764,6 +1062,20 @@ class SettingsApp(Adw.Application):
         return scroll
 
     # ── Slider ────────────────────────────────────────────────────────────────
+
+    def _add_special_group(self, outer_box: Gtk.Box, cat_name: str, s: dict):
+        """Router für variable, animation, autostart, workspace_rule, layer_rule."""
+        t = s["type"]
+        if t == "variable":
+            self._add_variable_group(outer_box, cat_name, s)
+        elif t == "animation":
+            self._add_animation_group(outer_box, cat_name, s)
+        elif t == "autostart":
+            self._add_autostart_group(outer_box, cat_name, s)
+        elif t == "workspace_rule":
+            self._add_workspace_rule_group(outer_box, cat_name, s)
+        elif t == "layer_rule":
+            self._add_layer_rule_group(outer_box, cat_name, s)
 
     def _add_variable_group(self, outer_box: Gtk.Box, cat_name: str, s: dict):
         """Zeigt alle Variablen aus der Datei als editierbare Rows."""
@@ -816,7 +1128,7 @@ class SettingsApp(Adw.Application):
                     def on_resp(d, resp):
                         if resp != "delete": return
                         if delete_variable(cfg, lidx):
-                            self._rebuild_variable_page(cat, ob, sv)
+                            self._rebuild_special_page(cat, ob, sv)
                             toast = Adw.Toast(title="Variable gelöscht.")
                             toast.set_timeout(3)
                             self._toast_overlay.add_toast(toast)
@@ -837,18 +1149,15 @@ class SettingsApp(Adw.Application):
 
         outer_box.append(pref_group)
 
-    def _rebuild_variable_page(self, cat_name: str, outer_box: Gtk.Box, s: dict):
-        """Baut die Variable-Seite neu auf."""
-        # outer_box leeren
+    def _rebuild_special_page(self, cat_name: str, outer_box: Gtk.Box, s: dict):
+        """Baut eine special-Seite (variable/animation/autostart/etc.) neu auf."""
         child = outer_box.get_first_child()
         while child:
             nxt = child.get_next_sibling()
             outer_box.remove(child)
             child = nxt
         self.category_pending[cat_name] = {}
-        # Neu aufbauen
-        self._add_variable_group(outer_box, cat_name, s)
-        # Buttons wieder hinzufügen
+        self._add_special_group(outer_box, cat_name, s)
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         btn_box.set_halign(Gtk.Align.END); btn_box.set_margin_top(4)
         reset_btn = Gtk.Button(label="Zurücksetzen")
@@ -859,6 +1168,320 @@ class SettingsApp(Adw.Application):
         apply_btn.connect("clicked", self._on_apply, cat_name)
         btn_box.append(reset_btn); btn_box.append(apply_btn)
         outer_box.append(btn_box)
+
+    def _rebuild_variable_page(self, cat_name: str, outer_box: Gtk.Box, s: dict):
+        """Baut die Variable-Seite neu auf."""
+        self._rebuild_special_page(cat_name, outer_box, s)
+
+    # ── Generische Inline-Rule Gruppe ────────────────────────────────────────
+
+    def _add_inline_rule_group(self, outer_box, cat_name, s, reader,
+                                writer, appender, index_field,
+                                field_defs, title_key="_line"):
+        """
+        Generische Gruppe für einzeilige Rules (animation, workspace_rule, layer_rule).
+        field_defs: [{"key": k, "label": l, "type": "text"|"dropdown", "options": [...]}]
+        """
+        config_file = s["config_file"]
+        entries     = reader(config_file)
+
+        pref_group  = Adw.PreferencesGroup()
+        pref_group.set_title(s["label"] or cat_name)
+        if s["description"]: pref_group.set_description(s["description"])
+
+        add_btn = Gtk.Button()
+        add_btn.set_icon_name("list-add-symbolic")
+        add_btn.add_css_class("flat")
+        add_btn.set_tooltip_text("Neuen Eintrag anlegen")
+        add_btn.connect("clicked", self._on_new_inline_rule,
+                        cat_name, s, field_defs, appender, outer_box)
+        pref_group.set_header_suffix(add_btn)
+
+        for entry in entries:
+            line_idx  = entry.get("_line", 0)
+            row_title = entry.get(index_field, f"Zeile {line_idx+1}")
+
+            exp_row = Adw.ExpanderRow()
+            exp_row.set_title(row_title)
+            exp_row.set_activatable(True)
+
+            widgets = {}
+
+            # Felder nach block-Namen gruppieren
+            block_groups: dict = {}
+            no_block: list     = []
+            block_order: list  = []
+            for fd in field_defs:
+                blk = fd.get("block")
+                if blk:
+                    if blk not in block_groups:
+                        block_groups[blk] = []
+                        block_order.append(blk)
+                    block_groups[blk].append(fd)
+                else:
+                    no_block.append(fd)
+
+            def _add_fd(container, fd, fval):
+                fk = fd["key"]; fl = fd["label"]
+                ftype = fd.get("type","text"); fopts = fd.get("options",[])
+                if ftype == "dropdown":
+                    eff = list(fopts)
+                    if fval and fval not in eff: eff.insert(0, fval)
+                    fidx = eff.index(fval) if fval in eff else 0
+                    combo = Adw.ComboRow()
+                    combo.set_title(fl)
+                    combo.set_model(Gtk.StringList.new(eff))
+                    combo.set_selected(fidx)
+                    container.add_row(combo)
+                    widgets[fk] = ("dropdown", combo, eff)
+                else:
+                    te = Adw.EntryRow(); te.set_title(fl); te.set_text(str(fval))
+                    container.add_row(te)
+                    widgets[fk] = ("text", te, [])
+
+            for fd in no_block:
+                _add_fd(exp_row, fd, entry.get(fd["key"], ""))
+            for blk_name in block_order:
+                blk_row = Adw.ExpanderRow()
+                blk_row.set_title(blk_name); blk_row.set_expanded(True)
+                for fd in block_groups[blk_name]:
+                    _add_fd(blk_row, fd, entry.get(fd["key"], ""))
+                exp_row.add_row(blk_row)
+
+            # Mülltonne
+            del_btn = Gtk.Button()
+            del_btn.set_icon_name("user-trash-symbolic")
+            del_btn.add_css_class("flat")
+            del_btn.add_css_class("destructive-action")
+            del_btn.set_valign(Gtk.Align.CENTER)
+            del_btn.set_tooltip_text("Eintrag löschen")
+
+            def make_del(lidx, row, cat, ob, sv):
+                def cb(_):
+                    dialog = Adw.AlertDialog(
+                        heading="Wirklich löschen?",
+                        body=f"\"{row.get_title()}\" wird dauerhaft entfernt.",
+                    )
+                    dialog.add_response("cancel","Abbrechen")
+                    dialog.add_response("delete","Löschen")
+                    dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+                    dialog.set_default_response("cancel")
+                    def on_resp(d, resp):
+                        if resp != "delete": return
+                        if delete_line(config_file, lidx):
+                            self._rebuild_special_page(cat, ob, sv)
+                            toast = Adw.Toast(title="Eintrag gelöscht.")
+                            toast.set_timeout(3)
+                            self._toast_overlay.add_toast(toast)
+                    dialog.connect("response", on_resp)
+                    dialog.present(self._win)
+                return cb
+
+            del_btn.connect("clicked", make_del(line_idx, exp_row, cat_name, outer_box, s))
+            exp_row.add_suffix(del_btn)
+            pref_group.add(exp_row)
+
+            uid = f"{s['type']}|{config_file}|{line_idx}"
+            self.category_pending[cat_name][uid] = {
+                "type": s["type"], "widgets": widgets,
+                "config_file": config_file, "line_idx": line_idx,
+                "writer": writer, "field_defs": field_defs,
+                "original": dict(entry),
+            }
+
+        outer_box.append(pref_group)
+
+    def _on_new_inline_rule(self, _btn, cat_name, s, field_defs, appender, outer_box):
+        """Dialog zum Anlegen eines neuen Inline-Rule Eintrags."""
+        dialog = Adw.AlertDialog(heading="Neuen Eintrag anlegen", body="Felder ausfüllen.")
+        box    = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+        box.set_margin_top(8); box.set_size_request(420, -1)
+        fw = {}
+        for fd in field_defs:
+            lbl = Gtk.Label(label=fd["label"])
+            lbl.set_halign(Gtk.Align.START); lbl.add_css_class("dim-label")
+            box.append(lbl)
+            if fd.get("type") == "dropdown":
+                dd = Gtk.DropDown.new_from_strings(fd.get("options",[]))
+                dd.set_hexpand(True)
+                box.append(dd)
+                fw[fd["key"]] = ("dropdown", dd, fd.get("options",[]))
+            else:
+                e = Gtk.Entry(); e.set_hexpand(True)
+                e.set_placeholder_text(fd["label"])
+                box.append(e)
+                fw[fd["key"]] = ("text", e, [])
+        dialog.set_extra_child(box)
+        dialog.add_response("cancel","Abbrechen")
+        dialog.add_response("create","Anlegen")
+        dialog.set_default_response("create")
+        dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
+        def on_resp(d, resp):
+            if resp != "create": return
+            vals = {}
+            for k,(ft,w,opts) in fw.items():
+                if ft == "dropdown":
+                    idx = w.get_selected()
+                    vals[k] = opts[idx] if idx < len(opts) else ""
+                else:
+                    vals[k] = w.get_text().strip()
+            if appender(s["config_file"], vals):
+                self._rebuild_special_page(cat_name, outer_box, s)
+                toast = Adw.Toast(title="Eintrag angelegt.")
+                toast.set_timeout(3)
+                self._toast_overlay.add_toast(toast)
+        dialog.connect("response", on_resp)
+        dialog.present(self._win)
+
+    # ── Animation ─────────────────────────────────────────────────────────────
+
+    def _add_animation_group(self, outer_box, cat_name, s):
+        ANIM_FIELDS = [
+            {"key":"leaf",    "label":"Leaf (Name)",  "type":"text"},
+            {"key":"enabled", "label":"Aktiviert",    "type":"dropdown","options":["true","false"]},
+            {"key":"speed",   "label":"Geschwindigkeit","type":"text"},
+            {"key":"bezier",  "label":"Bezier",       "type":"text"},
+            {"key":"spring",  "label":"Spring",       "type":"text"},
+            {"key":"style",   "label":"Style",        "type":"text"},
+        ]
+        def anim_appender(cfg, vals):
+            return append_animation(cfg, vals)
+        def anim_writer(cfg, lidx, fields):
+            return write_animation(cfg, lidx, fields)
+        self._add_inline_rule_group(
+            outer_box, cat_name, s,
+            reader=read_animations, writer=anim_writer,
+            appender=anim_appender, index_field="leaf",
+            field_defs=ANIM_FIELDS,
+        )
+
+    # ── Autostart ──────────────────────────────────────────────────────────────
+
+    def _add_autostart_group(self, outer_box, cat_name, s):
+        """Autostart: einfache Liste von hl.exec_cmd() Einträgen."""
+        config_file = s["config_file"]
+        entries     = read_autostarts(config_file)
+
+        pref_group = Adw.PreferencesGroup()
+        pref_group.set_title(s["label"] or cat_name)
+        if s["description"]: pref_group.set_description(s["description"])
+
+        add_btn = Gtk.Button()
+        add_btn.set_icon_name("list-add-symbolic")
+        add_btn.add_css_class("flat")
+        add_btn.connect("clicked", self._on_new_autostart, cat_name, s, outer_box)
+        pref_group.set_header_suffix(add_btn)
+
+        for entry in entries:
+            line_idx = entry["_line"]
+            row = Adw.ActionRow()
+            row.set_title(entry["cmd"])
+            row.set_activatable(False)
+
+            te = Gtk.Entry()
+            te.set_text(entry["cmd"])
+            te.set_hexpand(True); te.set_valign(Gtk.Align.CENTER)
+            te.set_margin_start(8)
+            row.add_suffix(te)
+
+            del_btn = Gtk.Button()
+            del_btn.set_icon_name("user-trash-symbolic")
+            del_btn.add_css_class("flat"); del_btn.add_css_class("destructive-action")
+            del_btn.set_valign(Gtk.Align.CENTER)
+
+            def make_del(lidx, r, cat, ob, sv):
+                def cb(_):
+                    dialog = Adw.AlertDialog(heading="Wirklich löschen?",
+                                             body="Autostart-Eintrag entfernen?")
+                    dialog.add_response("cancel","Abbrechen")
+                    dialog.add_response("delete","Löschen")
+                    dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
+                    dialog.set_default_response("cancel")
+                    def on_resp(d, resp):
+                        if resp != "delete": return
+                        if delete_line(config_file, lidx):
+                            self._rebuild_special_page(cat, ob, sv)
+                            toast = Adw.Toast(title="Eintrag gelöscht.")
+                            toast.set_timeout(3); self._toast_overlay.add_toast(toast)
+                    dialog.connect("response", on_resp); dialog.present(self._win)
+                return cb
+
+            del_btn.connect("clicked", make_del(line_idx, row, cat_name, outer_box, s))
+            row.add_suffix(del_btn)
+            pref_group.add(row)
+
+            uid = f"autostart|{config_file}|{line_idx}"
+            self.category_pending[cat_name][uid] = {
+                "type":"autostart","entry":te,
+                "config_file":config_file,"line_idx":line_idx,
+                "original":entry["cmd"],
+            }
+
+        outer_box.append(pref_group)
+
+    def _on_new_autostart(self, _btn, cat_name, s, outer_box):
+        dialog = Adw.AlertDialog(heading="Neuer Autostart",
+                                 body='Befehl eingeben (z.B. "waybar" oder waybar)')
+        e = Gtk.Entry(); e.set_placeholder_text('"waybar"')
+        e.set_margin_top(8); e.set_size_request(360,-1)
+        dialog.set_extra_child(e)
+        dialog.add_response("cancel","Abbrechen")
+        dialog.add_response("create","Anlegen")
+        dialog.set_default_response("create")
+        dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
+        def on_resp(d, resp):
+            if resp != "create": return
+            cmd = e.get_text().strip()
+            if not cmd: return
+            if append_autostart(s["config_file"], cmd):
+                self._rebuild_special_page(cat_name, outer_box, s)
+                toast = Adw.Toast(title="Autostart angelegt.")
+                toast.set_timeout(3); self._toast_overlay.add_toast(toast)
+        dialog.connect("response", on_resp); dialog.present(self._win)
+
+    # ── Workspace Rules ────────────────────────────────────────────────────────
+
+    def _add_workspace_rule_group(self, outer_box, cat_name, s):
+        WS_FIELDS = [
+            {"key":"workspace",    "label":"Workspace",     "type":"text"},
+            {"key":"default_name", "label":"Name",          "type":"text"},
+            {"key":"monitor",      "label":"Monitor",       "type":"text"},
+            {"key":"layout",       "label":"Layout",        "type":"dropdown",
+             "options":["","scrolling","dwindle","master"]},
+            {"key":"default",      "label":"Standard",      "type":"dropdown",
+             "options":["","true","false"]},
+        ]
+        def ws_appender(cfg, vals):
+            clean = {k:v for k,v in vals.items() if v and v != ""}
+            return append_workspace_rule(cfg, clean)
+        def ws_writer(cfg, lidx, fields):
+            clean = {k:v for k,v in fields.items() if v and v != "" and k != "_line"}
+            return write_workspace_rule(cfg, lidx, clean)
+        self._add_inline_rule_group(
+            outer_box, cat_name, s,
+            reader=read_workspace_rules, writer=ws_writer,
+            appender=ws_appender, index_field="workspace",
+            field_defs=WS_FIELDS,
+        )
+
+    # ── Layer Rules ───────────────────────────────────────────────────────────
+
+    def _add_layer_rule_group(self, outer_box, cat_name, s):
+        LR_FIELDS = [
+            {"key":"name",  "label":"Name",          "type":"text"},
+            {"key":"class", "label":"Klasse (Regex)","type":"text"},
+            {"key":"blur",  "label":"Blur",          "type":"dropdown","options":["","true","false"]},
+        ]
+        def lr_appender(cfg, vals):
+            return append_layer_rule(cfg, vals)
+        def lr_writer(cfg, lidx, fields):
+            return write_layer_rule(cfg, lidx, fields)
+        self._add_inline_rule_group(
+            outer_box, cat_name, s,
+            reader=read_layer_rules, writer=lr_writer,
+            appender=lr_appender, index_field="name",
+            field_defs=LR_FIELDS,
+        )
 
     def _on_new_variable(self, _btn, cat_name: str, config_file: str,
                          outer_box: Gtk.Box, s: dict):
@@ -988,31 +1611,49 @@ class SettingsApp(Adw.Application):
 
         widgets = {}
 
+        # Felder nach block-Namen gruppieren
+        block_groups: dict = {}
+        no_block: list     = []
+        block_order: list  = []
         for field in fields:
-            fkey   = field.get("key","")
-            flabel = field.get("label", fkey)
-            ftype  = field.get("type","text")
-            fopts  = field.get("options", [])
-            fval   = current_vals.get(fkey, fopts[0] if fopts else "")
+            blk = field.get("block")
+            if blk:
+                if blk not in block_groups:
+                    block_groups[blk] = []
+                    block_order.append(blk)
+                block_groups[blk].append(field)
+            else:
+                no_block.append(field)
 
+        def _add_kf(container, field, fval):
+            fkey = field.get("key",""); flabel = field.get("label", fkey)
+            ftype = field.get("type","text"); fopts = field.get("options",[])
             if ftype == "dropdown":
-                # Wenn gelesener Wert nicht in options: vorne einfügen
-                effective_opts = list(fopts)
-                if fval and fval not in effective_opts:
-                    effective_opts.insert(0, fval)
-                fidx  = effective_opts.index(fval) if fval in effective_opts else 0
+                eff = list(fopts)
+                if fval and fval not in eff: eff.insert(0, fval)
+                fidx = eff.index(fval) if fval in eff else 0
                 combo = Adw.ComboRow()
                 combo.set_title(flabel)
-                combo.set_model(Gtk.StringList.new(effective_opts))
+                combo.set_model(Gtk.StringList.new(eff))
                 combo.set_selected(fidx)
-                exp_row.add_row(combo)
-                widgets[fkey] = ("dropdown", combo, effective_opts)
+                container.add_row(combo)
+                widgets[fkey] = ("dropdown", combo, eff)
             else:
-                text_row = Adw.EntryRow()
-                text_row.set_title(flabel)
-                text_row.set_text(str(fval))
-                exp_row.add_row(text_row)
-                widgets[fkey] = ("text", text_row, [])
+                te = Adw.EntryRow(); te.set_title(flabel)
+                te.set_text(str(fval))
+                container.add_row(te)
+                widgets[fkey] = ("text", te, [])
+
+        for field in no_block:
+            fval = current_vals.get(field.get("key",""), field.get("options",[""])[0] if field.get("options") else "")
+            _add_kf(exp_row, field, fval)
+        for blk_name in block_order:
+            blk_row = Adw.ExpanderRow()
+            blk_row.set_title(blk_name); blk_row.set_expanded(True)
+            for field in block_groups[blk_name]:
+                fval = current_vals.get(field.get("key",""), "")
+                _add_kf(blk_row, field, fval)
+            exp_row.add_row(blk_row)
 
         # Mülltonne-Button als Suffix im ExpanderRow-Header
         del_btn = Gtk.Button()
@@ -1067,12 +1708,13 @@ class SettingsApp(Adw.Application):
 
         group.add(exp_row)
 
-        uid = f"multisetting|{s['config_file']}|{s.get('index_value','')}|{fkey}"
+        uid = f"multisetting|{s['config_file']}|{s.get('index_value','')}|{s.get('config_key','')}|{id(exp_row)}"
         self.category_pending[cat_name][uid] = {
             "type":"multisetting", "widgets":widgets, "fields":fields,
             "config_file":s["config_file"], "config_key":s["config_key"],
             "parent_key":s["parent_key"], "index_field":s["index_field"],
             "index_value":s["index_value"], "format":s["format"],
+            "lua_func":s.get("lua_func",""),
         }
 
     # ── Neuer Eintrag Dialog ──────────────────────────────────────────────────
@@ -1138,8 +1780,12 @@ class SettingsApp(Adw.Application):
                     val = widget.get_text()
                 filled = filled.replace(f"{{{fkey}}}", val)
 
-            filled = filled.replace("\\n", "\n")  # \n in INI → echte Newline
-            ok = append_new_entry(tmpl_entry["append_file"], filled, vals={k: (fopts[w.get_selected()] if ft=="dropdown" else w.get_text()) for k,(ft,w,fopts) in field_widgets.items()})
+            raw_vals = {k: (fopts[w.get_selected()] if ft=="dropdown" else w.get_text())
+                         for k,(ft,w,fopts) in field_widgets.items()}
+            raw_vals["__lua_func__"]   = tmpl_entry.get("lua_func", "hl.unknown")
+            raw_vals["__field_defs__"] = tmpl_entry.get("fields", [])
+            filled = filled.replace("\\n", "\n")
+            ok = append_new_entry(tmpl_entry["append_file"], filled, vals=raw_vals)
             if ok:
                 # Seite neu aufbauen
                 self._all_categories = load_categories(self.ini_path)
@@ -1223,8 +1869,17 @@ class SettingsApp(Adw.Application):
                 entry["scale"].set_value(entry["original"])
             elif entry["type"] == "dropdown":
                 entry["combo"].set_selected(entry["original"])
-            elif entry["type"] == "variable":
+            elif entry["type"] in ("variable","autostart"):
                 entry["entry"].set_text(entry["original"])
+            elif entry["type"] in ("animation","workspace_rule","layer_rule"):
+                for fk,(ft,w,opts) in entry["widgets"].items():
+                    orig_val = entry["original"].get(fk,"")
+                    if ft == "dropdown":
+                        eff = list(opts)
+                        if orig_val and orig_val not in eff: eff.insert(0,orig_val)
+                        w.set_selected(eff.index(orig_val) if orig_val in eff else 0)
+                    else:
+                        w.set_text(str(orig_val))
             # keybind: kein Reset implementiert (komplex, später erweiterbar)
 
     def _on_apply(self, _btn, cat_name: str):
@@ -1251,15 +1906,31 @@ class SettingsApp(Adw.Application):
                         fvals[fkey] = fopts[idx] if idx < len(fopts) else ""
                     else:
                         fvals[fkey] = widget.get_text()
+                # field_defs für lua_func Builder mitgeben
+                if entry.get("lua_func"):
+                    fvals["__field_defs__"] = entry.get("fields", [])
                 ok = write_keybind_fields(entry["config_file"], entry, fvals)
 
             elif entry["type"] == "variable":
                 val = entry["entry"].get_text()
-                ok  = write_variable(
-                    entry["config_file"], entry["line_idx"],
-                    entry["var_name"], val
-                )
+                ok  = write_variable(entry["config_file"], entry["line_idx"],
+                                     entry["var_name"], val)
                 if ok: entry["original"] = val
+            elif entry["type"] == "autostart":
+                val = entry["entry"].get_text()
+                ok  = write_autostart(entry["config_file"], entry["line_idx"], val)
+                if ok: entry["original"] = val
+            elif entry["type"] in ("animation","workspace_rule","layer_rule"):
+                fvals = {}
+                for fk,(ft,w,opts) in entry["widgets"].items():
+                    if ft == "dropdown":
+                        idx = w.get_selected()
+                        fvals[fk] = opts[idx] if idx < len(opts) else ""
+                    else:
+                        fvals[fk] = w.get_text()
+                fvals["_line"] = entry["line_idx"]
+                ok = entry["writer"](entry["config_file"], entry["line_idx"], fvals)
+                if ok: entry["original"] = dict(fvals)
             else:
                 ok = True
 

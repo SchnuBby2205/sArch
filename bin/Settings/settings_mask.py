@@ -230,6 +230,8 @@ def _find_all_indexed_blocks(lines: list, index_field: str) -> list:
 
     for i, line in enumerate(lines):
         if line.lstrip().startswith("--"): continue
+        # Lua-Kontrollstrukturen nicht als Blockstart werten
+        if re.match(r'^\s*(for|while|if|elseif|else|do|repeat|until|end|local)\b', line): continue
         opens  = line.count("{") + line.count("(")
         closes = line.count("}") + line.count(")")
 
@@ -355,12 +357,29 @@ def _parse_hl_bind(line: str) -> dict:
         result["command"] = cm.group(1)
         arg_start = cm.end()
         arg_inner = inner[arg_start:]
-        # Nur bis zum ersten ) lesen – das ist das Ende der Befehlsklammer
-        close = arg_inner.find(")")
+        # Klammertiefe zählen um korrekte schliessende ) zu finden
+        # Nötig für Argumente mit eingebetteten () z.B. $(date +%Y-%m-%d)
+        depth_p = 0
+        close   = -1
+        in_str  = False
+        str_ch  = None
+        for ci, ch in enumerate(arg_inner):
+            if in_str:
+                if ch == str_ch and (ci == 0 or arg_inner[ci-1] != "\\"):
+                    in_str = False
+            elif ch in ('"', "'"):
+                in_str = True
+                str_ch = ch
+            elif ch == "(":
+                depth_p += 1
+            elif ch == ")":
+                if depth_p == 0:
+                    close = ci
+                    break
+                depth_p -= 1
         if close > 0:
-            arg_str = arg_inner[:close].strip()
-            result["argument"] = arg_str
-        # close == 0: leere Klammern, Argument bleibt ""
+            result["argument"] = arg_inner[:close].strip()
+        # close == 0 oder -1: leere Klammern, Argument bleibt ""
 
     # description aus { description = "..." }
     desc_m = re.search(r'description\s*=\s*"([^"]*)"', inner)

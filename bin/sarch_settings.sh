@@ -7,7 +7,7 @@ returnDir=$PWD
 if [[ "$mode" == "Hyprland" ]]; then
 	#submode=$(echo -e "hyprland\nkeybindings\nwindowrules" | rofi -dmenu -theme launcher.rasi)
 	#code "/home/schnubby/.config/hypr/"
-	python3 ~/.config/sArch/bin/Settings/settings_mask.py ~/.config/sArch/bin/Settings/settings.ini
+	python3 ~/.config/sArch/bin/Settings/settings_mask.py ~/.config/sArch/bin/Settings/settings_de.ini --lang de
 fi
 
 if [[ "$mode" == "Dunst" ]]; then

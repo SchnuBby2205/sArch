@@ -18,6 +18,97 @@ from gi.repository import Gtk, Adw, Gdk, Gio
 import configparser, os, sys, re, json, copy
 
 
+# ── Localisation ─────────────────────────────────────────────────────────────
+
+import locale as _locale_mod
+
+_STRINGS: dict = {}
+
+def load_locale(locale_dir: str = None) -> None:
+    """
+    Loads UI strings from a locales/<lang>.ini file.
+    Detection order:
+      1. LANGUAGE / LANG environment variable
+      2. System locale
+      3. Fallback: English (en)
+    """
+    global _STRINGS
+
+    if locale_dir is None:
+        locale_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "locales")
+
+    # Detect language
+    lang = (os.environ.get("LANGUAGE") or
+            os.environ.get("LANG") or
+            _locale_mod.getlocale()[0] or "en")
+    lang = lang.split("_")[0].split(".")[0].lower()  # "de_DE.UTF-8" → "de"
+
+    # Try detected language, then fallback to English
+    for try_lang in [lang, "en"]:
+        path = os.path.join(locale_dir, f"{try_lang}.ini")
+        if os.path.exists(path):
+            cfg = configparser.ConfigParser()
+            cfg.read(path, encoding="utf-8")
+            if "ui" in cfg:
+                _STRINGS = dict(cfg["ui"])
+                return
+
+def t(key: str, **kwargs) -> str:
+    """Return a localised string, with optional {placeholder} substitution."""
+    s = _STRINGS.get(key, key)
+    if kwargs:
+        for k, v in kwargs.items():
+            s = s.replace("{" + k + "}", str(v))
+    return s
+
+
+# ── Localisation ─────────────────────────────────────────────────────────────
+
+def _find_i18n_file(lang: str) -> str | None:
+    """Searches for i18n/<lang>.ini relative to the script location."""
+    base = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base, "i18n", f"{lang}.ini")
+    return path if os.path.exists(path) else None
+
+def load_i18n(lang: str = "") -> dict:
+    """
+    Loads a localisation file from i18n/<lang>.ini.
+    Falls back to en if the requested language is not found.
+    Auto-detects system locale when lang is empty.
+    """
+    if not lang:
+        import locale
+        sys_lang = locale.getdefaultlocale()[0] or "en"
+        lang = sys_lang.split("_")[0].lower()   # "de_DE" → "de"
+
+    path = _find_i18n_file(lang)
+    if not path:
+        path = _find_i18n_file("en")
+    if not path:
+        return {}
+
+    cfg = configparser.ConfigParser(interpolation=None)
+    cfg.read(path, encoding="utf-8")
+    result = {}
+    for section in cfg.sections():
+        for key, val in cfg[section].items():
+            result[key] = val
+    return result
+
+# Global translation dict – populated in SettingsApp.__init__
+_T: dict = {}
+
+def t(key: str, **kwargs) -> str:
+    """Return translated string, with optional {placeholder} substitution."""
+    s = _T.get(key, key)
+    if kwargs:
+        try:
+            s = s.format(**kwargs)
+        except KeyError:
+            pass
+    return s
+
+
 # ── Matugen ───────────────────────────────────────────────────────────────────
 
 MATUGEN_PATHS = [
@@ -890,21 +981,24 @@ def append_new_entry(config_file: str, template: str, vals: dict = None) -> bool
 # ── GTK4 / Adwaita App ────────────────────────────────────────────────────────
 
 class SettingsApp(Adw.Application):
-    def __init__(self, ini_path: str):
+    def __init__(self, ini_path: str, lang: str = ""):
         super().__init__(application_id="de.local.settings-mask",
                          flags=Gio.ApplicationFlags.NON_UNIQUE)
         self.ini_path = ini_path
         self.category_pending: dict = {}
         self._all_categories: dict = {}
+        global _T
+        _T = load_i18n(lang)
         self.connect("activate", self.on_activate)
 
     def on_activate(self, app):
         self._all_categories = load_categories(self.ini_path)
+        load_locale()
         Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
         apply_matugen_theme()
 
         win = Adw.ApplicationWindow(application=app)
-        win.set_title("Einstellungen")
+        win.set_title(t("app_title"))
         win.set_default_size(780, 560)
         self._win = win
         self._toast_overlay = Adw.ToastOverlay()
@@ -914,7 +1008,7 @@ class SettingsApp(Adw.Application):
         split.set_max_sidebar_width(240)
 
         # ── Sidebar ───────────────────────────────────────────────────────────
-        sidebar_page    = Adw.NavigationPage(title="Kategorien")
+        sidebar_page    = Adw.NavigationPage(title=t("sidebar_title"))
         sidebar_toolbar = Adw.ToolbarView()
         sidebar_toolbar.add_top_bar(Adw.HeaderBar())
         sidebar_scroll  = Gtk.ScrolledWindow()
@@ -933,7 +1027,7 @@ class SettingsApp(Adw.Application):
         split.set_sidebar(sidebar_page)
 
         # ── Content ───────────────────────────────────────────────────────────
-        self._content_page    = Adw.NavigationPage(title="Einstellungen")
+        self._content_page    = Adw.NavigationPage(title=t("app_title"))
         self._content_toolbar = Adw.ToolbarView()
         self._content_toolbar.add_top_bar(Adw.HeaderBar())
         self._content_page.set_child(self._content_toolbar)
@@ -1020,14 +1114,14 @@ class SettingsApp(Adw.Application):
         for grp_title, entries in groups.items():
             pref_group = Adw.PreferencesGroup()
             pref_group.set_title(grp_title if grp_title != "__default__" else cat_name)
-            pref_group.set_description('Werte anpassen und mit "Übernehmen" bestätigen.')
+            pref_group.set_description(t("pref_group_hint"))
 
             # + Button in Header wenn new_template vorhanden
             if has_new_template and grp_title == list(groups.keys())[0]:
                 add_btn = Gtk.Button()
                 add_btn.set_icon_name("list-add-symbolic")
                 add_btn.add_css_class("flat")
-                add_btn.set_tooltip_text("Neuen Eintrag anlegen")
+                add_btn.set_tooltip_text(t("tooltip_add"))
                 add_btn.connect("clicked", self._on_new_entry, cat_name, settings)
                 pref_group.set_header_suffix(add_btn)
 
@@ -1048,10 +1142,10 @@ class SettingsApp(Adw.Application):
         # Buttons
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         btn_box.set_halign(Gtk.Align.END); btn_box.set_margin_top(4)
-        reset_btn = Gtk.Button(label="Zurücksetzen")
+        reset_btn = Gtk.Button(label=t("btn_reset"))
         reset_btn.add_css_class("flat")
         reset_btn.connect("clicked", self._on_reset, cat_name)
-        apply_btn = Gtk.Button(label="Übernehmen")
+        apply_btn = Gtk.Button(label=t("btn_apply"))
         apply_btn.add_css_class("suggested-action")
         apply_btn.connect("clicked", self._on_apply, cat_name)
         btn_box.append(reset_btn); btn_box.append(apply_btn)
@@ -1090,7 +1184,7 @@ class SettingsApp(Adw.Application):
         add_btn = Gtk.Button()
         add_btn.set_icon_name("list-add-symbolic")
         add_btn.add_css_class("flat")
-        add_btn.set_tooltip_text("Neue Variable anlegen")
+        add_btn.set_tooltip_text(t("tooltip_add"))
         add_btn.connect("clicked", self._on_new_variable, cat_name, config_file, outer_box, s)
         pref_group.set_header_suffix(add_btn)
 
@@ -1113,23 +1207,23 @@ class SettingsApp(Adw.Application):
             del_btn.add_css_class("flat")
             del_btn.add_css_class("destructive-action")
             del_btn.set_valign(Gtk.Align.CENTER)
-            del_btn.set_tooltip_text("Variable löschen")
+            del_btn.set_tooltip_text(t("tooltip_delete"))
 
             def make_del(cfg, lidx, r, cat, ob, sv):
                 def cb(_):
                     dialog = Adw.AlertDialog(
-                        heading="Wirklich löschen?",
+                        heading=t("delete_heading"),
                         body=f"Variable \"{r.get_title()}\" wird entfernt.",
                     )
-                    dialog.add_response("cancel", "Abbrechen")
-                    dialog.add_response("delete", "Löschen")
+                    dialog.add_response("cancel", t("btn_cancel"))
+                    dialog.add_response("delete", t("btn_delete"))
                     dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
                     dialog.set_default_response("cancel")
                     def on_resp(d, resp):
                         if resp != "delete": return
                         if delete_variable(cfg, lidx):
                             self._rebuild_special_page(cat, ob, sv)
-                            toast = Adw.Toast(title="Variable gelöscht.")
+                            toast = Adw.Toast(title=t("toast_var_deleted"))
                             toast.set_timeout(3)
                             self._toast_overlay.add_toast(toast)
                     dialog.connect("response", on_resp)
@@ -1160,10 +1254,10 @@ class SettingsApp(Adw.Application):
         self._add_special_group(outer_box, cat_name, s)
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
         btn_box.set_halign(Gtk.Align.END); btn_box.set_margin_top(4)
-        reset_btn = Gtk.Button(label="Zurücksetzen")
+        reset_btn = Gtk.Button(label=t("btn_reset"))
         reset_btn.add_css_class("flat")
         reset_btn.connect("clicked", self._on_reset, cat_name)
-        apply_btn = Gtk.Button(label="Übernehmen")
+        apply_btn = Gtk.Button(label=t("btn_apply"))
         apply_btn.add_css_class("suggested-action")
         apply_btn.connect("clicked", self._on_apply, cat_name)
         btn_box.append(reset_btn); btn_box.append(apply_btn)
@@ -1192,7 +1286,7 @@ class SettingsApp(Adw.Application):
         add_btn = Gtk.Button()
         add_btn.set_icon_name("list-add-symbolic")
         add_btn.add_css_class("flat")
-        add_btn.set_tooltip_text("Neuen Eintrag anlegen")
+        add_btn.set_tooltip_text(t("tooltip_add"))
         add_btn.connect("clicked", self._on_new_inline_rule,
                         cat_name, s, field_defs, appender, outer_box)
         pref_group.set_header_suffix(add_btn)
@@ -1254,23 +1348,23 @@ class SettingsApp(Adw.Application):
             del_btn.add_css_class("flat")
             del_btn.add_css_class("destructive-action")
             del_btn.set_valign(Gtk.Align.CENTER)
-            del_btn.set_tooltip_text("Eintrag löschen")
+            del_btn.set_tooltip_text(t("tooltip_delete"))
 
             def make_del(lidx, row, cat, ob, sv):
                 def cb(_):
                     dialog = Adw.AlertDialog(
-                        heading="Wirklich löschen?",
+                        heading=t("delete_heading"),
                         body=f"\"{row.get_title()}\" wird dauerhaft entfernt.",
                     )
-                    dialog.add_response("cancel","Abbrechen")
-                    dialog.add_response("delete","Löschen")
+                    dialog.add_response("cancel", t("btn_cancel"))
+                    dialog.add_response("delete", t("btn_delete"))
                     dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
                     dialog.set_default_response("cancel")
                     def on_resp(d, resp):
                         if resp != "delete": return
                         if delete_line(config_file, lidx):
                             self._rebuild_special_page(cat, ob, sv)
-                            toast = Adw.Toast(title="Eintrag gelöscht.")
+                            toast = Adw.Toast(title=t("toast_entry_deleted"))
                             toast.set_timeout(3)
                             self._toast_overlay.add_toast(toast)
                     dialog.connect("response", on_resp)
@@ -1293,7 +1387,7 @@ class SettingsApp(Adw.Application):
 
     def _on_new_inline_rule(self, _btn, cat_name, s, field_defs, appender, outer_box):
         """Dialog zum Anlegen eines neuen Inline-Rule Eintrags."""
-        dialog = Adw.AlertDialog(heading="Neuen Eintrag anlegen", body="Felder ausfüllen.")
+        dialog = Adw.AlertDialog(heading=t("new_entry_heading"), body=t("new_entry_body"))
         box    = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_margin_top(8); box.set_size_request(420, -1)
         fw = {}
@@ -1312,8 +1406,8 @@ class SettingsApp(Adw.Application):
                 box.append(e)
                 fw[fd["key"]] = ("text", e, [])
         dialog.set_extra_child(box)
-        dialog.add_response("cancel","Abbrechen")
-        dialog.add_response("create","Anlegen")
+        dialog.add_response("cancel", t("btn_cancel"))
+        dialog.add_response("create", t("btn_create"))
         dialog.set_default_response("create")
         dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
         def on_resp(d, resp):
@@ -1327,7 +1421,7 @@ class SettingsApp(Adw.Application):
                     vals[k] = w.get_text().strip()
             if appender(s["config_file"], vals):
                 self._rebuild_special_page(cat_name, outer_box, s)
-                toast = Adw.Toast(title="Eintrag angelegt.")
+                toast = Adw.Toast(title=t("toast_entry_created"))
                 toast.set_timeout(3)
                 self._toast_overlay.add_toast(toast)
         dialog.connect("response", on_resp)
@@ -1391,17 +1485,17 @@ class SettingsApp(Adw.Application):
 
             def make_del(lidx, r, cat, ob, sv):
                 def cb(_):
-                    dialog = Adw.AlertDialog(heading="Wirklich löschen?",
-                                             body="Autostart-Eintrag entfernen?")
-                    dialog.add_response("cancel","Abbrechen")
-                    dialog.add_response("delete","Löschen")
+                    dialog = Adw.AlertDialog(heading=t("delete_heading"),
+                                             body=t("delete_body_autostart"))
+                    dialog.add_response("cancel", t("btn_cancel"))
+                    dialog.add_response("delete", t("btn_delete"))
                     dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
                     dialog.set_default_response("cancel")
                     def on_resp(d, resp):
                         if resp != "delete": return
                         if delete_line(config_file, lidx):
                             self._rebuild_special_page(cat, ob, sv)
-                            toast = Adw.Toast(title="Eintrag gelöscht.")
+                            toast = Adw.Toast(title=t("toast_entry_deleted"))
                             toast.set_timeout(3); self._toast_overlay.add_toast(toast)
                     dialog.connect("response", on_resp); dialog.present(self._win)
                 return cb
@@ -1420,13 +1514,13 @@ class SettingsApp(Adw.Application):
         outer_box.append(pref_group)
 
     def _on_new_autostart(self, _btn, cat_name, s, outer_box):
-        dialog = Adw.AlertDialog(heading="Neuer Autostart",
-                                 body='Befehl eingeben (z.B. "waybar" oder waybar)')
-        e = Gtk.Entry(); e.set_placeholder_text('"waybar"')
+        dialog = Adw.AlertDialog(heading=t("new_autostart_heading"),
+                                 body=t('new_autostart_body'))
+        e = Gtk.Entry(); e.set_placeholder_text(t("new_autostart_value_ph"))
         e.set_margin_top(8); e.set_size_request(360,-1)
         dialog.set_extra_child(e)
-        dialog.add_response("cancel","Abbrechen")
-        dialog.add_response("create","Anlegen")
+        dialog.add_response("cancel", t("btn_cancel"))
+        dialog.add_response("create", t("btn_create"))
         dialog.set_default_response("create")
         dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
         def on_resp(d, resp):
@@ -1435,7 +1529,7 @@ class SettingsApp(Adw.Application):
             if not cmd: return
             if append_autostart(s["config_file"], cmd):
                 self._rebuild_special_page(cat_name, outer_box, s)
-                toast = Adw.Toast(title="Autostart angelegt.")
+                toast = Adw.Toast(title=t("toast_autostart_created"))
                 toast.set_timeout(3); self._toast_overlay.add_toast(toast)
         dialog.connect("response", on_resp); dialog.present(self._win)
 
@@ -1486,18 +1580,18 @@ class SettingsApp(Adw.Application):
     def _on_new_variable(self, _btn, cat_name: str, config_file: str,
                          outer_box: Gtk.Box, s: dict):
         """Dialog zum Anlegen einer neuen Variable."""
-        dialog = Adw.AlertDialog(heading="Neue Variable", body="Name und Wert eingeben.")
+        dialog = Adw.AlertDialog(heading=t("new_variable_heading"), body=t("new_variable_body"))
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.set_margin_top(8); box.set_size_request(360, -1)
-        name_entry  = Gtk.Entry(); name_entry.set_placeholder_text("Name (z.B. terminal)")
-        value_entry = Gtk.Entry(); value_entry.set_placeholder_text('Wert (z.B. "kitty")')
-        lbl_n = Gtk.Label(label="Name"); lbl_n.set_halign(Gtk.Align.START); lbl_n.add_css_class("dim-label")
-        lbl_v = Gtk.Label(label="Wert"); lbl_v.set_halign(Gtk.Align.START); lbl_v.add_css_class("dim-label")
+        name_entry  = Gtk.Entry(); name_entry.set_placeholder_text(t("new_variable_name_ph"))
+        value_entry = Gtk.Entry(); value_entry.set_placeholder_text(t("new_variable_value_ph"))
+        lbl_n = Gtk.Label(label=t("name_label")); lbl_n.set_halign(Gtk.Align.START); lbl_n.add_css_class("dim-label")
+        lbl_v = Gtk.Label(label=t("value_label")); lbl_v.set_halign(Gtk.Align.START); lbl_v.add_css_class("dim-label")
         box.append(lbl_n); box.append(name_entry)
         box.append(lbl_v); box.append(value_entry)
         dialog.set_extra_child(box)
-        dialog.add_response("cancel", "Abbrechen")
-        dialog.add_response("create", "Anlegen")
+        dialog.add_response("cancel", t("btn_cancel"))
+        dialog.add_response("create", t("btn_create"))
         dialog.set_default_response("create")
         dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
         def on_resp(d, resp):
@@ -1507,7 +1601,7 @@ class SettingsApp(Adw.Application):
             if not n or not v: return
             if append_variable(config_file, n, v):
                 self._rebuild_variable_page(cat_name, outer_box, s)
-                toast = Adw.Toast(title=f"Variable \"{n}\" angelegt.")
+                toast = Adw.Toast(title=t("toast_var_created", name=n))
                 toast.set_timeout(3)
                 self._toast_overlay.add_toast(toast)
         dialog.connect("response", on_resp)
@@ -1660,18 +1754,18 @@ class SettingsApp(Adw.Application):
         del_btn.set_icon_name("user-trash-symbolic")
         del_btn.add_css_class("flat")
         del_btn.add_css_class("destructive-action")
-        del_btn.set_tooltip_text("Eintrag löschen")
+        del_btn.set_tooltip_text(t("tooltip_delete"))
         del_btn.set_valign(Gtk.Align.CENTER)
 
         # Closure für delete-Callback
         def make_del_cb(entry_s, cat, grp, row):
             def cb(_btn):
                 dialog = Adw.AlertDialog(
-                    heading="Wirklich löschen?",
+                    heading=t("delete_heading"),
                     body=f"\"{row.get_title()}\" wird dauerhaft aus der Datei entfernt.",
                 )
-                dialog.add_response("cancel", "Abbrechen")
-                dialog.add_response("delete", "Löschen")
+                dialog.add_response("cancel", t("btn_cancel"))
+                dialog.add_response("delete", t("btn_delete"))
                 dialog.set_response_appearance("delete", Adw.ResponseAppearance.DESTRUCTIVE)
                 dialog.set_default_response("cancel")
                 def on_response(d, response):
@@ -1686,11 +1780,11 @@ class SettingsApp(Adw.Application):
                         if sidebar_row:
                             self._sidebar_list.select_row(sidebar_row)
                             self._show_category(sidebar_row.get_name())
-                        toast = Adw.Toast(title="Eintrag gelöscht.")
+                        toast = Adw.Toast(title=t("toast_entry_deleted"))
                         toast.set_timeout(3)
                         self._toast_overlay.add_toast(toast)
                     else:
-                        self._show_error_dialog([f"Löschen fehlgeschlagen: {entry_s['config_file']}"])
+                        self._show_error_dialog([t("error_delete_failed", file=entry_s['config_file'])])
                 dialog.connect("response", on_response)
                 dialog.present(self._win)
             return cb
@@ -1729,7 +1823,7 @@ class SettingsApp(Adw.Application):
         template = tmpl_entry["new_template"]
 
         dialog = Adw.AlertDialog(
-            heading="Neuen Eintrag anlegen",
+            heading=t("new_entry_heading"),
             body="Felder ausfüllen und bestätigen.",
         )
 
@@ -1763,8 +1857,8 @@ class SettingsApp(Adw.Application):
                 field_widgets[fkey] = ("text", entry, [])
 
         dialog.set_extra_child(content_box)
-        dialog.add_response("cancel", "Abbrechen")
-        dialog.add_response("create", "Anlegen")
+        dialog.add_response("cancel", t("btn_cancel"))
+        dialog.add_response("create", t("btn_create"))
         dialog.set_default_response("create")
         dialog.set_response_appearance("create", Adw.ResponseAppearance.SUGGESTED)
 
@@ -1796,7 +1890,7 @@ class SettingsApp(Adw.Application):
                 if row:
                     self._sidebar_list.select_row(row)
                     self._show_category(row.get_name())
-                toast = Adw.Toast(title="Neuer Eintrag angelegt.")
+                toast = Adw.Toast(title=t("toast_entry_created"))
                 toast.set_timeout(3)
                 self._toast_overlay.add_toast(toast)
             else:
@@ -1845,7 +1939,7 @@ class SettingsApp(Adw.Application):
                 if row:
                     self._sidebar_list.select_row(row)
                     self._show_category(row.get_name())
-                toast = Adw.Toast(title="Neuer Eintrag angelegt.")
+                toast = Adw.Toast(title=t("toast_entry_created"))
                 toast.set_timeout(3)
                 self._toast_overlay.add_toast(toast)
             else:
@@ -1940,16 +2034,14 @@ class SettingsApp(Adw.Application):
         if errors:
             self._show_error_dialog(errors)
         else:
-            toast = Adw.Toast(title=f'"{cat_name}" erfolgreich übernommen.')
+            toast = Adw.Toast(title=t("toast_applied", category=cat_name))
             toast.set_timeout(3)
             self._toast_overlay.add_toast(toast)
 
     def _show_error_dialog(self, failed: list):
-        body = ("Folgende Einstellungen konnten nicht gespeichert werden:\n\n"
-                + "\n".join(f"• {e}" for e in failed)
-                + "\n\nBitte Dateipfade und Berechtigungen prüfen.")
-        dialog = Adw.AlertDialog(heading="Fehler beim Schreiben", body=body)
-        dialog.add_response("ok", "OK")
+        body = t("error_body", entries="\n".join(f"• {e}" for e in failed))
+        dialog = Adw.AlertDialog(heading=t("error_heading"), body=body)
+        dialog.add_response("ok", t("btn_ok"))
         dialog.set_default_response("ok")
         dialog.present(self._win)
 
@@ -1957,9 +2049,13 @@ class SettingsApp(Adw.Application):
 # ── Entry Point ───────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    ini = sys.argv[1] if len(sys.argv) > 1 else "settings.ini"
-    if not os.path.exists(ini):
-        print(f"INI-Datei nicht gefunden: {ini}", file=sys.stderr)
+    import argparse
+    parser = argparse.ArgumentParser(description="settings_mask – Hyprland Lua config UI")
+    parser.add_argument("ini", nargs="?", default="settings.ini", help="Path to settings.ini")
+    parser.add_argument("--lang", default="", help="Language code (e.g. en, de). Auto-detected if omitted.")
+    args = parser.parse_args()
+    if not os.path.exists(args.ini):
+        print(f"INI file not found: {args.ini}", file=sys.stderr)
         sys.exit(1)
-    app = SettingsApp(ini)
+    app = SettingsApp(args.ini, lang=args.lang)
     sys.exit(app.run([]))

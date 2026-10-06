@@ -4,8 +4,8 @@
 require("variables")
 
 -- Launching and closing
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal), { description = "Öffnet das Terminal." })
 hl.bind(mainMod .. " + Q", hl.dsp.window.close(), { description = "Schließt das aktuelle Fenster." })
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd(terminal), { description = "Öffnet das Terminal." })
 
 -- Move focus
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "left" }), { description = "Verschiebt den Fensterfokus nach links." })
@@ -16,9 +16,9 @@ hl.bind(mainMod .. " + down", hl.dsp.focus({ direction = "down" }), { descriptio
 -- Switching and moving windows to Workspaces
 for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
-    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }), { description = "Setzt den Fokus auf Workspace" .. i .. "." })
-    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }), { description = "Verschiebt ein Fenster und Fokus auf Workspace" .. i .. "." })
-    hl.bind(mainMod .. " + ALT + " .. key, hl.dsp.window.move({ workspace = i, follow = false }), { description = "Verschiebt ein Fenster auf Workspace" .. i .. "." })
+    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
+    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
+    hl.bind(mainMod .. " + CTRL + " .. key, function() hl.dispatch(hl.dsp.exec_cmd("hyprctl dispatch movetoworkspacesilent " .. i)) end)
 end
 
 -- Cycle through Workspaces with Mousewheel
@@ -34,7 +34,7 @@ hl.bind(mainMod .. " + mouse:274", hl.dsp.window.fullscreen(), { description = "
 hl.bind(mainMod .. " + Backspace", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_powermenu.sh"), { description = "Öffnet das Powermenu." })
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("kitty btop"), { description = "Öffnet den Taskmanager (btop)." })
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("firefox"), { description = "Öffnet den Browser." })
-hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("dolphin"), { description = "Öffnet den Datei Explorer" })
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("kitty yazi"), { description = "Öffnet den Datei Explorer" })
 -- muss man per window rule machen
 hl.bind(mainMod .. " + CTRL + T", hl.dsp.exec_cmd("teamspeak3"), { description = "Öffnet Teamspeak." })
 hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd("steam"), { description = "Öffnet STEAM." })
@@ -51,4 +51,10 @@ hl.bind("F9", hl.dsp.exec_cmd("pavucontrol"), { description = "Öffnet die Sound
 -- for scrolling workspace 2
 hl.bind(mainMod .. " + ALT + mouse_up", hl.dsp.layout("move +col"), { description = "(Scrolling Layout): Scrollt nach links." })
 hl.bind(mainMod .. " + ALT + mouse_down", hl.dsp.layout("move -col"), { description = "(Scrolling Layout): Scrollt nach rechts." })
-hl.bind(mainMod .. " + ALT + P", hl.dsp.exec_cmd("grimblast save area ~/Bilder/screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"), { description = "Screenshot erstellen" })
+hl.bind(mainMod .. " + ALT + P", hl.dsp.exec_cmd("grimblast save area ~/Bilder/screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"), { description = "Screenshot erstellen." })
+
+-- neru Keybinds
+hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("~/Downloads/neru-linux-amd64/bin/neru recursive_grid"), { description = "Screenshot erstellen." })
+hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("~/Downloads/neru-linux-amd64/bin/neru scroll"), { description = "Screenshot erstellen." })
+hl.bind(mainMod .. " + RETURN", hl.dsp.window.fullscreen(), { description = "Fenster Vollbild toggle." })
+

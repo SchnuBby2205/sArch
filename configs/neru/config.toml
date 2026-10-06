@@ -1,0 +1,80 @@
+# ~/.config/neru/config.toml
+# Nur Recursive Grid, Tasten qweasdyxc (deutsches Layout)
+
+[general]
+excluded_apps = []
+
+# Andere Modi vorerst aus
+[hints]
+enabled = false
+
+[grid]
+enabled = false
+
+[monitor_select]
+enabled = false
+
+[recursive_grid]
+enabled = true
+grid_cols = 3
+grid_rows = 3
+keys = "qweasdyxc"        # genau grid_cols * grid_rows Zeichen
+min_size_width = 1
+min_size_height = 1
+max_depth = 10
+
+[recursive_grid.animation]
+enabled = true
+duration_ms = 50
+
+[recursive_grid.hotkeys]
+"Escape" = "idle"
+"Backspace" = "action backspace"
+"Enter" = "action reset"                          # zurück zum vollen Raster
+
+"Ctrl+Space" = ["action left_click", "idle"]      # Linksklick, dann Overlay schließen
+"Alt+Space" = ["action right_click", "idle"]      # Rechtsklick, dann Overlay schließen
+
+"Shift+M" = "action middle_click"
+"Shift+I" = "action mouse_down"
+"Shift+U" = "action mouse_up"
+
+"Up" = "action move_mouse_relative --dx=0 --dy=-10"
+"Down" = "action move_mouse_relative --dx=0 --dy=10"
+"Left" = "action move_mouse_relative --dx=-10 --dy=0"
+"Right" = "action move_mouse_relative --dx=10 --dy=0"
+
+[recursive_grid.ui]
+font_size = 10
+
+[systray]
+enabled = false
+
+[logging]
+log_level = "info"
+disable_file_logging = true
+
+[scroll]
+scroll_step = 50            # Pixel pro j/k
+scroll_step_half = 500      # Pixel für u/d (halbe Seite)
+scroll_step_full = 1000000  # gg/G (ganz nach oben/unten)
+invert_scroll = false
+
+[scroll.hotkeys]
+"Escape" = "idle"
+
+"k" = "action scroll_up"
+"j" = "action scroll_down"
+"h" = "action scroll_left"
+"l" = "action scroll_right"
+
+"u" = "action page_up"
+"d" = "action page_down"
+"PageUp" = "action page_up"
+"PageDown" = "action page_down"
+"gg" = "action go_top"
+"Shift+G" = "action go_bottom"
+
+# Klicks wie im Recursive Grid
+"Ctrl+Space" = ["action left_click", "idle"]
+"Alt+Space" = ["action right_click", "idle"]

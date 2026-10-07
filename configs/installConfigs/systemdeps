@@ -15,3 +15,4 @@ qt6-wayland
 qt6ct
 dunst
 libnotify
+wl-clipboard

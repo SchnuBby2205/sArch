@@ -15,3 +15,5 @@ lazygit = [
 prepend_rules = [
   { url = "*/", use = [ "edit", "lazygit", "reveal" ] },
 ]
+
+

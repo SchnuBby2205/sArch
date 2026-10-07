@@ -6,7 +6,7 @@ excluded_apps = []
 
 # Andere Modi vorerst aus
 [hints]
-enabled = false
+enabled = true 
 
 [grid]
 enabled = false

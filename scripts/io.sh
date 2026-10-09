@@ -16,183 +16,252 @@ Banner() {
   myPrint print green "▐█ ▪▐▌▐█•█▌▐███▌██▌▐▀▐█▌██▐█▌▐█▄▪▐█ ▐█▌·▐█ ▪▐▌▐█▌▐▌▐█▌▐▌\n"
   myPrint print green " ▀  ▀ .▀  ▀·▀▀▀ ▀▀▀ ·▀▀▀▀▀ █▪ ▀▀▀▀  ▀▀▀  ▀  ▀ .▀▀▀ .▀▀▀ \n\n"
 }
-#TESTEN: function myPrint() { local c=$1 m=$2; printf "%b" "${!c^^}${m}${NC:-}"; }
-myPrint(){ case "$1" in
-  step) [ "$2" = ok ] && printf "${CLEAR}${UP}${CLEAR}" || printf "${RUNNING} $2 ${WHITE}$3${NC}\n";;
-  countdown) for((i=$2;i>0;i--));do myPrint print green "\r$3 $i..."; sleep 1; done; echo;;
-  print) c=${2^^}; printf "%b" "${!c}${3}${NC:-}";;  
-esac; }
-exitWithError() { printf "\n${ERROR} %s\n" "$1"; exit 1; }
-getInput(){ local p=$1 v=$2 d=$3 i; printf "${YELLOW}${p} ${NC}"; read -r i; printf -v "$v" "%s" "${i:-$d}"; [[ -z "${!v}" ]] && exitWithError "Input value can not be empty!"; }
+
+myPrint() {
+    local c i
+    case "$1" in
+        step)
+            if [ "$2" = ok ]; then
+                printf '%b%b%b' "${CLEAR:-}" "${UP:-}" "${CLEAR:-}"
+            else
+                printf '%b %b %b%b%b\n' "${RUNNING:-}" "$2" "${WHITE:-}" "$3" "${NC:-}"
+            fi
+            ;;
+        countdown)
+            for ((i = $2; i > 0; i--)); do
+                myPrint print green "\r$3 $i..."
+                sleep 1
+            done
+            echo
+            ;;
+        print)
+            c=${2^^}
+            printf '%b' "${!c:-}${3}${NC:-}"
+            ;;
+    esac
+    return 0
+}
+
+# Fehlermeldung auf stderr, dann Skript beenden.
+# ACHTUNG: In $(...) beendet exit nur die Subshell, nicht das Hauptskript.
+exitWithError() {
+    printf '\n%b %b\n' "${ERROR:-ERROR:}" "$1" >&2
+    exit 1
+}
+
+# getInput "Prompt" variablenname [default]
+getInput() {
+    local _gi_p=$1 _gi_v=$2 _gi_d=${3:-} _gi_i
+    printf '%b%b %b' "${YELLOW:-}" "$_gi_p" "${NC:-}"
+    read -r _gi_i
+    printf -v "$_gi_v" '%s' "${_gi_i:-$_gi_d}"
+    [[ -z "${!_gi_v}" ]] && exitWithError "Input value can not be empty!"
+    return 0
+}
+
+# myPasswd <user>
 myPasswd() {
-  for ((a=0; a<3; a++)); do
-    read -s -p "Password: " p1; echo
-    read -s -p "Retype: " p2; echo
-    [[ "$p1" != "$p2" || -z "$p1" ]] && echo "Passwords didn't match." && continue
-    echo "$1:$p1" | sudo chpasswd && { myPrint print yellow "\nPassword updated successfully.\n"; return; }
-    exitWithError "Error setting the password."
-  done
-  myPrint print red "Maximum tries reached. Script will end now."; exit 1
+    local target=$1 p1 p2 a
+    [[ -z "$target" ]] && exitWithError "myPasswd: no user given"
+    for ((a = 0; a < 3; a++)); do
+        read -rs -p "Password: " p1; echo
+        read -rs -p "Retype: " p2; echo
+        if [[ -z "$p1" || "$p1" != "$p2" ]]; then
+            echo "Passwords didn't match."
+            continue
+        fi
+        if printf '%s:%s\n' "$target" "$p1" | sudo chpasswd; then
+            unset p1 p2
+            myPrint print yellow "\nPassword updated successfully.\n"
+            return 0
+        fi
+        unset p1 p2
+        exitWithError "Error setting the password."
+    done
+    unset p1 p2
+    myPrint print red "Maximum tries reached. Script will end now.\n"
+    exit 1
 }
-log() { }#echo "$(date '+%Y-%m-%d %H:%M:%S') $*" >> "$logFile"; }
-addToBashrc() { grep -qxF "$1" $HOME/.bashrc || echo "$1" >> $HOME/.bashrc; }
-readList(){ { read -r name; read -r value; mapfile -t list; } < "$1"; }
-_read_stdin() {
-	# shellcheck disable=SC2162,SC2068
-	read $@ </dev/tty
-}
-_get_cursor_row() {
-    local IFS=';'
-    # shellcheck disable=SC2162,SC2034
-    _read_stdin -sdR -p $'\E[6n' ROW COL;
-    echo "${ROW#*[}";
-}
-_cursor_blink_on() { echo -en "\033[?25h" >&2; }
-_cursor_blink_off() { echo -en "\033[?25l" >&2; }
-_cursor_to() { echo -en "\033[$1;$2H" >&2; }
-_key_input() {
-    local ESC=$'\033'
-    local IFS=''
 
-    _read_stdin -rsn1 a
-    # is the first character ESC?
-	# shellcheck disable=SC2154
-    if [[ "$ESC" == "$a" ]]; then
-        _read_stdin -rsn2 b
+# Schreibt nur, wenn $logFile gesetzt ist. Gibt immer 0 zurück.
+log() {
+    if [[ -n "${logFile:-}" ]]; then
+        printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >> "$logFile"
     fi
+    return 0
+}
 
-	# shellcheck disable=SC2154
-    local input="${a}${b}"
-    # shellcheck disable=SC1087
-    case "$input" in
-        "$ESC[A" | "k") echo up ;;
-        "$ESC[B" | "j") echo down ;;
-        "$ESC[C" | "l") echo right ;;
-        "$ESC[D" | "h") echo left ;;
+addToBashrc() {
+    local rc="${HOME}/.bashrc"
+    touch "$rc"
+    grep -qxF -- "$1" "$rc" || printf '%s\n' "$1" >> "$rc"
+    return 0
+}
+
+# Liest eine Listendatei: Zeile 1 -> name, Zeile 2 -> value, Rest -> Array "list"
+# (name/value bleiben global, falls andere Skripte sie benutzen)
+readList() {
+    local f=$1 line
+    local -a raw=()
+    [[ -r "$f" ]] || exitWithError "List file not found: $f"
+    { read -r name; read -r value; mapfile -t raw; } < "$f"
+    list=()
+    for line in "${raw[@]}"; do
+        [[ -n "$line" ]] && list+=("$line")
+    done
+    return 0
+}
+
+_read_stdin() {
+    # shellcheck disable=SC2162
+    read "$@" </dev/tty
+}
+
+_cursor_blink_on()  { echo -en "\033[?25h" >&2; }
+_cursor_blink_off() { echo -en "\033[?25l" >&2; }
+
+# Liefert: up down left right enter space pgup pgdn home end (oder nichts)
+_key_input() {
+    local ESC=$'\033' IFS='' a='' b='' c=''
+    _read_stdin -rsn1 a
+    if [[ "$a" == "$ESC" ]]; then
+        _read_stdin -rsn2 -t 0.05 b
+    fi
+    case "${a}${b}" in
+        "${ESC}[A" | "k") echo up ;;
+        "${ESC}[B" | "j") echo down ;;
+        "${ESC}[C" | "l") echo right ;;
+        "${ESC}[D" | "h") echo left ;;
+        "${ESC}[5") _read_stdin -rsn1 -t 0.05 c; echo pgup ;;
+        "${ESC}[6") _read_stdin -rsn1 -t 0.05 c; echo pgdn ;;
+        "${ESC}[H") echo home ;;
+        "${ESC}[F") echo end ;;
         '') echo enter ;;
         ' ') echo space ;;
     esac
 }
-_new_line_foreach_item() {
-    count=0
-    while [[ $count -lt $1  ]];
-    do
-        echo "" >&2
-        ((count++))
-    done
-}
-# display prompt text without linebreak
-_prompt_text() {
-    echo -en "\033[32m?${NC}${YELLOW} ${1}${NC} " >&2
+
+_term_size() {
+    local r c
+    read -r r c < <(stty size </dev/tty 2>/dev/null) || true
+    echo "${r:-24} ${c:-80}"
 }
 
-# decrement counter $1, considering out of range for $2
-_decrement_selected() {
-    local selected=$1;
-    ((selected--))
-    if [ "${selected}" -lt 0 ]; then
-        selected=$(($2 - 1));
-    fi
-    echo -n $selected
-}
-
-# increment counter $1, considering out of range for $2
-_increment_selected() {
-    local selected=$1;
-    ((selected++));
-    if [ "${selected}" -ge "${opts_count}" ]; then
-        selected=0;
-    fi
-    echo -n $selected
-}
-
+# list "Prompt" opt1 opt2 ...   -> gibt den INDEX der Auswahl auf stdout aus
+# Läuft in eigener Subshell (Traps/Terminalzustand bleiben lokal), unterstützt
+# Scrolling bei langen Listen und bricht bei Ctrl+C das Hauptskript ab.
 list() {
-    _prompt_text "$1 "
+    (
+        local prompt=$1
+        shift
+        local -a opts=("$@")
+        local n=${#opts[@]}
+        (( n > 0 )) || exit 1
 
-    local opts=("${@:2}")
-    local opts_count=$(($# -1))
-    _new_line_foreach_item "${#opts[@]}"
+        local rows cols maxvis visible footer=0 top=0 selected=0 i idx
+        read -r rows cols <<< "$(_term_size)"
+        maxvis=$((rows - 3))
+        (( maxvis < 3 )) && maxvis=3
+        visible=$n
+        if (( n > maxvis )); then visible=$maxvis; footer=1; fi
+        local height=$((visible + footer)) width=$((cols - 4))
+        (( width < 10 )) && width=10
 
-    # determine current screen position for overwriting the options
-    local lastrow; lastrow=$(_get_cursor_row)
-    local startrow; startrow=$((lastrow - opts_count + 1))
+        trap '_cursor_blink_on; stty echo </dev/tty 2>/dev/null' EXIT
+        trap 'kill -s INT "$$"; exit 130' INT
 
-    # ensure cursor and input echoing back on upon a ctrl+c during read -s
-    trap "_cursor_blink_on; stty echo; exit" 2
-    _cursor_blink_off
+        echo -en "\033[32m?${NC:-}${YELLOW:-} ${prompt}${NC:-}\n" >&2
+        _cursor_blink_off
 
-    local selected=0
-    while true; do
-        # print options by overwriting the last lines
-        local idx=0
-        for opt in "${opts[@]}"; do
-            _cursor_to $((startrow + idx))
-            if [ "$idx" -eq "$selected" ]; then
-                printf "\033[0m\033[36m❯\033[0m \033[36m%s\033[0m" "$opt" >&2
-            else
-                printf "  %s" "$opt" >&2
+        local first=1
+        while true; do
+            (( first )) || printf '\033[%dA' "$height" >&2
+            first=0
+            for ((i = 0; i < visible; i++)); do
+                idx=$((top + i))
+                printf '\r\033[2K' >&2
+                if (( idx == selected )); then
+                    printf '\033[36m❯ %s\033[0m\n' "${opts[idx]:0:width}" >&2
+                else
+                    printf '  %s\n' "${opts[idx]:0:width}" >&2
+                fi
+            done
+            if (( footer )); then
+                printf '\r\033[2K\033[2m  (%d/%d)\033[0m\n' "$((selected + 1))" "$n" >&2
             fi
-            ((idx++))
+
+            case "$(_key_input)" in
+                enter) break ;;
+                up)    selected=$(( (selected - 1 + n) % n )) ;;
+                down)  selected=$(( (selected + 1) % n )) ;;
+                pgup)  selected=$(( selected - visible < 0 ? 0 : selected - visible )) ;;
+                pgdn)  selected=$(( selected + visible > n - 1 ? n - 1 : selected + visible )) ;;
+                home)  selected=0 ;;
+                end)   selected=$((n - 1)) ;;
+            esac
+            (( selected < top )) && top=$selected
+            (( selected >= top + visible )) && top=$((selected - visible + 1))
         done
 
-        # user key control
-        case $(_key_input) in
-            enter) break; ;;
-            up) selected=$(_decrement_selected "${selected}" "${opts_count}"); ;;
-            down) selected=$(_increment_selected "${selected}" "${opts_count}"); ;;
+        # Auswahlblock entfernen, nur die gewählte Zeile stehen lassen
+        printf '\033[%dA\033[J' "$height" >&2
+        printf '\033[36m❯ %s\033[0m\n' "${opts[selected]:0:width}" >&2
+        printf '%s' "$selected"
+    )
+}
+
+_installMenu() {
+    local sub
+    local -a entries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Back")
+    Banner
+    sub=$(list "Install" "${entries[@]}") || return 1
+    case "${entries[$sub]}" in
+        "Base System") installBaseSystem ;;
+        "Arch-Chroot") installArchCHRoot ;;
+        "Desktop")     installDE ;;
+        "Configs")     installConfigs ;;
+        "Backups")     installBackup ;;
+        "Back")        return 0 ;;
+    esac
+    return 0
+}
+
+# Hauptmenü als Schleife (keine Rekursion, lokales choice)
+main() {
+    local choice
+    while true; do
+        Banner
+        choice=$(list "Main Menu" "${menuEntries[@]}") || return 1
+        case "${menuEntries[$choice]}" in
+            Settings) showSettings ;;
+            Install)  _installMenu ;;
+            Exit)     clear; exit 0 ;;
         esac
     done
-
-    echo -en "\n" >&2
-
-    # cursor position back to normal
-    _cursor_to "${lastrow}"
-    _cursor_blink_on
-
-    echo -n "${selected}"
 }
-main() {
-    Banner
-    choice=$(list "Main Menu" ${menuEntries[@]})
-    if [[ ${menuEntries[$choice]} == "Settings" ]]; then showSettings; fi
-    if [[ ${menuEntries[$choice]} == "Install" ]]; then
-        clear
-        Banner
-        installentries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Back")
-        installchoice=$(list "Install" "${installentries[@]}")
-        if [[ "${installentries[$installchoice]}" == "Back" ]]; then            
-            main
-        else
-            if [[ "${installentries[$installchoice]}" == "Base System" ]]; then installBaseSystem; fi
-            if [[ "${installentries[$installchoice]}" == "Arch-Chroot" ]]; then installArchCHRoot; fi
-            if [[ "${installentries[$installchoice]}" == "Desktop" ]]; then installDE; fi
-            if [[ "${installentries[$installchoice]}" == "Configs" ]]; then installConfigs; fi
-            if [[ "${installentries[$installchoice]}" == "Backups" ]]; then installBackup; fi
-        fi
-    fi
-    if [[ ${menuEntries[$choice]} == "Exit" ]]; then clear; exit 0; fi
-}
+
+# Einstellungsmenü als Schleife; "Back" kehrt zum Aufrufer zurück
 showSettings() {
-    clear
-    Banner
-    entries=(
-        "boot=$boot"
-        "swap=$swap"
-        "root=$root"
-        "hostname=$hostname"
-        "user=$user"
-        "cpu=$cpu"
-        "gpu=$gpu"
-        "timezone=$timezone"
-        "locale=$locale"
-        "keymap=$keymap"
-        "kernel=$kernel"
-        "Back"
-    )
-    choice=$(list "Settings" ${entries[@]})
-    if [[ "${entries[$choice]}" == "Back" ]]; then
-        main
-    else
-        checkInstallSettings "${entries[$choice]%=*}"
-    fi
+    local choice
+    local -a entries
+    while true; do
+        Banner
+        entries=(
+            "boot=${boot:-}"
+            "swap=${swap:-}"
+            "root=${root:-}"
+            "hostname=${hostname:-}"
+            "user=${user:-}"
+            "cpu=${cpu:-}"
+            "gpu=${gpu:-}"
+            "timezone=${timezone:-}"
+            "locale=${locale:-}"
+            "keymap=${keymap:-}"
+            "kernel=${kernel:-}"
+            "Back"
+        )
+        choice=$(list "Settings" "${entries[@]}") || return 1
+        [[ "${entries[$choice]}" == "Back" ]] && return 0
+        checkInstallSettings "${entries[$choice]%%=*}"
+    done
 }

@@ -45,19 +45,20 @@ sArch/
 
 ## 🚀 Installation
 
-> **Prerequisites:** A working Arch Linux base install with `sudo` access.
+> **Prerequisites:** The Arch Linux live ISO, booted in **UEFI mode**, with a working internet connection.
 
 ```bash
-# 1. Clone the repository
+# 1. Install git and clone the repository (inside the live ISO)
+pacman -Sy git
 git clone https://github.com/SchnuBby2205/sArch.git
 cd sArch
 
-# 2. Make the install script executable
-chmod +x install.sh
-
-# 3. Run the installer
+# 2. Run the installer
 ./install.sh
 ```
+
+The installer runs in stages: base system (live ISO) → arch-chroot → desktop (first login on tty1) → configs (first Hyprland start).
+Output of the install commands is written to `~/sArch-install.log`; set `debug=true` in `configs/installConfigs/install_settings` to see it live.
 
 ---
 

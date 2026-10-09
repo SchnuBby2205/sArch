@@ -1,13 +1,14 @@
 ## All the settings sARCH needs for an installation
 debug=false
 dryRun=false
+defaults=false
 boot="/dev/vda1"
 swap="/dev/vda2"
 root="/dev/vda3"
 hostname="SchnuBbyLinux"
 user="schnubby"
 cpu="intel-ucode"
-gpu="amd"  
+gpu="amd"
 timezone="Europe/Berlin"
 locale="de_DE.UTF-8"
 keymap="de-latin1"

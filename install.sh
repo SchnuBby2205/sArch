@@ -1,4 +1,4 @@
-##!/bin/bash
+#!/bin/bash
 
 export sARCH_MAIN="."
 export sARCH_SCRIPTS="$sARCH_MAIN/scripts"

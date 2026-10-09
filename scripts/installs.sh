@@ -199,7 +199,16 @@ installConfigs() { Banner; checkDebugFlag
   [[ -n "$scriptname" ]] && grep -rlF "${scriptname}" "$HOME/.config/hypr" 2>/dev/null | xargs -r sed -i "/${scriptname}/d"
 
   RANDOM_WP=$(find "$HOME/Bilder/Wallpapers/" -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n 1)
-  [[ -n "$RANDOM_WP" ]] && matugen image "${RANDOM_WP}"
+  # rofi-Menüs lesen den Hintergrund aus ~/.cache/Wallpaper_thumbs/curr(_wide) - die Dateien
+  # erzeugt sonst nur sarch_change_wallpaper.sh, deshalb hier beim ersten Setzen mit anlegen
+  local thumbDir="$HOME/.cache/Wallpaper_thumbs/"
+  sed -i "s|/home/schnubby/|$HOME/|g" "$HOME/.config/matugen/templates/rofi-colors.rasi" "$HOME/.config/rofi/colors.rasi" 2>/dev/null
+  if [[ -n "$RANDOM_WP" ]]; then
+    mkdir -p "$thumbDir"
+    magick "$RANDOM_WP" -thumbnail 500x500^ -gravity center -extent 500x500 -quality 70 "${thumbDir}curr"
+    magick "$RANDOM_WP" -thumbnail 1000x500^ -gravity center -extent 1000x500 -quality 70 "${thumbDir}curr_wide"
+    matugen image "${RANDOM_WP}"
+  fi
 
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot

@@ -1,23 +1,20 @@
 #!/bin/bash
+# Erzeugt 100x100 Thumbnails für alle Wallpaper (nur neue oder geänderte Bilder)
 
 wallpaperDir=$HOME/Bilder/Wallpapers/
 cacheDir=$HOME/.cache/Wallpaper_thumbs/
-returnDir=$PWD
 
-mkdir -p $cacheDir
+mkdir -p "$cacheDir"
+[[ -d "$wallpaperDir" ]] || exit 0
 
-cd $wallpaperDir || exit 0
+# ohne nullglob würde bei fehlenden PNGs/JPGs die Zeichenkette "*.png" verarbeitet
+shopt -s nullglob nocaseglob
 
-for i in *.jpg *.png; do 
-    fname=$(basename "$i")
-    dst="$cacheDir/$fname"
-    
+for src in "$wallpaperDir"*.jpg "$wallpaperDir"*.png; do
+    fname=$(basename "$src")
+    dst="$cacheDir$fname"
+
     if [[ ! -e "$dst" || "$src" -nt "$dst" ]]; then
-        #echo -e "converting: $fname"
-        magick "$wallpaperDir$i" -thumbnail 100x100^ -gravity center -extent 100x100 -quality 75 "$cacheDir$fname"
-    #else
-       #echo -e "skipping: $fname"
+        magick "$src" -thumbnail 100x100^ -gravity center -extent 100x100 -quality 75 "$dst"
     fi
 done
-
-cd $returnDir

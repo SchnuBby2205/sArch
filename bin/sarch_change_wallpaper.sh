@@ -8,12 +8,15 @@ returnDir=$PWD
 COLOR_ROLE="primary"   # primary | secondary | tertiary | source_color | ...
 MODE="dark"            # dark | light | amoled
 
-cd $cacheDir
+cd "$cacheDir" || exit 1
 
 wallpaper=$(for a in *.jpg *.png; do
     echo -en "$a\0icon\x1f$a\n"
     #echo $a
 done | rofi -dmenu -theme gruvbox-material_icons.rasi)
+
+# rofi abgebrochen -> nichts tun
+[[ -z "$wallpaper" ]] && { cd "$returnDir"; exit 0; }
 
 tmpfile=$(mktemp)
 script -q -c "timeout 1 matugen image '${wallpaperDir}${wallpaper}' --dry-run 2>&1; true" "$tmpfile" > /dev/null
@@ -51,7 +54,7 @@ color_index=${color_index:-0}
 # sudo gpasswd -a $USER openrazer
 # systemctl --user enable --now openrazer-daemon.service
 # sudo dkms install openrazer-driver/3.12.2 -k $(uname -r)
-razer-cli -e static -c "${selected_color#\#}"
+command -v razer-cli >/dev/null && [[ -n "$selected_color" ]] && razer-cli -e static -c "${selected_color#\#}"
 
 rm -rf "$icondir"
 
@@ -67,5 +70,5 @@ if [[ -n "$wallpaper" ]]; then
     dunstify -a "Themes" -u low -t 1000 -c "Wallpaper changed" "${wallpaper}"
 fi
 
-cd $returnDir
+cd "$returnDir" || exit 0
 #/bin/reload_shell.sh

@@ -5,7 +5,7 @@ _cmdForDisplay() {
     if [[ "$1" == *passwd* || "$1" == *password* ]]; then
         printf '%s' "(command hidden, may contain credentials)"
     else
-        printf '%s' "$1"
+        printf '%s' "${1%"${debugstring:-}"}"
     fi
 }
 
@@ -16,6 +16,13 @@ _progressBar() {
     for ((i = 0; i < f; i++)); do printf '#'; done
     for ((i = f; i < m; i++)); do printf ' '; done
     printf ']'
+}
+
+# Zeigt die letzten Zeilen des Logs (bei unterdrückter Ausgabe die einzige Fehlerquelle)
+_showLogTail() {
+    [[ "${debug:-}" != true && -r "${logFile:-}" ]] || return 0
+    printf '\n%b--- last lines of %s ---%b\n' "${YELLOW:-}" "$logFile" "${NC:-}" >&2
+    tail -n 15 "$logFile" >&2
 }
 
 # runCMDS <sudo:0|1> <icon/prefix> <message> <cur> <fin> <max> cmd...
@@ -36,7 +43,7 @@ runCMDS() {
 
     for c in "$@"; do
         "${pre[@]}" bash "${opts[@]}" -c "$c" \
-            || exitWithError "Command failed: $(_cmdForDisplay "$c")"
+            || { _showLogTail; exitWithError "Command failed: $(_cmdForDisplay "$c")"; }
     done
 
     if [[ "${debug:-}" != true ]]; then

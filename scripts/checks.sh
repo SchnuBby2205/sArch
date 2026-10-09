@@ -12,6 +12,12 @@ runCFDiskIfNeeded() {
     return 0
 }
 
+# GRUB wird als x86_64-efi installiert -> nur im UEFI-Modus sinnvoll
+checkUEFI() {
+    [[ -d /sys/firmware/efi ]] || exitWithError "System is not booted in UEFI mode! Please boot the live ISO via UEFI."
+    return 0
+}
+
 # Akzeptiert "/dev/sda1" und "sda1"
 validatePartition() {
     local d=$1
@@ -19,15 +25,6 @@ validatePartition() {
     [[ "$d" == /dev/* ]] || d="/dev/$d"
     [[ -b "$d" ]] || exitWithError "$1: Partition does not exist!"
     return 0
-}
-
-# Kompatibel zum alten Verhalten: Return-Code 1=boot fehlt, 10=swap fehlt, 100=root fehlt (addiert)
-checkPartitions() {
-    local retval=0
-    [[ -z "${boot:-}" ]] && retval=$((retval + 1))
-    [[ -z "${swap:-}" ]] && retval=$((retval + 10))
-    [[ -z "${root:-}" ]] && retval=$((retval + 100))
-    return "$retval"
 }
 
 _isValidUser()     { [[ "$1" =~ ^[a-z_][a-z0-9_-]*$ && ${#1} -le 32 ]]; }
@@ -42,7 +39,8 @@ checkDebugFlag() {
     if [[ "${debug:-}" == true ]]; then
         debugstring=""
     else
-        debugstring=" &>/dev/null"
+        # Ausgabe nicht verwerfen, sondern ins Log schreiben (bei Fehlern wird das Log-Ende angezeigt)
+        debugstring=" &>>'${logFile:-/dev/null}'"
     fi
     return 0
 }
@@ -53,6 +51,8 @@ setSetting() {
     local k=$1 v=$2 f="$sARCH_INSTALLCONFIGS/install_settings"
     mkdir -p "$sARCH_INSTALLCONFIGS"
     touch "$f"
+    # fehlenden Zeilenumbruch am Dateiende ergänzen, sonst klebt die neue Zeile an der letzten
+    [[ -s "$f" && -n "$(tail -c1 "$f")" ]] && printf '\n' >> "$f"
     sed -i "/^${k}=/d" "$f"
     v=${v//\\/\\\\}
     v=${v//\"/\\\"}

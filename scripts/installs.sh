@@ -85,8 +85,10 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Installing grimblast... 3 4 20 "yay -S grimblast --noconfirm $debugstring"
     runCMDS 0 Downloading Wallpapers... 4 15 20 "git clone --depth 1 https://github.com/mylinuxforwork/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Creating Theme...
-    runCMDS 0 Copying configs... 0 3 20 'mkdir -p "$HOME/.config"' 'find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"'
-    runCMDS 0 Copying binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'mv "$HOME/sArch/bin" "$HOME/.config/sArch"'
+#   runCMDS 0 Copying configs... 0 3 20 'mkdir -p "$HOME/.config"' 'find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"'
+#   runCMDS 0 Copying binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'mv "$HOME/sArch/bin" "$HOME/.config/sArch"'
+    runCMDS 0 Linking configs... 0 3 20 'mkdir -p "$HOME/.config"' 'for d in "$HOME/sArch/configs/"*; do [[ "${d##*/}" == installConfigs ]] && continue; ln -sfnT "$d" "$HOME/.config/${d##*/}"; done'
+    runCMDS 0 Linking binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'ln -sfnT "$HOME/sArch/bin" "$HOME/.config/sArch/bin"'
     runCMDS 0 Installing gtk-themes... 6 10 20 'mkdir -p "$HOME/.themes"' 'mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"'
     runCMDS 0 Caching "fonts and wallpapers..." 10 20 20 'mkdir -p "$HOME/.local/share/fonts"' 'mv "$HOME/sArch/fonts" "$HOME/.local/share/"' 'fc-cache' '"$HOME/.config/sArch/bin/sarch_create_thumbnails.sh"'
   addFirstbootAutostart
@@ -192,7 +194,7 @@ installConfigs() { Banner; checkDebugFlag
     *) myPrint print yellow "Übersprungen.\n" ;;
   esac
 
-  mv "$HOME/sArch" "$HOME/sArch_finished"
+# mv "$HOME/sArch" "$HOME/sArch_finished"
 
   # Autostart-Block wieder entfernen
   sed -i '/sARCH-FIRSTBOOT-BEGIN/,/sARCH-FIRSTBOOT-END/d' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null

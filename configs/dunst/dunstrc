@@ -1,8 +1,8 @@
 #############
 # Please only edit this part
 [global]
-origin = center
-font = "Graffiti Youth 20"
+origin = top-center
+font = "Don Graffiti 12"
 ############
 follow = mouse
 corner_radius = 10

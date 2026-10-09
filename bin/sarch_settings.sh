@@ -22,7 +22,7 @@ if [[ "$mode" == "Dunst" ]]; then
 fi
 
 if [[ "$mode" == "Font" ]]; then
-	submode=$(echo -e "Family\nSize" | rofi -dmenu -theme launcher.rasi)
+	submode=$(echo -e "Family\nSize\nTerminal\nTerminal Size" | rofi -dmenu -theme launcher.rasi)
 	if [[ "$submode" == "Family" ]]; then	
 		#cd ~/.local/share/fonts
 		#font=$(for a in *.ttf *.otf; do
@@ -50,6 +50,23 @@ if [[ "$mode" == "Font" ]]; then
 			sed -i 's/^\([[:space:]]*mainfont: "[^"]*\) [0-9]\+\(".*\)$/\1 '"$eingabe"'\2/' ~/.config/rofi/colors.rasi
 			sed -i 's/^\([[:space:]]*mainfont: "[^"]*\) [0-9]\+\(".*\)$/\1 '"$eingabe"'\2/' ~/.config/matugen/templates/rofi-colors.rasi
 			dunstify -a "Themes" -u low -t 1000 -c "Font size changed" "${eingabe}" 
+		fi
+	fi
+
+	if [[ "$submode" == "Terminal" ]]; then
+		font=$(MONO_ONLY=1 ~/.config/sArch/bin/sarch_fonts.sh)
+		if [[ -n $font ]]; then
+			sed -i -E "s|^(font_family[[:space:]]+).*|\1${font}|" ~/.config/kitty/hyde.conf
+			pkill -USR1 -x kitty 2>/dev/null
+			dunstify -a "Themes" -u low -t 1000 -c "Terminal font changed" "${font}"
+		fi
+	fi
+	if [[ "$submode" == "Terminal Size" ]]; then
+		eingabe="$(rofi -dmenu -lines 0 -p "Terminal Size:" -theme input.rasi)"
+		if [[ "$eingabe" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+			sed -i -E "s/^(font_size[[:space:]]+).*/\1${eingabe}/" ~/.config/kitty/hyde.conf
+			pkill -USR1 -x kitty 2>/dev/null
+			dunstify -a "Themes" -u low -t 1000 -c "Terminal font size changed" "${eingabe}"
 		fi
 	fi
 fi

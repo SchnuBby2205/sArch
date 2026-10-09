@@ -42,6 +42,21 @@ installArchCHRoot() { Banner; checkDebugFlag
   echo "bash -c 'cd /home/$user/sArch && ./install.sh installDE'" >> "/home/$user/.bashrc"
 }
 
+# Autostart für installConfigs in die Lua-Config schreiben (wird am Ende wieder entfernt)
+addFirstbootAutostart() {
+  local cfg="$HOME/.config/hypr/hyprland.lua"
+  [[ -f "$cfg" ]] || { myPrint print red "Hyprland-Config $cfg nicht gefunden - Autostart nicht gesetzt!\n"; return 1; }
+  grep -q 'sARCH-FIRSTBOOT-BEGIN' "$cfg" && return 0
+  cat >> "$cfg" <<'EOF'
+
+-- sARCH-FIRSTBOOT-BEGIN
+hl.on("hyprland.start", function()
+  hl.exec_cmd("kitty bash -c 'cd $HOME/sArch && ./install.sh installConfigs'")
+end)
+-- sARCH-FIRSTBOOT-END
+EOF
+}
+
 installDE() { Banner; checkDebugFlag
   myPrint countdown 3 "Resuming installation in"
   sudo sed -i "/\[multilib\]/,/Include/s/^#//" /etc/pacman.conf
@@ -72,6 +87,7 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Copying binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'mv "$HOME/sArch/bin" "$HOME/.config/sArch"'
     runCMDS 0 Installing gtk-themes... 6 10 20 'mkdir -p "$HOME/.themes"' 'mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"'
     runCMDS 0 Caching "fonts and wallpapers..." 10 20 20 'mkdir -p "$HOME/.local/share/fonts"' 'mv "$HOME/sArch/fonts" "$HOME/.local/share/"' 'fc-cache' '~/.config/sArch/bin/sarch_create_thumbnails.sh'
+  addFirstbootAutostart
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...
     runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
     runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
@@ -169,7 +185,8 @@ installConfigs() { Banner; checkDebugFlag
 
   mv "$HOME/sArch" "$HOME/sArch_finished"
 
-  # Autostart-Eintrag dieses Scripts aus der Hyprland-Config entfernen (Lua und .conf)
+  # Autostart-Block wieder entfernen
+  sed -i '/sARCH-FIRSTBOOT-BEGIN/,/sARCH-FIRSTBOOT-END/d' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null
   [[ -n "$scriptname" ]] && grep -rlF "${scriptname}" "$HOME/.config/hypr" 2>/dev/null | xargs -r sed -i "/${scriptname}/d"
 
   RANDOM_WP=$(find "$HOME/Bilder/Wallpapers/" -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n 1)

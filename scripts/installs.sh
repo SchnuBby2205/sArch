@@ -1,6 +1,6 @@
 ## All Functions that install the system and configure it (the functions are chained together)
 
-installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkInstallSettings
+installBaseSystem() { Banner; checkDebugFlag; dmesg -n 1; runCFDiskIfNeeded; checkInstallSettings
   for p in boot swap root; do
     validatePartition ${!p}
     myPrint print green "${p^} partition: "; printf "${WHITE}${!p}${NC}\n"
@@ -10,7 +10,7 @@ installBaseSystem() { Banner; checkDebugFlag; runCFDiskIfNeeded; checkInstallSet
   myPrint countdown 3 "Starting installation in"; Banner
   [[ "$debug" == false ]] && myPrint step Installing "Base system..."
     dryRun runCMDS 0 Formatting drives... 0 7 20 "mkfs.fat -F 32 ${boot} $debugstring" "mkswap ${swap} $debugstring" "swapon ${swap} $debugstring" "mkfs.ext4 -F ${root} $debugstring"
-    dryRun runCMDS 0 Mounting partitions... 7 8 20 "mount --mkdir ${root} /mnt $debugstring" "mount --mkdir ${boot} /mnt/boot $debugstring"
+    dryRun runCMDS 0 Mounting partitions... 7 8 20 "mount -t ext4 --mkdir ${root} /mnt $debugstring" "mount -t vfat --mkdir ${boot} /mnt/boot $debugstring"
     dryRun runCMDS 0 "Setting up" pacman... 8 13 20 "pacman -Syy $debugstring" "reflector --sort rate --latest 20 --protocol https --country Germany --save /etc/pacman.d/mirrorlist $debugstring" "sed -i '/ParallelDownloads/s/^#//' /etc/pacman.conf"
     dryRun runCMDS 0 Running pacstrap... 13 20 20 "pacstrap -K /mnt base base-devel ${kernel} linux-firmware ${cpu} efibootmgr grub sudo networkmanager $debugstring" "genfstab -U /mnt >> /mnt/etc/fstab" "cp ./${scriptname} /mnt"
   [[ "$debug" == false ]] && myPrint step ok

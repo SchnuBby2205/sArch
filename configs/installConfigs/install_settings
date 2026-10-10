@@ -2,3 +2,8 @@
 debug=false
 dryRun=false
 defaults=false
+BACKUP_DEV="/dev/nvme0n1p4"
+BACKUP_MNT="/programmieren"
+BACKUP_DIR="$BACKUP_MNT/backups"
+GAMES_DEV="/dev/nvme0n1p6"
+GAMES_MNT="/spiele"

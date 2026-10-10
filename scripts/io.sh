@@ -210,6 +210,47 @@ list() {
     )
 }
 
+# Schreibt KEY=<rhs> in install_settings (ersetzt die Zeile oder hängt sie an).
+# rhs wird roh geschrieben, der Aufrufer sorgt fürs Quoting.
+_writeSetting() { # $1 = Name, $2 = rechte Seite
+    local f="$sARCH_INSTALLCONFIGS/install_settings" rhs=$2
+    rhs=${rhs//\\/\\\\}; rhs=${rhs//&/\\&}; rhs=${rhs//|/\\|}
+    if grep -q "^$1=" "$f"; then
+        sed -i "s|^$1=.*|$1=$rhs|" "$f"
+    else
+        printf '%s=%s\n' "$1" "$2" >> "$f"
+    fi
+}
+
+# Prüft einen neuen Wert: *_DEV muss ein existierendes Blockgerät sein,
+# alles andere (Mountpoints, Verzeichnisse) ein absoluter Pfad.
+_validateSetting() { # $1 = Name, $2 = Wert
+    case "$1" in
+        *_DEV) [[ -b "$2" ]] \
+                   || { myPrint print red "'$2' ist kein vorhandenes Blockgerät - nicht übernommen.\n"; return 1; } ;;
+        *)     [[ "$2" == /* ]] \
+                   || { myPrint print red "'$2' ist kein absoluter Pfad - nicht übernommen.\n"; return 1; } ;;
+    esac
+}
+
+# BACKUP_*/GAMES_*-Variable abfragen, prüfen, setzen und in install_settings speichern
+setPathSetting() { # $1 = BACKUP_DEV|BACKUP_MNT|BACKUP_DIR|GAMES_DEV|GAMES_MNT
+    local var=$1 val oldmnt=$BACKUP_MNT
+    getInput "New value for $var [${!var}]:" val "${!var}"
+    [[ "$val" != "/" ]] && val=${val%/}
+    if ! _validateSetting "$var" "$val"; then
+        sleep 2     # sonst löscht das Banner im Menü die Fehlermeldung sofort
+        return 1
+    fi
+    printf -v "$var" '%s' "$val"
+    _writeSetting "$var" "$(printf '%q' "$val")"
+    # War BACKUP_DIR abgeleitet, bei neuem Mountpoint mitziehen
+    if [[ "$var" == BACKUP_MNT && "$BACKUP_DIR" == "$oldmnt/backups" ]]; then
+        BACKUP_DIR="$BACKUP_MNT/backups"
+        _writeSetting BACKUP_DIR '"$BACKUP_MNT/backups"'
+    fi
+}
+
 _installMenu() {
     local sub
     local -a entries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Back")
@@ -258,10 +299,18 @@ showSettings() {
             "locale=${locale:-}"
             "keymap=${keymap:-}"
             "kernel=${kernel:-}"
+            "BACKUP_DEV=${BACKUP_DEV:-}"
+            "BACKUP_MNT=${BACKUP_MNT:-}"
+            "BACKUP_DIR=${BACKUP_DIR:-}"
+            "GAMES_DEV=${GAMES_DEV:-}"
+            "GAMES_MNT=${GAMES_MNT:-}"
             "Back"
         )
         choice=$(list "Settings" "${entries[@]}") || return 1
         [[ "${entries[$choice]}" == "Back" ]] && return 0
-        checkInstallSettings "${entries[$choice]%%=*}"
+        case "${entries[$choice]%%=*}" in
+            BACKUP_*|GAMES_*) setPathSetting "${entries[$choice]%%=*}" ;;
+            *)        checkInstallSettings "${entries[$choice]%%=*}" ;;
+        esac
     done
 }

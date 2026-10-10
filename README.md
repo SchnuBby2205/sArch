@@ -49,7 +49,7 @@ sArch/
 
 ```bash
 # 1. Run the installer
-curl -fsSl https://raw.githubusercontent.com/SchnuBby2205/sArch/main/bootstrap.sh | bash
+curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/main/bootstrap.sh | bash
 ```
 
 The installer runs in stages: base system (live ISO) → arch-chroot → desktop (first login on tty1) → configs (first Hyprland start).

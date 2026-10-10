@@ -46,5 +46,5 @@
     surface-container-highest: #3d322f;
     backgroundwidth: url("/home/schnubby/.cache/Wallpaper_thumbs/curr_wide", width);
     backgroundheight: url("/home/schnubby/.cache/Wallpaper_thumbs/curr", width);
-mainfont: "Don Graffiti 12";
+mainfont: "Don Graffiti 15";
 }

@@ -104,10 +104,6 @@ installDE() { Banner; checkDebugFlag
 # ---------------------------------------------------------------------------
 # Backup / SchnuBby specifics
 # ---------------------------------------------------------------------------
-BACKUP_DEV="/dev/nvme0n1p4"
-BACKUP_MNT="/programmieren"
-BACKUP_DIR="$BACKUP_MNT/backups"
-
 # fstab-Zeile per UUID anhängen, wenn der Mountpunkt noch nicht drinsteht
 # (UUID statt /dev/nvme0n1pX, da sich Gerätenamen z.B. durch eine zweite NVMe ändern können)
 addFstabLine() { # $1 = Gerät, $2 = Mountpunkt, $3 = Dateisystem, $4 = Optionen
@@ -131,10 +127,13 @@ linkBackup() { # $1 = Quelle im Backup, $2 = Linkname
 }
 
 installSpecifics() {
+  [[ -n "$BACKUP_DEV" && -n "$BACKUP_MNT" && -n "$GAMES_DEV" && -n "$GAMES_MNT" ]] \
+    || { myPrint print yellow "Backup-/Games-Variablen nicht gesetzt - übersprungen.\n"; return 0; }
+
   [[ "$debug" == false ]] && myPrint step Installing "SchnuBby specifics..."
-    sudo mkdir -p /programmieren /spiele /etc/sddm.conf.d
-    addFstabLine /dev/nvme0n1p4 /programmieren ext4 rw,relatime
-    addFstabLine /dev/nvme0n1p6 /spiele        ext4 rw,relatime
+    sudo mkdir -p "$BACKUP_MNT" "$GAMES_MNT" /etc/sddm.conf.d
+    addFstabLine "$BACKUP_DEV" "$BACKUP_MNT" ext4 rw,relatime
+    addFstabLine "$GAMES_DEV"  "$GAMES_MNT"  ext4 rw,relatime
     printf '[Autologin]\nRelogin=false\nSession=hyprland\nUser=%s\n' "$USER" \
       | sudo tee /etc/sddm.conf.d/autologin.conf >/dev/null
     sudo sed -i 's/^GRUB_TIMEOUT=.*/GRUB_TIMEOUT=0/' /etc/default/grub
@@ -143,6 +142,9 @@ installSpecifics() {
 }
 
 installBackup() {
+  [[ -n "$BACKUP_DEV" && -n "$BACKUP_MNT" && -n "$BACKUP_DIR" ]] \
+    || { myPrint print yellow "Backup-Variablen nicht gesetzt - übersprungen.\n"; return 0; }
+
   [[ "$debug" == false ]] && myPrint step Installing "Backup..."
     sudo mkdir -p "$BACKUP_MNT"
     mountpoint -q "$BACKUP_MNT" || sudo mount "$BACKUP_DEV" "$BACKUP_MNT" \

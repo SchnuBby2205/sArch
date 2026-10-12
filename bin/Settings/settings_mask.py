@@ -1130,7 +1130,10 @@ def apply_wallpaper(wp: str, idx: int, cache_dir: str, color: str = "") -> tuple
     if color and shutil.which("razer-cli"):
         _spawn(["razer-cli", "-e", "static", "-c", color.lstrip("#")])
     _save_current_wallpaper(wp, idx)
-    _notify("Wallpaper changed", os.path.basename(wp))
+    # Benachrichtigung mit dem neuen Bild (Dunst-Regel "sarch_wallpaper" zeigt es groß oben an)
+    _spawn(["dunstify", "-a", "Themes", "-u", "low", "-t", "4000", "-c", "Wallpaper changed",
+            "-h", "string:x-dunst-stack-tag:sarch-wallpaper",
+            "-i", os.path.join(cache_dir, "curr_wide"), os.path.basename(wp)])
     return True, ""
 
 # ── Schriften ──
@@ -1386,17 +1389,18 @@ class SettingsApp(Adw.Application):
                 outer_box.append(pref_group)
                 outer_box.append(Gtk.Separator())
 
-        # Buttons
-        btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
-        btn_box.set_halign(Gtk.Align.END); btn_box.set_margin_top(4)
-        reset_btn = Gtk.Button(label=t("btn_reset"))
-        reset_btn.add_css_class("flat")
-        reset_btn.connect("clicked", self._on_reset, cat_name)
-        apply_btn = Gtk.Button(label=t("btn_apply"))
-        apply_btn.add_css_class("suggested-action")
-        apply_btn.connect("clicked", self._on_apply, cat_name)
-        btn_box.append(reset_btn); btn_box.append(apply_btn)
-        outer_box.append(btn_box)
+        # Buttons (nicht auf Seiten, die sofort anwenden, z.B. Hintergrund)
+        if not all(s["type"] == "wallpaper" for s in settings):
+            btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
+            btn_box.set_halign(Gtk.Align.END); btn_box.set_margin_top(4)
+            reset_btn = Gtk.Button(label=t("btn_reset"))
+            reset_btn.add_css_class("flat")
+            reset_btn.connect("clicked", self._on_reset, cat_name)
+            apply_btn = Gtk.Button(label=t("btn_apply"))
+            apply_btn.add_css_class("suggested-action")
+            apply_btn.connect("clicked", self._on_apply, cat_name)
+            btn_box.append(reset_btn); btn_box.append(apply_btn)
+            outer_box.append(btn_box)
 
         clamp.set_child(outer_box)
         scroll.set_child(clamp)
@@ -2210,12 +2214,13 @@ class SettingsApp(Adw.Application):
     # ── sArch: Hintergrundbild ────────────────────────────────────────────────
 
     def _add_wallpaper_group(self, outer_box, cat_name, s):
+        """Wallpaper anklicken -> Popover mit Akzentfarben -> Farbe anklicken = sofort anwenden."""
         ex      = s.get("extra", {})
         wp_dir  = _x(ex.get("wallpaper_dir", "~/Bilder/Wallpapers"))
         cache   = _x(ex.get("cache_dir", "~/.cache/Wallpaper_thumbs"))
         cur, cur_idx = read_current_wallpaper()
-        state = {"orig": (cur, cur_idx), "sel": cur, "idx": cur_idx,
-                 "colors": [], "token": None, "buttons": []}
+        state = {"cur": cur, "idx": cur_idx, "colors": {}, "busy": False,
+                 "popover": None, "css": {}}
 
         grp = Adw.PreferencesGroup()
         grp.set_title(s["label"] or t("wp_group"))
@@ -2230,8 +2235,13 @@ class SettingsApp(Adw.Application):
             preview.set_filename(cur)
         grp.add(preview)
 
+        cur_label = Gtk.Label(label=os.path.basename(cur) if cur else "")
+        cur_label.add_css_class("dim-label"); cur_label.set_margin_top(6)
+        grp.add(cur_label)
+
         flow = Gtk.FlowBox()
         flow.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        flow.set_activate_on_single_click(True)
         flow.set_homogeneous(True)
         flow.set_min_children_per_line(3)
         flow.set_max_children_per_line(8)
@@ -2245,142 +2255,173 @@ class SettingsApp(Adw.Application):
         grp.add(empty)
         outer_box.append(grp)
 
-        cgrp = Adw.PreferencesGroup()
-        cgrp.set_title(t("wp_color_group"))
-        cgrp.set_description(t("wp_color_desc"))
-        clabel = Gtk.Label(label=t("wp_color_none"))
-        clabel.add_css_class("dim-label"); clabel.set_halign(Gtk.Align.START)
-        cbox = Gtk.FlowBox()
-        cbox.set_selection_mode(Gtk.SelectionMode.NONE)
-        cbox.set_max_children_per_line(5)
-        cbox.set_column_spacing(8); cbox.set_row_spacing(8)
-        cgrp.add(clabel); cgrp.add(cbox)
-        outer_box.append(cgrp)
-
         swatch_css = Gtk.CssProvider()
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(), swatch_css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
 
-        def show_colors(token, wp, cols):
-            if token is not state["token"]:
-                return False                        # veraltetes Ergebnis
-            cbox.remove_all(); state["buttons"] = []
-            state["colors"] = cols
-            if not cols:
-                clabel.set_label(t("wp_color_failed")); clabel.set_visible(True)
-                state["idx"] = 0
-                return False
-            clabel.set_visible(False)
-            css, first = "", None
-            for i, c in enumerate(cols):
-                cls = f"sarch-sw-{i}"
-                b = Gtk.ToggleButton(label=c)
-                b.add_css_class(cls)
-                css += (f".{cls} {{ background-image:none; background-color:{c}; color:{_contrast(c)};"
-                        f" min-width:84px; min-height:36px; border-radius:10px; }}\n"
-                        f".{cls}:checked {{ box-shadow: inset 0 0 0 3px {_contrast(c)}; }}\n")
-                if first is None: first = b
-                else: b.set_group(first)
-                b.connect("toggled", lambda btn, i=i: state.__setitem__("idx", i) if btn.get_active() else None)
-                cbox.append(b); state["buttons"].append(b)
-            swatch_css.load_from_string(css)
-            want = state["orig"][1] if wp == state["orig"][0] else 0
-            idx = want if 0 <= want < len(cols) else 0
-            state["buttons"][idx].set_active(True)
-            state["idx"] = idx
-            return False
-
-        def load_colors(wp):
-            token = object(); state["token"] = token
-            cbox.remove_all(); state["buttons"] = []; state["colors"] = []
-            clabel.set_label(t("wp_color_loading")); clabel.set_visible(True)
-            def work():
-                cols = matugen_source_colors(wp)
-                GLib.idle_add(show_colors, token, wp, cols)
-            threading.Thread(target=work, daemon=True).start()
-
-        def on_selected(fb):
-            sel = fb.get_selected_children()
-            if not sel: return
-            wp = sel[0].get_name()
-            if wp == state.get("loaded"): return
-            state["sel"] = state["loaded"] = wp
-            preview.set_filename(wp)
-            load_colors(wp)
+        def ensure_css(cols):
+            new = False
+            for c in cols:
+                k = c[1:].lower()
+                if k in state["css"]: continue
+                state["css"][k] = (f".sarch-sw-{k} {{ background-image:none; background-color:{c};"
+                                   f" color:{_contrast(c)}; min-width:44px; min-height:44px;"
+                                   f" padding:0; border-radius:9999px; }}\n"
+                                   f".sarch-sw-{k}:hover {{ box-shadow: inset 0 0 0 3px alpha({_contrast(c)}, .6); }}\n")
+                new = True
+            if new:
+                swatch_css.load_from_string("".join(state["css"].values()))
 
         def select_path(path):
             child = flow.get_first_child()
             while child:
                 if child.get_name() == path:
-                    flow.select_child(child)
-                    return True
+                    flow.select_child(child); return child
                 child = child.get_next_sibling()
             flow.unselect_all()
-            return False
+            return None
+
+        def close_popover():
+            pop = state["popover"]
+            if pop:
+                state["popover"] = None
+                pop.popdown()
+                if pop.get_parent(): pop.unparent()
+
+        def apply(wp, idx, color):
+            if state["busy"]: return
+            state["busy"] = True
+            close_popover()
+            self._toast(t("wp_applying"))
+            def done(ok, err):
+                state["busy"] = False
+                if ok:
+                    state["cur"], state["idx"] = wp, idx
+                    preview.set_filename(wp)
+                    cur_label.set_label(os.path.basename(wp))
+                    select_path(wp)
+                    apply_matugen_theme()           # Farben der Settings-App gleich mitziehen
+                    self._toast(t("wp_applied", name=os.path.basename(wp)))
+                else:
+                    select_path(state["cur"])
+                    self._show_error_dialog([f"{t('wp_failed')}: {err}"])
+                return False
+            def work():
+                ok, err = apply_wallpaper(wp, idx, cache, color)
+                GLib.idle_add(done, ok, err)
+            threading.Thread(target=work, daemon=True).start()
+
+        def fill_popover(body, wp, cols):
+            while (c := body.get_first_child()): body.remove(c)
+            if cols is None:                        # lädt noch
+                sp = Gtk.Spinner(); sp.start()
+                lb = Gtk.Label(label=t("wp_color_loading")); lb.add_css_class("dim-label")
+                body.append(sp); body.append(lb)
+                return
+            if not cols:                            # matugen lieferte nichts
+                lb = Gtk.Label(label=t("wp_color_failed")); lb.add_css_class("dim-label")
+                lb.set_wrap(True); lb.set_max_width_chars(28)
+                b = Gtk.Button(label=t("wp_default_color")); b.add_css_class("suggested-action")
+                b.connect("clicked", lambda *_: apply(wp, 0, ""))
+                body.append(lb); body.append(b)
+                return
+            ensure_css(cols)
+            for i, c in enumerate(cols):
+                b = Gtk.Button()
+                b.add_css_class(f"sarch-sw-{c[1:].lower()}")
+                b.set_tooltip_text(c)
+                if wp == state["cur"] and i == state["idx"]:
+                    b.set_child(Gtk.Image.new_from_icon_name("object-select-symbolic"))
+                b.connect("clicked", lambda _b, i=i, c=c: apply(wp, i, c))
+                body.append(b)
+
+        def on_activated(_fb, child):
+            if state["busy"]: return
+            close_popover()
+            wp = child.get_name()
+            preview.set_filename(wp)                # Vorschau schon beim Anklicken
+
+            pop = Gtk.Popover()
+            pop.set_parent(child)
+            pop.set_position(Gtk.PositionType.BOTTOM)
+            box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            box.set_margin_top(8); box.set_margin_bottom(8)
+            box.set_margin_start(10); box.set_margin_end(10)
+            title = Gtk.Label(label=t("wp_pick_color")); title.add_css_class("heading")
+            name = Gtk.Label(label=os.path.basename(wp)); name.add_css_class("dim-label")
+            name.set_ellipsize(Pango.EllipsizeMode.MIDDLE); name.set_max_width_chars(30)
+            body = Gtk.Box(spacing=8); body.set_halign(Gtk.Align.CENTER)
+            box.append(title); box.append(name); box.append(body)
+            pop.set_child(box)
+
+            def on_closed(p):
+                # Vorschau zurück, wenn nichts angewendet wurde
+                if not state["busy"] and state["cur"] and os.path.exists(state["cur"]):
+                    preview.set_filename(state["cur"])
+                    select_path(state["cur"])
+                if state["popover"] is p: state["popover"] = None
+                GLib.idle_add(lambda: (p.unparent() if p.get_parent() else None, False)[1])
+            pop.connect("closed", on_closed)
+            state["popover"] = pop
+
+            cols = state["colors"].get(wp)
+            fill_popover(body, wp, cols)
+            pop.popup()
+            if cols is None:
+                def show(cols):
+                    state["colors"][wp] = cols
+                    if state["popover"] is pop:
+                        fill_popover(body, wp, cols)
+                    return False
+                def work():
+                    c = matugen_source_colors(wp)
+                    GLib.idle_add(show, c)
+                threading.Thread(target=work, daemon=True).start()
+
+        def thumb_widget(wp):
+            th = thumb_path(cache, wp)
+            if os.path.exists(th):
+                w = Gtk.Picture.new_for_filename(th)
+                w.set_content_fit(Gtk.ContentFit.COVER); w.set_can_shrink(True)
+            else:
+                w = Gtk.Image.new_from_icon_name("image-x-generic-symbolic")
+                w.set_pixel_size(32)
+            w.set_size_request(100, 100)
+            return w
 
         def populate():
+            close_popover()
             flow.remove_all()
             wps = list_wallpapers(wp_dir)
             empty.set_visible(not wps)
             for wp in wps:
-                th = thumb_path(cache, wp)
-                if os.path.exists(th):
-                    w = Gtk.Picture.new_for_filename(th)
-                    w.set_content_fit(Gtk.ContentFit.COVER); w.set_can_shrink(True)
-                else:
-                    w = Gtk.Image.new_from_icon_name("image-x-generic-symbolic")
-                    w.set_pixel_size(32)
-                w.set_size_request(100, 100)
                 child = Gtk.FlowBoxChild()
-                child.set_child(w)
+                child.set_child(thumb_widget(wp))
                 child.set_name(wp)
                 child.set_tooltip_text(os.path.basename(wp))
                 flow.append(child)
-            if state["sel"]:
-                select_path(state["sel"])
+            if state["cur"]:
+                select_path(state["cur"])
             return False
 
-        flow.connect("selected-children-changed", on_selected)
+        flow.connect("child-activated", on_activated)
         populate()
+
+        def refresh_thumbs():
+            # Vorschaubilder an Ort und Stelle tauschen, damit ein offenes Popover bleibt
+            names, child = [], flow.get_first_child()
+            while child:
+                names.append(child.get_name())
+                child.set_child(thumb_widget(child.get_name()))
+                child = child.get_next_sibling()
+            if names != list_wallpapers(wp_dir) and not state["popover"]:
+                populate()                          # neue/entfernte Bilder
+            return False
 
         def make_thumbs():
             if ensure_thumbnails(wp_dir, cache):
-                GLib.idle_add(populate)
+                GLib.idle_add(refresh_thumbs)
         threading.Thread(target=make_thumbs, daemon=True).start()
-
-        def apply():
-            sel, idx = state["sel"], state["idx"]
-            if not sel or (sel, idx) == state["orig"]:
-                return True
-            cols  = state["colors"]
-            color = cols[idx] if idx < len(cols) else ""
-            self._toast(t("wp_applying"))
-            def done(ok, err):
-                if ok:
-                    state["orig"] = (sel, idx)
-                    apply_matugen_theme()           # Farben der Settings-App gleich mitziehen
-                    self._toast(t("wp_applied", name=os.path.basename(sel)))
-                else:
-                    self._show_error_dialog([f"{t('wp_failed')}: {err}"])
-                return False
-            def work():
-                ok, err = apply_wallpaper(sel, idx, cache, color)
-                GLib.idle_add(done, ok, err)
-            threading.Thread(target=work, daemon=True).start()
-            return True
-
-        def reset():
-            path, idx = state["orig"]
-            state["sel"] = path; state["idx"] = idx
-            if not select_path(path):
-                state["loaded"] = None
-            elif state["buttons"] and idx < len(state["buttons"]):
-                state["buttons"][idx].set_active(True)
-
-        self.category_pending[cat_name][f"wallpaper|{wp_dir}"] = {
-            "type": "custom", "apply": apply, "reset": reset,
-            "config_key": s["label"] or "wallpaper", "config_file": wp_dir,
-        }
 
     # ── sArch: Schriften ──────────────────────────────────────────────────────
 

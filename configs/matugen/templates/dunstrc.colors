@@ -17,3 +17,10 @@ foreground = "#000000FF"
 background = "{{colors.primary.default.hex}}B0"
 frame_color = "{{colors.secondary.default.hex}}FF"
 highlight = "{{colors.secondary.default.hex}}FF"
+
+# Hintergrundbild-Wechsel (Settings-App): Bild groß oben anzeigen
+[sarch_wallpaper]
+    category = "Wallpaper changed"
+    icon_position = top
+    min_icon_size = 0
+    max_icon_size = 320

@@ -48,9 +48,9 @@ curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/main/bootstrap.s
 | # | Stage | Läuft | Was passiert |
 |---|-------|-------|--------------|
 | 1 | **Base System** | Live-ISO | Fragt fehlende Einstellungen ab, formatiert und mountet die Partitionen (nach Eingabe von `YES`), richtet die Mirrors mit `reflector` ein, führt `pacstrap` aus |
-| 2 | **Arch-Chroot** | automatisch in `arch-chroot` | Zeitzone, Locale, Tastaturlayout, Konsolenschrift, GRUB, Hostname, Root- und Benutzerpasswort, NetworkManager; danach Neustart |
-| 3 | **Desktop** | erster Login auf **tty1** | Aktiviert multilib, installiert System-, Audio- und Programmpakete sowie `yay`, verlinkt die Configs, installiert Schriften, GTK-Theme und Hintergrundbilder, aktiviert SDDM; danach Neustart |
-| 4 | **Configs** | erster Hyprland-Start (kitty) | GPU-Treiber (AMD/NVIDIA), `dxvk-bin`, Steam, Firefox-Profil, optional Backups / persönliche Anpassungen, erstes Hintergrundbild + Matugen-Farben; danach Neustart |
+| 2 | **Arch-Chroot** | automatisch in `arch-chroot` | Zeitzone, Locale, Tastaturlayout, Konsolenschrift, GRUB, Hostname, Benutzer, temporärer Install-Modus (sudo ohne Passwort + Autologin auf tty1), NetworkManager; danach Neustart |
+| 3 | **Desktop** | automatischer Login auf **tty1** | Aktiviert multilib, installiert System-, Audio- und Programmpakete sowie `yay`, verlinkt die Configs, installiert Schriften, GTK-Theme und Hintergrundbilder, aktiviert SDDM; danach Neustart |
+| 4 | **Configs** | erster Hyprland-Start (SDDM-Autologin, kitty im Vollbild) | GPU-Treiber (AMD/NVIDIA), `dxvk-bin`, Steam, Firefox-Profil, optional Backups / persönliche Anpassungen, erstes Hintergrundbild + Matugen-Farben, **Root- und Benutzerpasswort**, Install-Modus wird entfernt; danach Neustart |
 
 Jede Stage übergibt selbstständig an die nächste (chroot-Aufruf, `.bashrc`-Hook auf tty1, Hyprland-Autostart). Die Hooks werden wieder entfernt, sobald sie ihren Zweck erfüllt haben.
 

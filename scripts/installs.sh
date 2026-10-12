@@ -28,12 +28,12 @@ installArchCHRoot() { Banner; checkDebugFlag
     dryRun runCMDS 0 "Setting up" GRUB... 14 20 20 "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB $debugstring" "grub-mkconfig -o /boot/grub/grub.cfg $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   echo "${hostname}" > /etc/hostname
-  Banner
-  myPrint print yellow "Enter your NEW root password\n\n"; myPasswd root
   useradd -mG wheel ${user}
-  Banner
-  myPrint print yellow "Enter your normal user password\n\n"; myPasswd "${user}"
   sed -e "/%wheel ALL=(ALL:ALL) ALL/s/^#*//" -i /etc/sudoers
+  # Passwörter werden erst ganz am Ende (installConfigs) gesetzt. Bis dahin:
+  # - sudo ohne Passwort (für pacman, makepkg, yay)
+  # - Autologin auf tty1 (startet installDE über den .bashrc-Hook)
+  enableInstallMode
   #safeCMD mv "/$sARCH_MAIN" "/home/${user}/"
   #addToBashrc "$HOME/sARCH/${scriptname} installDE"
   bash -c "systemctl enable NetworkManager $debugstring"
@@ -52,8 +52,9 @@ addFirstbootAutostart() {
   cat >> "$cfg" <<'EOF'
 
 -- sARCH-FIRSTBOOT-BEGIN
+hl.window_rule({ name = "sArch installer fullscreen", match = { class = "^sarch-installer$" }, fullscreen = true, opacity = "1.0 1.0" })
 hl.on("hyprland.start", function()
-  hl.exec_cmd("kitty bash -c 'cd $HOME/sArch && ./install.sh installConfigs'")
+  hl.exec_cmd("kitty --class sarch-installer bash -c 'cd $HOME/sArch && ./install.sh installConfigs'")
 end)
 -- sARCH-FIRSTBOOT-END
 EOF
@@ -75,7 +76,7 @@ installDE() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step ok
   bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"
   cd yay || exitWithError "yay could not be cloned!"
-  makepkg -si
+  makepkg -si --noconfirm
   cd ..
   rm -rf ./yay
   Banner
@@ -97,6 +98,10 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Starting "Networkmanager..." 10 20 20 "sudo systemctl enable NetworkManager $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   sed -i "/${scriptname}/d" $HOME/.bashrc
+  # ab jetzt übernimmt SDDM: tty1-Autologin entfernen, einmalig Autologin in Hyprland
+  sudo rm -f "$_GETTY_AUTOLOGIN"
+  printf '[Autologin]\nRelogin=false\nSession=hyprland\nUser=%s\n' "$USER" \
+    | sudo tee "$_SDDM_FIRSTBOOT" >/dev/null
   Banner
   myPrint countdown 3 "Reboot in"; reboot
 }
@@ -180,7 +185,7 @@ installConfigs() { Banner; checkDebugFlag
     dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
 
-  firefox --ProfileManager
+  firefox --ProfileManager &>>"${logFile:-/dev/null}"
 
   # --- Abfrage: Backups / SchnuBby specifics ---
   choice=""
@@ -202,18 +207,60 @@ installConfigs() { Banner; checkDebugFlag
   sed -i '/sARCH-FIRSTBOOT-BEGIN/,/sARCH-FIRSTBOOT-END/d' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null
   [[ -n "$scriptname" ]] && grep -rlF "${scriptname}" "$HOME/.config/hypr" 2>/dev/null | xargs -r sed -i "/${scriptname}/d"
 
-  RANDOM_WP=$(find "$HOME/Bilder/Wallpapers/" -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n 1)
-  # rofi-Menüs lesen den Hintergrund aus ~/.cache/Wallpaper_thumbs/curr(_wide) - die Dateien
-  # erzeugt sonst nur sarch_change_wallpaper.sh, deshalb hier beim ersten Setzen mit anlegen
-  local thumbDir="$HOME/.cache/Wallpaper_thumbs/"
-  sed -i "s|/home/schnubby/|$HOME/|g" "$HOME/.config/matugen/templates/rofi-colors.rasi" "$HOME/.config/rofi/colors.rasi" 2>/dev/null
-  if [[ -n "$RANDOM_WP" ]]; then
-    mkdir -p "$thumbDir"
-    magick "$RANDOM_WP" -thumbnail 500x500^ -gravity center -extent 500x500 -quality 70 "${thumbDir}curr"
-    magick "$RANDOM_WP" -thumbnail 1000x500^ -gravity center -extent 1000x500 -quality 70 "${thumbDir}curr_wide"
-    matugen image "${RANDOM_WP}"
+  # Ausgabe von magick/matugen ins Log statt unzentriert auf den Bildschirm
+  if [[ "$debug" == false ]]; then
+    myPrint step Applying "Theme..."
+    drawProgress 0 20 "Setting random wallpaper..."
+    _applyRandomWallpaper &>>"${logFile:-/dev/null}"
+    drawProgress 20 20
+    myPrint step ok
+  else
+    _applyRandomWallpaper
   fi
 
+  # Passwörter erst ganz zum Schluss setzen, danach Install-Modus (NOPASSWD, Autologin) entfernen
+  Banner
+  myPrint print yellow "Enter your NEW root password\n\n"; myPasswd root
+  Banner
+  myPrint print yellow "Enter your password for ${USER}\n\n"; myPasswd "$USER"
+  disableInstallMode
+
+  Banner
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
+}
+
+# Zufälliges Wallpaper + Matugen-Farben (rofi liest ~/.cache/Wallpaper_thumbs/curr(_wide),
+# das erzeugt sonst nur sarch_change_wallpaper.sh, deshalb hier beim ersten Setzen mit anlegen)
+_applyRandomWallpaper() {
+  local thumbDir="$HOME/.cache/Wallpaper_thumbs/" wp
+  wp=$(find "$HOME/Bilder/Wallpapers/" -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n 1)
+  sed -i "s|/home/schnubby/|$HOME/|g" "$HOME/.config/matugen/templates/rofi-colors.rasi" "$HOME/.config/rofi/colors.rasi" 2>/dev/null
+  [[ -n "$wp" ]] || return 0
+  mkdir -p "$thumbDir"
+  magick "$wp" -thumbnail 500x500^ -gravity center -extent 500x500 -quality 70 "${thumbDir}curr"
+  magick "$wp" -thumbnail 1000x500^ -gravity center -extent 1000x500 -quality 70 "${thumbDir}curr_wide"
+  matugen image "$wp"
+}
+
+# ---------------------------------------------------------------------------
+# Install-Modus: unbeaufsichtigter Durchlauf bis zum Ende von installConfigs
+# ---------------------------------------------------------------------------
+_SUDOERS_INSTALL=/etc/sudoers.d/10-sarch-install
+_GETTY_AUTOLOGIN=/etc/systemd/system/getty@tty1.service.d/sarch-autologin.conf
+_SDDM_FIRSTBOOT=/etc/sddm.conf.d/zz-sarch-firstboot.conf
+
+# läuft im chroot als root
+enableInstallMode() {
+  printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$user" > "$_SUDOERS_INSTALL"
+  chmod 440 "$_SUDOERS_INSTALL"
+  visudo -cf "$_SUDOERS_INSTALL" >/dev/null || { rm -f "$_SUDOERS_INSTALL"; exitWithError "sudoers file invalid!"; }
+  mkdir -p "${_GETTY_AUTOLOGIN%/*}"
+  printf '[Service]\nExecStart=\nExecStart=-/sbin/agetty -o "-p -f -- \\\\u" --noclear --autologin %s %%I $TERM\n' "$user" > "$_GETTY_AUTOLOGIN"
+}
+
+# läuft als User am Ende von installConfigs
+disableInstallMode() {
+  sudo rm -f "$_GETTY_AUTOLOGIN" "$_SDDM_FIRSTBOOT"
+  sudo rm -f "$_SUDOERS_INSTALL"   # zuletzt, danach fragt sudo wieder nach dem Passwort
 }

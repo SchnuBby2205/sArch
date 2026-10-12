@@ -49,7 +49,8 @@ if [[ "$mode" == "Font" ]]; then
 	fi
 	if [[ "$submode" == "Size" ]]; then
 		#eingabe="$(rofi -dmenu -lines 0 -p "New Size:" -theme input.rasi)"
-		eingabe="$(rofi -dmenu -lines 0 -p "New Size (aktuell: ${current_size}):" -theme input.rasi)"
+		# input.rasi zeigt keinen Prompt (inputbar = nur "entry") -> aktuellen Wert als Placeholder setzen
+		eingabe="$(rofi -dmenu -lines 0 -theme input.rasi -theme-str "entry { placeholder: \"Aktuell: ${current_size}\"; }")"
 		if [[ -n $eingabe ]]; then
 			sed -i 's/\(font[[:space:]]*=[[:space:]]*"[^"]*\) [0-9]\+/\1 '"$eingabe"'/' ~/.config/dunst/dunstrc
 			sed -i 's/\(font[[:space:]]*=[[:space:]]*"[^"]*\) [0-9]\+/\1 '"$eingabe"'/' ~/.config/matugen/templates/dunstrc.colors
@@ -69,7 +70,8 @@ if [[ "$mode" == "Font" ]]; then
 		fi
 	fi
 	if [[ "$submode" == "Terminal Size" ]]; then
-		eingabe="$(rofi -dmenu -lines 0 -p "Terminal Size:" -theme input.rasi)"
+		term_size=$(grep -m1 -oP '^font_size\s+\K\S+' ~/.config/kitty/hyde.conf 2>/dev/null)
+		eingabe="$(rofi -dmenu -lines 0 -theme input.rasi -theme-str "entry { placeholder: \"Aktuell: ${term_size}\"; }")"
 		if [[ "$eingabe" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
 			sed -i -E "s/^(font_size[[:space:]]+).*/\1${eingabe}/" ~/.config/kitty/hyde.conf
 			pkill -USR1 -x kitty 2>/dev/null

@@ -32,6 +32,7 @@ sArch/
 ├── fonts/                  # Custom fonts used in the setup
 ├── scripts/
 │   ├── io.sh               # I/O helper functions
+│   ├── presentation.sh     # Centered logo, progress bar & live log (Omarchy style)
 │   ├── checks.sh           # Pre-install system checks
 │   ├── commands.sh         # General command utilities
 │   └── installs.sh         # Package & config installation logic
@@ -54,6 +55,8 @@ curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/main/bootstrap.s
 
 The installer runs in stages: base system (live ISO) → arch-chroot → desktop (first login on tty1) → configs (first Hyprland start).
 Output of the install commands is written to `~/sArch-install.log`; set `debug=true` in `configs/installConfigs/install_settings` to see it live.
+
+The installer screen is styled after Omarchy: the logo from `logo.txt` is centered, each stage shows a progress bar in the middle and the last lines of the log dimmed below it. Run `./install.sh presentationDemo` for a preview without installing anything; `consoleFont` in `configs/installConfigs/constants` sets the TTY font (default `ter-v22b`).
 
 ---
 

@@ -21,4 +21,6 @@ checkDefaults["timezone"]="Europe/Berlin"
 checkDefaults["locale"]="de_DE.UTF-8"
 checkDefaults["keymap"]="de-latin1"
 checkDefaults["kernel"]="linux-lts"
+# Konsolenschrift für das TTY (Terminus ist auf dem Arch-ISO enthalten, leer = nicht ändern)
+consoleFont="ter-v22b"
 menuEntries=("Settings" "Install" "Exit")

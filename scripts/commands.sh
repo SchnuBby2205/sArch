@@ -21,8 +21,8 @@ _progressBar() {
 # Zeigt die letzten Zeilen des Logs (bei unterdrückter Ausgabe die einzige Fehlerquelle)
 _showLogTail() {
     [[ "${debug:-}" != true && -r "${logFile:-}" ]] || return 0
-    printf '\n%b--- last lines of %s ---%b\n' "${YELLOW:-}" "$logFile" "${NC:-}" >&2
-    tail -n 15 "$logFile" >&2
+    printf '\n%s%b--- last lines of %s ---%b\n' "${PADS:-}" "${YELLOW:-}" "$logFile" "${NC:-}" >&2
+    tail -n 15 "$logFile" | sed "s/^/${PADS:-}/" >&2
 }
 
 # runCMDS <sudo:0|1> <icon/prefix> <message> <cur> <fin> <max> cmd...
@@ -36,20 +36,28 @@ runCMDS() {
     [[ "${sARCH_PIPEFAIL:-0}" == 1 ]] && opts=(-o pipefail)
 
     if [[ "${debug:-}" != true ]]; then
-        (( cur > 0 )) && printf '%b%b%b' "${CLEAR:-}" "${UP:-}" "${CLEAR:-}"
-        _progressBar "$cur" "$max"
-        printf '\n%b %b%b%b' "$m" "${WHITE:-}" "$msg" "${NC:-}"
+        if (( ${_STAGE_ACTIVE:-0} )); then
+            drawProgress "$cur" "$max" "$m $msg"
+        else
+            (( cur > 0 )) && printf '%b%b%b' "${CLEAR:-}" "${UP:-}" "${CLEAR:-}"
+            _progressBar "$cur" "$max"
+            printf '\n%b %b%b%b' "$m" "${WHITE:-}" "$msg" "${NC:-}"
+        fi
     fi
 
     for c in "$@"; do
         "${pre[@]}" bash "${opts[@]}" -c "$c" \
-            || { _showLogTail; exitWithError "Command failed: $(_cmdForDisplay "$c")"; }
+            || { stageFail; _showLogTail; exitWithError "Command failed: $(_cmdForDisplay "$c")"; }
     done
 
     if [[ "${debug:-}" != true ]]; then
-        printf '%b\r' "${UP:-}"
-        _progressBar "$fin" "$max"
-        printf '\n'
+        if (( ${_STAGE_ACTIVE:-0} )); then
+            drawProgress "$fin" "$max"
+        else
+            printf '%b\r' "${UP:-}"
+            _progressBar "$fin" "$max"
+            printf '\n'
+        fi
     fi
     return 0
 }
@@ -80,8 +88,13 @@ safeCMD() {
 # dryRun <befehl ...>: bei dryRun=true nur ausgeben/loggen, sonst ausführen
 dryRun() {
     if [[ "${dryRun:-}" == true ]]; then
-        echo "[DRY RUN]: $*"
         log "[DRY RUN]: $*"
+        if (( ${_STAGE_ACTIVE:-0} )); then
+            # Im Stage-Screen nur Balken bewegen, der Log-Tail zeigt den Befehl
+            [[ "$1" == runCMDS ]] && { drawProgress "$5" "$7" "$3 $4"; sleep 0.5; drawProgress "$6" "$7"; }
+        else
+            echo "[DRY RUN]: $*"
+        fi
         return 0
     fi
     "$@"

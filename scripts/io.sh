@@ -4,27 +4,20 @@
 
 ## Functions that output something or read something
 Banner() {
-  clear
-  myPrint print green ".▄▄ ·  ▄▄·  ▄ .▄ ▐ ▄ ▄• ▄▌▄▄▄▄· ▄▄▄▄·  ▄· ▄▌            \n"
-  myPrint print green "▐█ ▀. ▐█ ▌▪██▪▐█•█▌▐██▪██▌▐█ ▀█▪▐█ ▀█▪▐█▪██▌            \n"
-  myPrint print green "▄▀▀▀█▄██ ▄▄██▀▐█▐█▐▐▌█▌▐█▌▐█▀▀█▄▐█▀▀█▄▐█▌▐█▪            \n"
-  myPrint print green "▐█▄▪▐█▐███▌██▌▐▀██▐█▌▐█▄█▌██▄▪▐███▄▪▐█ ▐█▀·.            \n"
-  myPrint print green " ▀▀▀▀ ·▀▀▀ ▀▀▀ ·▀▀ █▪ ▀▀▀ ·▀▀▀▀ ·▀▀▀▀   ▀ •             \n"
-  myPrint print green " ▄▄▄· ▄▄▄   ▄▄·  ▄ .▄▪   ▐ ▄ .▄▄ · ▄▄▄▄▄ ▄▄▄· ▄▄▌  ▄▄▌  \n"
-  myPrint print green "▐█ ▀█ ▀▄ █·▐█ ▌▪██▪▐███ •█▌▐█▐█ ▀. •██  ▐█ ▀█ ██•  ██•  \n"
-  myPrint print green "▄█▀▀█ ▐▀▀▄ ██ ▄▄██▀▐█▐█·▐█▐▐▌▄▀▀▀█▄ ▐█.▪▄█▀▀█ ██▪  ██▪  \n"
-  myPrint print green "▐█ ▪▐▌▐█•█▌▐███▌██▌▐▀▐█▌██▐█▌▐█▄▪▐█ ▐█▌·▐█ ▪▐▌▐█▌▐▌▐█▌▐▌\n"
-  myPrint print green " ▀  ▀ .▀  ▀·▀▀▀ ▀▀▀ ·▀▀▀▀▀ █▪ ▀▀▀▀  ▀▀▀  ▀  ▀ .▀▀▀ .▀▀▀ \n\n"
+  stageEnd        # falls noch eine Stage offen ist (Tail stoppen)
+  drawLogo
 }
 
 myPrint() {
     local c i
     case "$1" in
         step)
+            # step <Verb> <Text> startet eine Stage (Logo + Balken + Log), step ok beendet sie
             if [ "$2" = ok ]; then
-                printf '%b%b%b' "${CLEAR:-}" "${UP:-}" "${CLEAR:-}"
+                stageEnd
             else
-                printf '%b %b %b%b%b\n' "${RUNNING:-}" "$2" "${WHITE:-}" "$3" "${NC:-}"
+                shift
+                stageBegin "$*"
             fi
             ;;
         countdown)
@@ -35,8 +28,22 @@ myPrint() {
             echo
             ;;
         print)
+            # Text an der linken Kante des Logos ausrichten (Omarchy-Stil)
             c=${2^^}
-            printf '%b' "${!c:-}${3}${NC:-}"
+            local t=$3 nl='\n' cr='\r'
+            if [[ -n "${PADS:-}" ]]; then
+                (( _atBOL )) && t="${PADS}${t}"
+                t=${t//"$nl"/"$nl$PADS"}
+                t=${t//$'\n'/$'\n'"$PADS"}
+                t=${t//"$cr"/"$cr$PADS"}
+                if [[ "$t" == *"$nl$PADS" || "$t" == *$'\n'"$PADS" ]]; then
+                    t=${t%"$PADS"}
+                    _atBOL=1
+                else
+                    _atBOL=0
+                fi
+            fi
+            printf '%b' "${!c:-}${t}${NC:-}"
             ;;
     esac
     return 0
@@ -45,15 +52,19 @@ myPrint() {
 # Fehlermeldung auf stderr, dann Skript beenden.
 # ACHTUNG: In $(...) beendet exit nur die Subshell, nicht das Hauptskript.
 exitWithError() {
-    printf '\n%b %b\n' "${ERROR:-ERROR:}" "$1" >&2
+    declare -F _leaveStageScreen >/dev/null && _leaveStageScreen
+    printf '\n%s%b %b\n' "${PADS:-}" "${ERROR:-ERROR:}" "$1" >&2
     exit 1
 }
 
 # getInput "Prompt" variablenname [default]
 getInput() {
     local _gi_p=$1 _gi_v=$2 _gi_d=${3:-} _gi_i
-    printf '%b%b %b' "${YELLOW:-}" "$_gi_p" "${NC:-}"
+    myPrint print yellow "$_gi_p "
+    (( _atBOL )) && printf '%s' "${PADS:-}"
+    printf '\033[?25h'
     read -r _gi_i
+    _atBOL=1
     printf -v "$_gi_v" '%s' "${_gi_i:-$_gi_d}"
     [[ -z "${!_gi_v}" ]] && exitWithError "Input value can not be empty!"
     return 0
@@ -64,10 +75,10 @@ myPasswd() {
     local target=$1 p1 p2 a
     [[ -z "$target" ]] && exitWithError "myPasswd: no user given"
     for ((a = 0; a < 3; a++)); do
-        read -rs -p "Password: " p1; echo
-        read -rs -p "Retype: " p2; echo
+        read -rs -p "${PADS:-}Password: " p1; echo
+        read -rs -p "${PADS:-}Retype: " p2; echo
         if [[ -z "$p1" || "$p1" != "$p2" ]]; then
-            echo "Passwords didn't match."
+            myPrint print red "Passwords didn't match.\n"
             continue
         fi
         if printf '%s:%s\n' "$target" "$p1" | sudo chpasswd; then
@@ -160,17 +171,18 @@ list() {
 
         local rows cols maxvis visible footer=0 top=0 selected=0 i idx
         read -r rows cols <<< "$(_term_size)"
-        maxvis=$((rows - 3))
+        # Platz unterhalb des Logos (Menüs beginnen bei BODY_ROW)
+        maxvis=$((rows - ${BODY_ROW:-1} - 3))
         (( maxvis < 3 )) && maxvis=3
         visible=$n
         if (( n > maxvis )); then visible=$maxvis; footer=1; fi
-        local height=$((visible + footer)) width=$((cols - 4))
+        local height=$((visible + footer)) width=$((cols - 4 - ${PAD:-0}))
         (( width < 10 )) && width=10
 
         trap '_cursor_blink_on; stty echo </dev/tty 2>/dev/null' EXIT
         trap 'kill -s INT "$$"; exit 130' INT
 
-        echo -en "\033[32m?${NC:-}${YELLOW:-} ${prompt}${NC:-}\n" >&2
+        echo -en "${PADS:-}\033[32m?${NC:-}${YELLOW:-} ${prompt}${NC:-}\n" >&2
         _cursor_blink_off
 
         local first=1
@@ -181,13 +193,13 @@ list() {
                 idx=$((top + i))
                 printf '\r\033[2K' >&2
                 if (( idx == selected )); then
-                    printf '\033[36m❯ %s\033[0m\n' "${opts[idx]:0:width}" >&2
+                    printf '%s\033[36m%s %s\033[0m\n' "${PADS:-}" "${SEL_MARK:-❯}" "${opts[idx]:0:width}" >&2
                 else
-                    printf '  %s\n' "${opts[idx]:0:width}" >&2
+                    printf '%s  %s\n' "${PADS:-}" "${opts[idx]:0:width}" >&2
                 fi
             done
             if (( footer )); then
-                printf '\r\033[2K\033[2m  (%d/%d)\033[0m\n' "$((selected + 1))" "$n" >&2
+                printf '\r\033[2K%s\033[2m  (%d/%d)\033[0m\n' "${PADS:-}" "$((selected + 1))" "$n" >&2
             fi
 
             case "$(_key_input)" in
@@ -205,7 +217,7 @@ list() {
 
         # Auswahlblock entfernen, nur die gewählte Zeile stehen lassen
         printf '\033[%dA\033[J' "$height" >&2
-        printf '\033[36m❯ %s\033[0m\n' "${opts[selected]:0:width}" >&2
+        printf '%s\033[36m%s %s\033[0m\n' "${PADS:-}" "${SEL_MARK:-❯}" "${opts[selected]:0:width}" >&2
         printf '%s' "$selected"
     )
 }

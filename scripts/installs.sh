@@ -3,7 +3,7 @@
 installBaseSystem() { Banner; checkDebugFlag; checkUEFI; dmesg -n 1; runCFDiskIfNeeded; checkInstallSettings
   for p in boot swap root; do
     validatePartition ${!p}
-    myPrint print green "${p^} partition: "; printf "${WHITE}${!p}${NC}\n"
+    myPrint print green "${p^} partition: "; myPrint print white "${!p}\n"
   done
   myPrint print red "\n!!ATTENTION!!\nThese partitions will be WIPED AND FORMATTED without another Warning!! Please check them TWICE before you continue!!\n!!ATTENTION!!\n\n"
   getInput "Type YES to continue (STRG+C to exit now)..." check "N"; [[ "$check" != "YES" ]] && exitWithError "Formatting was not confirmed!" || printf "\n"
@@ -185,9 +185,9 @@ installConfigs() { Banner; checkDebugFlag
   # --- Abfrage: Backups / SchnuBby specifics ---
   choice=""
   if [[ "${defaults:-false}" != true ]]; then
-    myPrint print yellow "\nWas soll eingerichtet werden?\n"
-    printf "  1) Backups einspielen\n  2) SchnuBby specifics installieren\n  3) Beides\n  Enter) Überspringen\n"
-    read -rp "Auswahl: " choice
+    Banner
+    choice=$(list "Was soll eingerichtet werden?" "Backups einspielen" "SchnuBby specifics installieren" "Beides" "Überspringen") || choice=3
+    choice=$(( choice + 1 ))
   fi
   case "$choice" in
     1) installBackup ;;

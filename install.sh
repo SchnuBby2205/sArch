@@ -17,7 +17,8 @@ source "$sARCH_INSTALLCONFIGS/install_settings"
 # Beim Beenden (auch Ctrl+C / Fehler) Log-Tail stoppen und Cursor wieder einblenden
 trap '_leaveStageScreen' EXIT
 
-sudo -v || exitWithError "You need sudo rights for this script."
+# erst ohne Passwort versuchen (Install-Modus mit NOPASSWD), sonst normal nachfragen
+sudo -n true 2>/dev/null || sudo -v || exitWithError "You need sudo rights for this script."
 # sudo-Zeitstempel frisch halten, damit keine Passwortabfrage mitten in den Stage-Screen fällt
 if [[ $EUID -ne 0 ]]; then
     ( while kill -0 "$$" 2>/dev/null; do sudo -n -v 2>/dev/null; sleep 50; done ) </dev/null &>/dev/null &

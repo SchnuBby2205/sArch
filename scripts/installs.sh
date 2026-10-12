@@ -254,7 +254,8 @@ _SDDM_FIRSTBOOT=/etc/sddm.conf.d/zz-sarch-firstboot.conf
 
 # läuft im chroot als root
 enableInstallMode() {
-  printf '%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$user" > "$_SUDOERS_INSTALL"
+  # verifypw=any: sonst fragt "sudo -v" trotzdem, weil die %wheel-Regel kein NOPASSWD hat
+  printf 'Defaults:%s verifypw=any\n%s ALL=(ALL:ALL) NOPASSWD: ALL\n' "$user" "$user" > "$_SUDOERS_INSTALL"
   chmod 440 "$_SUDOERS_INSTALL"
   visudo -cf "$_SUDOERS_INSTALL" >/dev/null || { rm -f "$_SUDOERS_INSTALL"; exitWithError "sudoers file invalid!"; }
   mkdir -p "${_GETTY_AUTOLOGIN%/*}"

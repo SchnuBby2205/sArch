@@ -14,6 +14,7 @@ MYOK="${GREEN}${CHECK}${NC}"
 UP="\e[A"
 CLEAR="\r                                        \r"
 pacmanRun="sudo pacman -S --noconfirm --needed"
+yayRun="yay -S --noconfirm --needed --answerdiff None --answerclean None --removemake"
 declare -A checkDefaults
 checkDefaults["hostname"]="sArch"
 checkDefaults["user"]="schnubby"

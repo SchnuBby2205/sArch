@@ -74,16 +74,17 @@ installDE() { Banner; checkDebugFlag
       s=$value
     done
   [[ "$debug" == false ]] && myPrint step ok
-  bash -c "git clone https://aur.archlinux.org/yay.git $debugstring"
-  cd yay || exitWithError "yay could not be cloned!"
-  makepkg -si --noconfirm
-  cd ..
-  rm -rf ./yay
+  # yay bauen - Ausgabe von git/makepkg landet im Log, nicht auf dem Bildschirm
+  local yayDir="$HOME/.cache/sarch-yay"
+  [[ "$debug" == false ]] && myPrint step Installing "yay..."
+    dryRun runCMDS 0 Cloning yay... 0 4 20 "rm -rf '$yayDir'" "git clone https://aur.archlinux.org/yay.git '$yayDir' $debugstring"
+    dryRun runCMDS 0 Building yay... 4 20 20 "cd '$yayDir' && makepkg -si --noconfirm $debugstring" "rm -rf '$yayDir'"
+  [[ "$debug" == false ]] && myPrint step ok
   Banner
   [[ "$debug" == false ]] && myPrint step Running "Post install..."
     runCMDS 1 Creating "SDDM config directory..." 0 1 20 "mkdir -p /etc/sddm.conf.d"
-    runCMDS 0 Installing pywalfox... 2 3 20 "yay -S python-pywalfox --noconfirm $debugstring"
-    runCMDS 0 Installing grimblast... 3 4 20 "yay -S grimblast --noconfirm $debugstring"
+    runCMDS 0 Installing pywalfox... 2 3 20 "$yayRun python-pywalfox $debugstring"
+    runCMDS 0 Installing grimblast... 3 4 20 "$yayRun grimblast $debugstring"
     runCMDS 0 Downloading Wallpapers... 4 15 20 "git clone --depth 1 https://github.com/mylinuxforwork/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Creating Theme...
 #   runCMDS 0 Copying configs... 0 3 20 'mkdir -p "$HOME/.config"' 'find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"'
@@ -202,7 +203,7 @@ installConfigs() { Banner; checkDebugFlag
     # nvidia-dkms braucht die Header zum laufenden Kernel, sonst wird kein Modul gebaut
     [[ "$gpu" == nvidia ]] && install+=" ${kernel}-headers"
     dryRun runCMDS 0 Installing "$name" 0 $value 20 "$pacmanRun $install $debugstring"
-    dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
+    dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "$yayRun dxvk-bin $debugstring"
     # Steam wird nicht gestartet (das Update-Fenster würde den Vollbild-Installer verdecken),
     # das Steam-Runtime-Update passiert beim ersten eigenen Start.
     [[ "$debug" == false ]] && drawProgress 12 20 "Creating Firefox profile..."

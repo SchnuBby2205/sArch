@@ -12,7 +12,7 @@ installBaseSystem() { Banner; checkDebugFlag; checkUEFI; dmesg -n 1; runCFDiskIf
     dryRun runCMDS 0 Formatting drives... 0 7 20 "mkfs.fat -F 32 ${boot} $debugstring" "mkswap ${swap} $debugstring" "swapon ${swap} $debugstring" "mkfs.ext4 -F ${root} $debugstring"
     dryRun runCMDS 0 Mounting partitions... 7 8 20 "mount -t ext4 --mkdir ${root} /mnt $debugstring" "mount -t vfat --mkdir ${boot} /mnt/boot $debugstring"
     dryRun runCMDS 0 "Setting up" pacman... 8 13 20 "pacman -Syy $debugstring" "reflector --sort rate --latest 20 --protocol https --country Germany --save /etc/pacman.d/mirrorlist $debugstring" "sed -i '/ParallelDownloads/s/^#//' /etc/pacman.conf"
-    dryRun runCMDS 0 Running pacstrap... 13 20 20 "pacstrap -K /mnt base base-devel ${kernel} linux-firmware ${cpu} efibootmgr grub sudo networkmanager $debugstring" "genfstab -U /mnt > /mnt/etc/fstab"
+    dryRun runCMDS 0 Running pacstrap... 13 20 20 "pacstrap -K /mnt base base-devel ${kernel} linux-firmware ${cpu} efibootmgr grub sudo networkmanager terminus-font $debugstring" "genfstab -U /mnt > /mnt/etc/fstab"
   [[ "$debug" == false ]] && myPrint step ok
   cp -r . /mnt/home/sArch
   arch-chroot /mnt /bin/bash -c "cd /home/sArch && ./install.sh installArchCHRoot"
@@ -24,7 +24,7 @@ installBaseSystem() { Banner; checkDebugFlag; checkUEFI; dmesg -n 1; runCFDiskIf
 installArchCHRoot() { Banner; checkDebugFlag
   [[ "$debug" == false ]] && myPrint step Configuring "arch-chroot..."
     dryRun runCMDS 0 Setting localtime... 0 7 20 "ln -sf /usr/share/zoneinfo/${timezone} /etc/localtime $debugstring" "hwclock --systohc $debugstring"
-    dryRun runCMDS 0 "Setting up" locales... 7 14 20 "sed -e '/${locale}/s/^#*//' -i /etc/locale.gen" "locale-gen $debugstring" "echo LANG=${locale} > /etc/locale.conf" "echo KEYMAP=${keymap} > /etc/vconsole.conf"
+    dryRun runCMDS 0 "Setting up" locales... 7 14 20 "sed -e '/${locale}/s/^#*//' -i /etc/locale.gen" "locale-gen $debugstring" "echo LANG=${locale} > /etc/locale.conf" "echo KEYMAP=${keymap} > /etc/vconsole.conf" "[[ -n '${consoleFont}' ]] && echo FONT=${consoleFont} >> /etc/vconsole.conf || true"
     dryRun runCMDS 0 "Setting up" GRUB... 14 20 20 "grub-install --target=x86_64-efi --efi-directory=/boot --bootloader-id=GRUB $debugstring" "grub-mkconfig -o /boot/grub/grub.cfg $debugstring"
   [[ "$debug" == false ]] && myPrint step ok
   echo "${hostname}" > /etc/hostname

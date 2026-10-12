@@ -11,8 +11,9 @@ TARGET_DIR="${SARCH_DIR:-$HOME/sArch}"
 # pacman braucht root (auf dem Live-ISO ist man root)
 if [[ $EUID -eq 0 ]]; then SUDO=""; else SUDO="sudo"; fi
 
-echo ":: Installiere git ..."
-$SUDO pacman -Sy --noconfirm git
+echo ":: Installiere git und terminus-font ..."
+# terminus-font: Konsolenschrift für den Installer-Screen (auf dem ISO meist schon vorhanden)
+$SUDO pacman -Sy --noconfirm --needed git terminus-font
 
 echo ":: Hole sArch nach $TARGET_DIR ..."
 if [[ -d "$TARGET_DIR/.git" ]]; then

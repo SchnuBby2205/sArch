@@ -22,6 +22,11 @@ if [[ "$mode" == "Dunst" ]]; then
 fi
 
 if [[ "$mode" == "Font" ]]; then
+	# Aktuellen Font aus rofi colors.rasi lesen (Fallback: dunstrc), z.B. "JetBrainsMono Nerd Font 12"
+	current=$(grep -m1 -oP '^\s*mainfont:\s*"\K[^"]+' ~/.config/rofi/colors.rasi 2>/dev/null)
+	[[ -z $current ]] && current=$(grep -m1 -oP '^\s*font\s*=\s*"\K[^"]+' ~/.config/dunst/dunstrc 2>/dev/null)
+	current_font="${current% *}"
+	current_size="${current##* }"
 	submode=$(echo -e "Family\nSize\nTerminal\nTerminal Size" | rofi -dmenu -theme launcher.rasi)
 	if [[ "$submode" == "Family" ]]; then	
 		#cd ~/.local/share/fonts
@@ -30,7 +35,8 @@ if [[ "$mode" == "Font" ]]; then
 			#echo -e "$fontname"
 		#done | rofi -dmenu -theme gruvbox-material_icons.rasi)
 		#done | rofi -dmenu -theme launcher.rasi)
-		font=$(~/.config/sArch/bin/sarch_fonts.sh)
+		#font=$(~/.config/sArch/bin/sarch_fonts.sh)
+		font=$(CURRENT_FONT="$current_font" ~/.config/sArch/bin/sarch_fonts.sh)
 		if [[ -n $font ]]; then
 			sed -i 's/^\(font[[:space:]]*=[[:space:]]*"\)[^"]* \([0-9]\+\)"/\1'"$font"' \2"/' ~/.config/dunst/dunstrc
 			sed -i 's/^\(font[[:space:]]*=[[:space:]]*"\)[^"]* \([0-9]\+\)"/\1'"$font"' \2"/' ~/.config/matugen/templates/dunstrc.colors
@@ -42,7 +48,8 @@ if [[ "$mode" == "Font" ]]; then
 		#cd $returnDir 
 	fi
 	if [[ "$submode" == "Size" ]]; then
-		eingabe="$(rofi -dmenu -lines 0 -p "New Size:" -theme input.rasi)"
+		#eingabe="$(rofi -dmenu -lines 0 -p "New Size:" -theme input.rasi)"
+		eingabe="$(rofi -dmenu -lines 0 -p "New Size (aktuell: ${current_size}):" -theme input.rasi)"
 		if [[ -n $eingabe ]]; then
 			sed -i 's/\(font[[:space:]]*=[[:space:]]*"[^"]*\) [0-9]\+/\1 '"$eingabe"'/' ~/.config/dunst/dunstrc
 			sed -i 's/\(font[[:space:]]*=[[:space:]]*"[^"]*\) [0-9]\+/\1 '"$eingabe"'/' ~/.config/matugen/templates/dunstrc.colors

@@ -47,7 +47,17 @@ while IFS= read -r -d '' f; do
     FONTNAME_MAP["$out_png"]="$fontname"
 done < <(find "${DIRS[@]}" -type f \( -iname '*.ttf' -o -iname '*.otf' \) -print0 2>/dev/null | sort -z)
 
+#for img in "$TMP_DIR"/*.png; do
+#    [ -f "$img" ] || continue
+#    echo -en "${FONTNAME_MAP[$img]}\0icon\x1f$img\n"
+#done | rofi -dmenu -theme gruvbox-material_icons.rasi
+
+ROFI_ARGS=()
+if [ -n "$CURRENT_FONT" ]; then
+    ROFI_ARGS+=(-mesg "Aktuell: $CURRENT_FONT" -select "$CURRENT_FONT")
+fi
+
 for img in "$TMP_DIR"/*.png; do
     [ -f "$img" ] || continue
     echo -en "${FONTNAME_MAP[$img]}\0icon\x1f$img\n"
-done | rofi -dmenu -theme gruvbox-material_icons.rasi
+done | rofi -dmenu -theme gruvbox-material_icons.rasi "${ROFI_ARGS[@]}"

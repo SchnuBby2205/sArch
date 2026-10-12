@@ -90,7 +90,7 @@ Das Layout wird für jeden Bildschirm neu berechnet und funktioniert daher sowoh
 
 - **[Matugen](https://github.com/InioX/matugen)** erzeugt das Farbschema aus dem aktuellen Hintergrundbild und füllt die Vorlagen in `configs/matugen/templates/` (Hyprland, kitty, rofi, dunst, btop, yazi, GTK, Qt und Firefox über pywalfox).
 - **`themes/Matugen/`** ist das GTK-3/4-Theme, das diese Farben übernimmt; es wird nach `~/.themes` installiert.
-- Die Hintergrundbilder werden nach `~/Bilder/Wallpapers` geklont. `sarch_change_wallpaper.sh` wechselt das Hintergrundbild und lässt Matugen mit der gewählten Akzentfarbe neu laufen.
+- Die Hintergrundbilder werden nach `~/Bilder/Wallpapers` geklont. Die **Settings-App** (Seite *Hintergrund*, `SUPER + W`) wechselt das Hintergrundbild und lässt Matugen mit der gewählten Akzentfarbe neu laufen.
 
 ---
 
@@ -138,12 +138,9 @@ paket-a paket-b      # weitere Zeilen: Pakete (Brace-Expansion funktioniert)
 
 | Skript | Zweck |
 |--------|-------|
-| `sarch_change_wallpaper.sh` | Hintergrundbild und daraus eine Akzentfarbe per rofi wählen, dann die neuen Farben anwenden |
-| `sarch_create_thumbnails.sh` | Vorschaubilder der Hintergrundbilder erzeugen/aktualisieren |
+| `Settings/settings_mask.py` | Settings-App (GTK4/libadwaita, `SUPER + ALT + S`): Hyprland, Hintergrundbild + Akzentfarbe (`SUPER + W` öffnet direkt `--page wallpaper`), Schriften für Dunst/rofi/kitty, Dunst-Position. Die Seiten stehen in `Settings/settings_de.ini` |
 | `sarch_change_volume.sh` / `sarch_volume.sh` | Lautstärke mit Benachrichtigung / rofi-Menü |
 | `sarch_powermenu.sh` | Power-Menü (rofi) |
-| `sarch_settings.sh` | Einstellungsstarter (Hyprland, Dunst, Schrift) |
-| `sarch_fonts.sh` | Schriftvorschau & -auswahl per rofi |
 
 ---
 

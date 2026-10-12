@@ -41,8 +41,8 @@ hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd("steam"), { description = "Öf
 hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("lutris lutris:rungameid/1"), { description = "Öffnet Ballte.Net." })
 --
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("rofi -show drun -theme ~/.config/rofi/launcher.rasi"), { description = "Öffnet den Launcher (ROFI)." })
-hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh"), { description = "Öffnet das Settings Fenster." })
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_wallpaper.sh"), { description = "Öffnet die Hintergrundbild Auswahl." })
+hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("python3 ~/.config/sArch/bin/Settings/settings_mask.py ~/.config/sArch/bin/Settings/settings_de.ini --lang de"), { description = "Öffnet das Settings Fenster." })
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("python3 ~/.config/sArch/bin/Settings/settings_mask.py ~/.config/sArch/bin/Settings/settings_de.ini --lang de --page wallpaper"), { description = "Öffnet die Hintergrundbild Auswahl." })
 hl.bind("F12", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%+ unmute"), { description = "Erhöht die Lautstärke um 5%." })
 hl.bind("F11", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%- unmute"), { description = "Verringert die Lautstärke um 5%." })
 hl.bind("F10", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh toggle"), { description = "Mute/Unmute." })

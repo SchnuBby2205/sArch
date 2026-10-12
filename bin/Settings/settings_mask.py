@@ -9,13 +9,18 @@ Features:
   - index_field ohne index_value: alle Vorkommen auto-einlesen
   - Neuen Eintrag per + anlegen (new_template)
   - Matugen Colorscheme + Dark Mode
+  - sArch: Hintergrundbild (Thumbnails + Akzentfarbe), Schriften (Dunst/Rofi/kitty),
+    mirror_files / on_apply für Werte, die in mehreren Dateien stehen
+  - --page <Kategorie|Sektion> öffnet direkt eine Seite (z.B. --page wallpaper)
 """
 
 import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
-from gi.repository import Gtk, Adw, Gdk, Gio
+gi.require_version("Pango", "1.0")
+from gi.repository import Gtk, Adw, Gdk, Gio, GLib, Pango
 import configparser, os, sys, re, json, copy
+import subprocess, shlex, shutil, tempfile, threading
 
 
 # ── Localisation ─────────────────────────────────────────────────────────────
@@ -117,6 +122,8 @@ MATUGEN_PATHS = [
     os.path.expanduser("~/.config/matugen/colors.css"),
 ]
 
+_MATUGEN_PROVIDER = None
+
 def apply_matugen_theme():
     raw = None
     for path in MATUGEN_PATHS:
@@ -150,10 +157,13 @@ button.suggested-action:active {{
 .navigation-sidebar row:selected   {{ background-color:@mat_primary; color:@mat_on; }}
 .navigation-sidebar row:selected * {{ color:@mat_on; }}
 """
-    provider = Gtk.CssProvider()
-    provider.load_from_string(css)
-    Gtk.StyleContext.add_provider_for_display(
-        Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+    # Provider wiederverwenden, damit erneutes Anwenden (nach Wallpaper-Wechsel) nicht stapelt
+    global _MATUGEN_PROVIDER
+    if _MATUGEN_PROVIDER is None:
+        _MATUGEN_PROVIDER = Gtk.CssProvider()
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), _MATUGEN_PROVIDER, Gtk.STYLE_PROVIDER_PRIORITY_USER)
+    _MATUGEN_PROVIDER.load_from_string(css)
     return True
 
 
@@ -181,7 +191,7 @@ def load_categories(ini_path: str) -> dict:
             "min":          float(s.get("min", 0)),
             "max":          float(s.get("max", 100)),
             "step":         float(s.get("step", 1)),
-            "config_file":  s.get("config_file", ""),
+            "config_file":  os.path.expanduser(s.get("config_file", "")),
             "config_key":   s.get("config_key", ""),
             "parent_key":   s.get("parent_key", ""),
             "index_field":  s.get("index_field", ""),
@@ -190,9 +200,14 @@ def load_categories(ini_path: str) -> dict:
             # keybind / new_template
             "fields":       _parse_fields(s),
             "new_template": s.get("new_template", ""),  # Lua-Template für neuen Eintrag
-            "append_file":  s.get("append_file", s.get("config_file","")),
+            "append_file":  os.path.expanduser(s.get("append_file", s.get("config_file",""))),
             "visible":      s.get("visible", "true").lower() != "false",
             "lua_func":     s.get("lua_func", ""),
+            # sArch-Erweiterungen
+            "section":      section,
+            "mirror_files": [os.path.expanduser(f.strip()) for f in s.get("mirror_files","").split(",") if f.strip()],
+            "on_apply":     s.get("on_apply", ""),
+            "extra":        dict(s),     # zusätzliche Keys für eigene Typen (wallpaper, fonts)
         }
         categories.setdefault(cat, []).append(entry)
     return categories
@@ -997,13 +1012,210 @@ def append_new_entry(config_file: str, template: str, vals: dict = None) -> bool
     except OSError: return False
 
 
+# ── sArch: Hintergrundbild / Schriften (ersetzt bin/sarch_*.sh) ─────────────────
+
+SARCH_STATE_FILE = os.path.expanduser("~/.cache/sArch/current_wallpaper")
+WP_EXTS = (".jpg", ".jpeg", ".png")
+
+def _x(p: str) -> str:
+    return os.path.expanduser(p.strip()) if p else p
+
+def _split_paths(s: str) -> list:
+    return [_x(p) for p in (s or "").split(",") if p.strip()]
+
+def _spawn(cmd: list):
+    """Startet einen Befehl im Hintergrund, Fehler (z.B. Programm fehlt) werden ignoriert."""
+    try:
+        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+    except OSError:
+        pass
+
+def _notify(category: str, summary: str):
+    _spawn(["dunstify", "-a", "Themes", "-u", "low", "-t", "1000", "-c", category, summary])
+
+def _contrast(hex_col: str) -> str:
+    r, g, b = int(hex_col[1:3], 16), int(hex_col[3:5], 16), int(hex_col[5:7], 16)
+    return "#1a1a1a" if (0.299*r + 0.587*g + 0.114*b) > 140 else "#ffffff"
+
+def _fmt_size(v: float) -> str:
+    return f"{v:g}"
+
+# ── Hintergrundbild ──
+
+def list_wallpapers(wp_dir: str) -> list:
+    try:
+        names = sorted(os.listdir(wp_dir), key=str.lower)
+    except OSError:
+        return []
+    return [os.path.join(wp_dir, n) for n in names
+            if n.lower().endswith(WP_EXTS) and os.path.isfile(os.path.join(wp_dir, n))]
+
+def thumb_path(cache_dir: str, wp: str) -> str:
+    return os.path.join(cache_dir, os.path.basename(wp))
+
+def ensure_thumbnails(wp_dir: str, cache_dir: str, size: int = 100) -> int:
+    """Erzeugt fehlende/veraltete Vorschaubilder (wie früher sarch_create_thumbnails.sh)."""
+    os.makedirs(cache_dir, exist_ok=True)
+    made = 0
+    for wp in list_wallpapers(wp_dir):
+        th = thumb_path(cache_dir, wp)
+        try:
+            if os.path.exists(th) and os.path.getmtime(th) >= os.path.getmtime(wp):
+                continue
+            r = subprocess.run(["magick", wp, "-thumbnail", f"{size}x{size}^", "-gravity", "center",
+                                "-extent", f"{size}x{size}", "-quality", "75", th],
+                               stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL, timeout=60)
+            if r.returncode == 0:
+                made += 1
+        except (OSError, subprocess.SubprocessError):
+            pass
+    return made
+
+def read_current_wallpaper() -> tuple:
+    """(Pfad, Farb-Index) des zuletzt gesetzten Hintergrundbilds."""
+    try:
+        with open(SARCH_STATE_FILE) as f:
+            lines = f.read().splitlines()
+    except OSError:
+        return "", 0
+    path = lines[0].strip() if lines else ""
+    try:
+        idx = int(lines[1]) if len(lines) > 1 else 0
+    except ValueError:
+        idx = 0
+    return path, idx
+
+def _save_current_wallpaper(path: str, idx: int):
+    try:
+        os.makedirs(os.path.dirname(SARCH_STATE_FILE), exist_ok=True)
+        with open(SARCH_STATE_FILE, "w") as f:
+            f.write(f"{path}\n{idx}\n")
+    except OSError:
+        pass
+
+def matugen_source_colors(wp: str, n: int = 5) -> list:
+    """Kandidaten für die Quellfarbe. matugen gibt sie nur auf einem TTY aus,
+    daher wie im alten Skript über 'script' mit kurzem Timeout."""
+    inner = f"timeout 1 matugen image {shlex.quote(wp)} --dry-run 2>&1; true"
+    fd, tmp = tempfile.mkstemp(prefix="sarch-matugen-")
+    os.close(fd)
+    try:
+        subprocess.run(["script", "-q", "-c", inner, tmp], stdin=subprocess.DEVNULL,
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
+        with open(tmp, errors="replace") as f:
+            out = f.read()
+    except (OSError, subprocess.SubprocessError):
+        out = ""
+    finally:
+        try: os.unlink(tmp)
+        except OSError: pass
+    return re.findall(r'#[0-9A-Fa-f]{6}', out)[:n]
+
+def apply_wallpaper(wp: str, idx: int, cache_dir: str, color: str = "") -> tuple:
+    """matugen + Vorschaubilder für rofi + optional Razer-Farbe. Gibt (ok, Fehlertext) zurück."""
+    try:
+        r = subprocess.run(["matugen", "image", wp, "--source-color-index", str(idx)],
+                           stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=180)
+    except (OSError, subprocess.SubprocessError) as e:
+        return False, str(e)
+    if r.returncode != 0:
+        return False, (r.stderr or r.stdout or "matugen failed").strip()[-300:]
+    os.makedirs(cache_dir, exist_ok=True)
+    for name, geo in (("curr", "500x500"), ("curr_wide", "1000x500")):
+        subprocess.run(["magick", wp, "-thumbnail", f"{geo}^", "-gravity", "center", "-extent", geo,
+                        "-quality", "70", os.path.join(cache_dir, name)],
+                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if color and shutil.which("razer-cli"):
+        _spawn(["razer-cli", "-e", "static", "-c", color.lstrip("#")])
+    _save_current_wallpaper(wp, idx)
+    _notify("Wallpaper changed", os.path.basename(wp))
+    return True, ""
+
+# ── Schriften ──
+
+_RE_DUNST_FONT = re.compile(r'^(\s*font\s*=\s*")([^"]*)(")', re.M)
+_RE_ROFI_FONT  = re.compile(r'^(\s*mainfont:\s*")([^"]*)(")', re.M)
+_RE_KITTY_FAM  = re.compile(r'^(font_family[ \t]+)(.*)$', re.M)
+_RE_KITTY_SIZE = re.compile(r'^(font_size[ \t]+)(.*)$', re.M)
+
+def _read_match(path: str, rx: re.Pattern) -> str:
+    try:
+        with open(path) as f:
+            m = rx.search(f.read())
+        return m.group(2).strip() if m else ""
+    except OSError:
+        return ""
+
+def _replace_in_file(path: str, rx: re.Pattern, value: str) -> bool:
+    try:
+        with open(path) as f:
+            txt = f.read()
+    except OSError:
+        return False
+    new, n = rx.subn(lambda m: m.group(1) + value + (m.group(3) if m.lastindex >= 3 else ""), txt, count=1)
+    if not n:
+        return False
+    try:
+        with open(path, "w") as f:
+            f.write(new)
+        return True
+    except OSError:
+        return False
+
+def _split_font_spec(spec: str) -> tuple:
+    """'Don Graffiti 15' -> ('Don Graffiti', 15.0)"""
+    m = re.match(r'^(.*\S)\s+(\d+(?:\.\d+)?)$', spec or "")
+    return (m.group(1), float(m.group(2))) if m else ((spec or "").strip(), None)
+
+def read_ui_font(rofi_files: list, dunst_files: list) -> tuple:
+    for p in rofi_files:
+        spec = _read_match(p, _RE_ROFI_FONT)
+        if spec: return _split_font_spec(spec)
+    for p in dunst_files:
+        spec = _read_match(p, _RE_DUNST_FONT)
+        if spec: return _split_font_spec(spec)
+    return "", None
+
+def write_ui_font(dunst_files: list, rofi_files: list, family: str, size: float) -> list:
+    """Schreibt 'Family Size' nach dunst + rofi. Gibt die fehlgeschlagenen Dateien zurück."""
+    spec, failed, done = f"{family} {_fmt_size(size)}", [], 0
+    for files, rx in ((dunst_files, _RE_DUNST_FONT), (rofi_files, _RE_ROFI_FONT)):
+        for p in files:
+            if not os.path.exists(p):
+                continue                      # z.B. Matugen-Template nicht vorhanden
+            if _replace_in_file(p, rx, spec): done += 1
+            else: failed.append(p)
+    if not done and not failed:
+        failed = dunst_files + rofi_files
+    return failed
+
+def read_kitty_font(path: str) -> tuple:
+    fam  = _read_match(path, _RE_KITTY_FAM)
+    size = _read_match(path, _RE_KITTY_SIZE)
+    try: size = float(size)
+    except ValueError: size = None
+    return fam, size
+
+def _is_mono_font(item, *_):
+    """Filter für den Terminal-Font-Dialog (Monospace oder typische Nerd-/Code-Namen)."""
+    fam = item.get_family() if isinstance(item, Pango.FontFace) else item
+    try:
+        if fam.is_monospace(): return True
+    except Exception:
+        pass
+    return bool(re.search(r'(?i)(mono|code|nerd|iosevka|courier)', fam.get_name() or ""))
+
+
 # ── GTK4 / Adwaita App ────────────────────────────────────────────────────────
 
 class SettingsApp(Adw.Application):
-    def __init__(self, ini_path: str, lang: str = ""):
+    def __init__(self, ini_path: str, lang: str = "", page: str = ""):
         super().__init__(application_id="de.local.settings-mask",
                          flags=Gio.ApplicationFlags.NON_UNIQUE)
         self.ini_path = ini_path
+        self.start_page = page
         self.category_pending: dict = {}
         self._all_categories: dict = {}
         global _T
@@ -1056,6 +1268,17 @@ class SettingsApp(Adw.Application):
         self._build_all_categories()
 
         first = self._sidebar_list.get_row_at_index(0)
+        if self.start_page:
+            # --page: Kategoriename oder INI-Sektion (z.B. "wallpaper")
+            want = self.start_page
+            for cat, entries in self._all_categories.items():
+                if any(e.get("section") == want for e in entries):
+                    want = cat; break
+            i = 0
+            while (r := self._sidebar_list.get_row_at_index(i)):
+                if r.get_name().lower() == want.lower():
+                    first = r; break
+                i += 1
         if first:
             self._sidebar_list.select_row(first)
             self._show_category(first.get_name())
@@ -1131,6 +1354,7 @@ class SettingsApp(Adw.Application):
         has_new_template = any(s.get("new_template") for s in settings)
 
         for grp_title, entries in groups.items():
+            added = 0
             pref_group = Adw.PreferencesGroup()
             pref_group.set_title(grp_title if grp_title != "__default__" else cat_name)
             pref_group.set_description(t("pref_group_hint"))
@@ -1145,7 +1369,8 @@ class SettingsApp(Adw.Application):
                 pref_group.set_header_suffix(add_btn)
 
             for s in entries:
-                if s["type"] in ("variable","animation","autostart","workspace_rule","layer_rule"):
+                if s["type"] in ("variable","animation","autostart","workspace_rule","layer_rule",
+                                 "wallpaper","fonts"):
                     self._add_special_group(outer_box, cat_name, s)
                     break
                 elif s["type"] == "multisetting":
@@ -1154,9 +1379,12 @@ class SettingsApp(Adw.Application):
                     self._add_dropdown(pref_group, cat_name, s)
                 else:
                     self._add_slider(pref_group, cat_name, s)
+                added += 1
 
-            outer_box.append(pref_group)
-            outer_box.append(Gtk.Separator())
+            # Spezial-Seiten bringen eigene Gruppen mit -> keine leere Kopfgruppe anhängen
+            if added:
+                outer_box.append(pref_group)
+                outer_box.append(Gtk.Separator())
 
         # Buttons
         btn_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=12)
@@ -1189,6 +1417,10 @@ class SettingsApp(Adw.Application):
             self._add_workspace_rule_group(outer_box, cat_name, s)
         elif t == "layer_rule":
             self._add_layer_rule_group(outer_box, cat_name, s)
+        elif t == "wallpaper":
+            self._add_wallpaper_group(outer_box, cat_name, s)
+        elif t == "fonts":
+            self._add_fonts_group(outer_box, cat_name, s)
 
     def _add_variable_group(self, outer_box: Gtk.Box, cat_name: str, s: dict):
         """Zeigt alle Variablen aus der Datei als editierbare Rows."""
@@ -1666,6 +1898,7 @@ class SettingsApp(Adw.Application):
             "config_file":s["config_file"], "config_key":s["config_key"],
             "parent_key":s["parent_key"], "index_field":s["index_field"],
             "index_value":s["index_value"], "original":current, "format":s["format"],
+            "mirror_files":s.get("mirror_files", []), "on_apply":s.get("on_apply", ""),
         }
 
     # ── Dropdown ──────────────────────────────────────────────────────────────
@@ -1688,6 +1921,7 @@ class SettingsApp(Adw.Application):
             "config_file":s["config_file"], "config_key":s["config_key"],
             "parent_key":s["parent_key"], "index_field":s["index_field"],
             "index_value":s["index_value"], "original":current_idx, "format":s["format"],
+            "mirror_files":s.get("mirror_files", []), "on_apply":s.get("on_apply", ""),
         }
 
     # ── Keybind ───────────────────────────────────────────────────────────────
@@ -1966,6 +2200,284 @@ class SettingsApp(Adw.Application):
 
         dialog.present(self._win)
 
+    # ── sArch: Hilfen ─────────────────────────────────────────────────────────
+
+    def _toast(self, title: str):
+        toast = Adw.Toast(title=title)
+        toast.set_timeout(3)
+        self._toast_overlay.add_toast(toast)
+
+    # ── sArch: Hintergrundbild ────────────────────────────────────────────────
+
+    def _add_wallpaper_group(self, outer_box, cat_name, s):
+        ex      = s.get("extra", {})
+        wp_dir  = _x(ex.get("wallpaper_dir", "~/Bilder/Wallpapers"))
+        cache   = _x(ex.get("cache_dir", "~/.cache/Wallpaper_thumbs"))
+        cur, cur_idx = read_current_wallpaper()
+        state = {"orig": (cur, cur_idx), "sel": cur, "idx": cur_idx,
+                 "colors": [], "token": None, "buttons": []}
+
+        grp = Adw.PreferencesGroup()
+        grp.set_title(s["label"] or t("wp_group"))
+        grp.set_description(s["description"] or t("wp_group_desc"))
+
+        preview = Gtk.Picture()
+        preview.set_content_fit(Gtk.ContentFit.COVER)
+        preview.set_can_shrink(True)
+        preview.set_size_request(-1, 220)
+        preview.add_css_class("card")
+        if cur and os.path.exists(cur):
+            preview.set_filename(cur)
+        grp.add(preview)
+
+        flow = Gtk.FlowBox()
+        flow.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        flow.set_homogeneous(True)
+        flow.set_min_children_per_line(3)
+        flow.set_max_children_per_line(8)
+        flow.set_row_spacing(6); flow.set_column_spacing(6)
+        flow.set_margin_top(12)
+        grp.add(flow)
+
+        empty = Gtk.Label(label=t("wp_empty", dir=wp_dir))
+        empty.add_css_class("dim-label"); empty.set_wrap(True)
+        empty.set_visible(False)
+        grp.add(empty)
+        outer_box.append(grp)
+
+        cgrp = Adw.PreferencesGroup()
+        cgrp.set_title(t("wp_color_group"))
+        cgrp.set_description(t("wp_color_desc"))
+        clabel = Gtk.Label(label=t("wp_color_none"))
+        clabel.add_css_class("dim-label"); clabel.set_halign(Gtk.Align.START)
+        cbox = Gtk.FlowBox()
+        cbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        cbox.set_max_children_per_line(5)
+        cbox.set_column_spacing(8); cbox.set_row_spacing(8)
+        cgrp.add(clabel); cgrp.add(cbox)
+        outer_box.append(cgrp)
+
+        swatch_css = Gtk.CssProvider()
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(), swatch_css, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
+
+        def show_colors(token, wp, cols):
+            if token is not state["token"]:
+                return False                        # veraltetes Ergebnis
+            cbox.remove_all(); state["buttons"] = []
+            state["colors"] = cols
+            if not cols:
+                clabel.set_label(t("wp_color_failed")); clabel.set_visible(True)
+                state["idx"] = 0
+                return False
+            clabel.set_visible(False)
+            css, first = "", None
+            for i, c in enumerate(cols):
+                cls = f"sarch-sw-{i}"
+                b = Gtk.ToggleButton(label=c)
+                b.add_css_class(cls)
+                css += (f".{cls} {{ background-image:none; background-color:{c}; color:{_contrast(c)};"
+                        f" min-width:84px; min-height:36px; border-radius:10px; }}\n"
+                        f".{cls}:checked {{ box-shadow: inset 0 0 0 3px {_contrast(c)}; }}\n")
+                if first is None: first = b
+                else: b.set_group(first)
+                b.connect("toggled", lambda btn, i=i: state.__setitem__("idx", i) if btn.get_active() else None)
+                cbox.append(b); state["buttons"].append(b)
+            swatch_css.load_from_string(css)
+            want = state["orig"][1] if wp == state["orig"][0] else 0
+            idx = want if 0 <= want < len(cols) else 0
+            state["buttons"][idx].set_active(True)
+            state["idx"] = idx
+            return False
+
+        def load_colors(wp):
+            token = object(); state["token"] = token
+            cbox.remove_all(); state["buttons"] = []; state["colors"] = []
+            clabel.set_label(t("wp_color_loading")); clabel.set_visible(True)
+            def work():
+                cols = matugen_source_colors(wp)
+                GLib.idle_add(show_colors, token, wp, cols)
+            threading.Thread(target=work, daemon=True).start()
+
+        def on_selected(fb):
+            sel = fb.get_selected_children()
+            if not sel: return
+            wp = sel[0].get_name()
+            if wp == state.get("loaded"): return
+            state["sel"] = state["loaded"] = wp
+            preview.set_filename(wp)
+            load_colors(wp)
+
+        def select_path(path):
+            child = flow.get_first_child()
+            while child:
+                if child.get_name() == path:
+                    flow.select_child(child)
+                    return True
+                child = child.get_next_sibling()
+            flow.unselect_all()
+            return False
+
+        def populate():
+            flow.remove_all()
+            wps = list_wallpapers(wp_dir)
+            empty.set_visible(not wps)
+            for wp in wps:
+                th = thumb_path(cache, wp)
+                if os.path.exists(th):
+                    w = Gtk.Picture.new_for_filename(th)
+                    w.set_content_fit(Gtk.ContentFit.COVER); w.set_can_shrink(True)
+                else:
+                    w = Gtk.Image.new_from_icon_name("image-x-generic-symbolic")
+                    w.set_pixel_size(32)
+                w.set_size_request(100, 100)
+                child = Gtk.FlowBoxChild()
+                child.set_child(w)
+                child.set_name(wp)
+                child.set_tooltip_text(os.path.basename(wp))
+                flow.append(child)
+            if state["sel"]:
+                select_path(state["sel"])
+            return False
+
+        flow.connect("selected-children-changed", on_selected)
+        populate()
+
+        def make_thumbs():
+            if ensure_thumbnails(wp_dir, cache):
+                GLib.idle_add(populate)
+        threading.Thread(target=make_thumbs, daemon=True).start()
+
+        def apply():
+            sel, idx = state["sel"], state["idx"]
+            if not sel or (sel, idx) == state["orig"]:
+                return True
+            cols  = state["colors"]
+            color = cols[idx] if idx < len(cols) else ""
+            self._toast(t("wp_applying"))
+            def done(ok, err):
+                if ok:
+                    state["orig"] = (sel, idx)
+                    apply_matugen_theme()           # Farben der Settings-App gleich mitziehen
+                    self._toast(t("wp_applied", name=os.path.basename(sel)))
+                else:
+                    self._show_error_dialog([f"{t('wp_failed')}: {err}"])
+                return False
+            def work():
+                ok, err = apply_wallpaper(sel, idx, cache, color)
+                GLib.idle_add(done, ok, err)
+            threading.Thread(target=work, daemon=True).start()
+            return True
+
+        def reset():
+            path, idx = state["orig"]
+            state["sel"] = path; state["idx"] = idx
+            if not select_path(path):
+                state["loaded"] = None
+            elif state["buttons"] and idx < len(state["buttons"]):
+                state["buttons"][idx].set_active(True)
+
+        self.category_pending[cat_name][f"wallpaper|{wp_dir}"] = {
+            "type": "custom", "apply": apply, "reset": reset,
+            "config_key": s["label"] or "wallpaper", "config_file": wp_dir,
+        }
+
+    # ── sArch: Schriften ──────────────────────────────────────────────────────
+
+    def _font_button(self, family: str, mono: bool) -> Gtk.FontDialogButton:
+        dlg = Gtk.FontDialog()
+        dlg.set_modal(True)
+        if mono:
+            dlg.set_filter(Gtk.CustomFilter.new(_is_mono_font))
+        btn = Gtk.FontDialogButton.new(dlg)
+        btn.set_level(Gtk.FontLevel.FAMILY)
+        btn.set_use_font(True)
+        btn.set_valign(Gtk.Align.CENTER)
+        self._set_font_family(btn, family)
+        return btn
+
+    @staticmethod
+    def _set_font_family(btn, family: str):
+        if family:
+            d = Pango.FontDescription()
+            d.set_family(family)
+            btn.set_font_desc(d)
+
+    @staticmethod
+    def _get_font_family(btn, fallback: str) -> str:
+        d = btn.get_font_desc()
+        return (d.get_family() if d else "") or fallback
+
+    def _add_fonts_group(self, outer_box, cat_name, s):
+        ex     = s.get("extra", {})
+        dunst  = _split_paths(ex.get("dunst_files", "~/.config/dunst/dunstrc"))
+        rofi   = _split_paths(ex.get("rofi_files", "~/.config/rofi/colors.rasi"))
+        kitty  = _x(ex.get("kitty_file", "~/.config/kitty/hyde.conf"))
+        ui_fam, ui_size = read_ui_font(rofi, dunst)
+        k_fam,  k_size  = read_kitty_font(kitty)
+        orig = {"ui": (ui_fam, ui_size or 12.0), "k": (k_fam, k_size or 10.0)}
+
+        def cur(v): return t("font_current", value=v if v not in ("", None) else "–")
+
+        # Oberfläche (Dunst & Rofi)
+        g1 = Adw.PreferencesGroup()
+        g1.set_title(t("font_ui_group"))
+        g1.set_description(s["description"] or t("font_ui_desc"))
+        ui_btn = self._font_button(ui_fam, mono=False)
+        ui_row = Adw.ActionRow(title=t("font_family"), subtitle=cur(ui_fam))
+        ui_row.add_suffix(ui_btn); ui_row.set_activatable_widget(ui_btn)
+        ui_spin = Adw.SpinRow.new_with_range(4, 72, 1)
+        ui_spin.set_title(t("font_size")); ui_spin.set_subtitle(cur(_fmt_size(orig["ui"][1]) if ui_size else ""))
+        ui_spin.set_value(orig["ui"][1])
+        g1.add(ui_row); g1.add(ui_spin)
+        outer_box.append(g1)
+
+        # Terminal (kitty)
+        g2 = Adw.PreferencesGroup()
+        g2.set_title(t("font_term_group"))
+        g2.set_description(t("font_term_desc"))
+        k_btn = self._font_button(k_fam, mono=True)
+        k_row = Adw.ActionRow(title=t("font_family"), subtitle=cur(k_fam))
+        k_row.add_suffix(k_btn); k_row.set_activatable_widget(k_btn)
+        k_spin = Adw.SpinRow.new_with_range(4, 48, 0.5)
+        k_spin.set_digits(1)
+        k_spin.set_title(t("font_size")); k_spin.set_subtitle(cur(_fmt_size(orig["k"][1]) if k_size else ""))
+        k_spin.set_value(orig["k"][1])
+        g2.add(k_row); g2.add(k_spin)
+        outer_box.append(g2)
+
+        def apply():
+            ok = True
+            nf, ns = self._get_font_family(ui_btn, orig["ui"][0]), ui_spin.get_value()
+            if nf and (nf, ns) != orig["ui"]:
+                failed = write_ui_font(dunst, rofi, nf, ns)
+                ok = ok and not failed
+                if not failed:
+                    orig["ui"] = (nf, ns)
+                    ui_row.set_subtitle(cur(nf)); ui_spin.set_subtitle(cur(_fmt_size(ns)))
+                    _spawn(["dunstctl", "reload"])
+                    _notify("Font changed", f"{nf} {_fmt_size(ns)}")
+            nf, ns = self._get_font_family(k_btn, orig["k"][0]), k_spin.get_value()
+            if nf and (nf, ns) != orig["k"]:
+                w1 = _replace_in_file(kitty, _RE_KITTY_FAM, nf)
+                w2 = _replace_in_file(kitty, _RE_KITTY_SIZE, _fmt_size(ns))
+                ok = ok and w1 and w2
+                if w1 and w2:
+                    orig["k"] = (nf, ns)
+                    k_row.set_subtitle(cur(nf)); k_spin.set_subtitle(cur(_fmt_size(ns)))
+                    _spawn(["pkill", "-USR1", "-x", "kitty"])
+                    _notify("Terminal font changed", f"{nf} {_fmt_size(ns)}")
+            return ok
+
+        def reset():
+            self._set_font_family(ui_btn, orig["ui"][0]); ui_spin.set_value(orig["ui"][1])
+            self._set_font_family(k_btn,  orig["k"][0]);  k_spin.set_value(orig["k"][1])
+
+        self.category_pending[cat_name][f"fonts|{kitty}"] = {
+            "type": "custom", "apply": apply, "reset": reset,
+            "config_key": s["label"] or "fonts", "config_file": ", ".join(dunst + rofi + [kitty]),
+        }
+
     # ── Kategorie anzeigen ────────────────────────────────────────────────────
 
     def _show_category(self, cat_name: str):
@@ -1993,23 +2505,32 @@ class SettingsApp(Adw.Application):
                         w.set_selected(eff.index(orig_val) if orig_val in eff else 0)
                     else:
                         w.set_text(str(orig_val))
+            elif entry["type"] == "custom":
+                entry["reset"]()
             # keybind: kein Reset implementiert (komplex, später erweiterbar)
 
     def _on_apply(self, _btn, cat_name: str):
         errors = []
+        post_cmds = []
         for entry in self.category_pending.get(cat_name, {}).values():
             if entry["type"] == "slider":
                 step = entry["scale"].get_adjustment().get_step_increment()
                 raw  = entry["scale"].get_value()
                 val  = round(raw/step)*step if step>0 else raw
                 ok   = write_value(entry["config_file"], entry, val)
-                if ok: entry["original"] = val
+                if ok:
+                    if val != entry["original"]:
+                        errors += self._write_mirrors(entry, val, post_cmds)
+                    entry["original"] = val
 
             elif entry["type"] == "dropdown":
                 idx = entry["combo"].get_selected()
                 val = entry["options"][idx] if idx < len(entry["options"]) else ""
                 ok  = write_value(entry["config_file"], entry, val)
-                if ok: entry["original"] = idx
+                if ok:
+                    if idx != entry["original"]:
+                        errors += self._write_mirrors(entry, val, post_cmds)
+                    entry["original"] = idx
 
             elif entry["type"] == "multisetting":
                 fvals = {}
@@ -2044,11 +2565,16 @@ class SettingsApp(Adw.Application):
                 fvals["_line"] = entry["line_idx"]
                 ok = entry["writer"](entry["config_file"], entry["line_idx"], fvals)
                 if ok: entry["original"] = dict(fvals)
+            elif entry["type"] == "custom":
+                ok = entry["apply"]()
             else:
                 ok = True
 
             if not ok:
                 errors.append(f"{entry.get('config_key','?')} [{entry.get('index_value','')}] → {entry.get('config_file','')}")
+
+        for cmd in post_cmds:
+            _spawn(["bash", "-c", cmd])
 
         if errors:
             self._show_error_dialog(errors)
@@ -2056,6 +2582,17 @@ class SettingsApp(Adw.Application):
             toast = Adw.Toast(title=t("toast_applied", category=cat_name))
             toast.set_timeout(3)
             self._toast_overlay.add_toast(toast)
+
+    def _write_mirrors(self, entry: dict, val, post_cmds: list) -> list:
+        """Gleichen Wert in mirror_files schreiben (z.B. Matugen-Template), on_apply vormerken."""
+        errs = []
+        for mf in entry.get("mirror_files", []):
+            if os.path.exists(mf) and not write_value(mf, entry, val):
+                errs.append(f"{entry.get('config_key','?')} → {mf}")
+        cmd = entry.get("on_apply", "")
+        if cmd and cmd not in post_cmds:
+            post_cmds.append(cmd)
+        return errs
 
     def _show_error_dialog(self, failed: list):
         body = t("error_body", entries="\n".join(f"• {e}" for e in failed))
@@ -2072,9 +2609,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="settings_mask – Hyprland Lua config UI")
     parser.add_argument("ini", nargs="?", default="settings.ini", help="Path to settings.ini")
     parser.add_argument("--lang", default="", help="Language code (e.g. en, de). Auto-detected if omitted.")
+    parser.add_argument("--page", default="", help="Open this category (name or INI section, e.g. wallpaper)")
     args = parser.parse_args()
     if not os.path.exists(args.ini):
         print(f"INI file not found: {args.ini}", file=sys.stderr)
         sys.exit(1)
-    app = SettingsApp(args.ini, lang=args.lang)
+    app = SettingsApp(args.ini, lang=args.lang, page=args.page)
     sys.exit(app.run([]))

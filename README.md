@@ -90,7 +90,7 @@ The layout is recalculated for every screen, so it works on the TTY as well as i
 
 - **[Matugen](https://github.com/InioX/matugen)** generates the color scheme from the current wallpaper and fills the templates in `configs/matugen/templates/` (Hyprland, kitty, rofi, dunst, btop, yazi, GTK, Qt and Firefox via pywalfox).
 - **`themes/Matugen/`** is the GTK 3/4 theme that picks up those colors; it is installed to `~/.themes`.
-- Wallpapers are cloned to `~/Bilder/Wallpapers`. `sarch_change_wallpaper.sh` switches the wallpaper and re-runs Matugen with the chosen accent color.
+- Wallpapers are cloned to `~/Bilder/Wallpapers`. The **Settings app** (page *Hintergrund*, `SUPER + W`) switches the wallpaper and re-runs Matugen with the chosen accent color.
 
 ---
 
@@ -138,12 +138,9 @@ package-a package-b  # remaining lines: packages (brace expansion works)
 
 | Script | Purpose |
 |--------|---------|
-| `sarch_change_wallpaper.sh` | Pick a wallpaper and an accent color from it via rofi, then apply the new colors |
-| `sarch_create_thumbnails.sh` | Create/update wallpaper thumbnails |
+| `Settings/settings_mask.py` | Settings app (GTK4/libadwaita, `SUPER + ALT + S`): Hyprland, wallpaper + accent color (`SUPER + W` opens it via `--page wallpaper`), fonts for Dunst/rofi/kitty, Dunst position. Pages are defined in `Settings/settings_de.ini` |
 | `sarch_change_volume.sh` / `sarch_volume.sh` | Volume control with notification / rofi menu |
 | `sarch_powermenu.sh` | Power menu (rofi) |
-| `sarch_settings.sh` | Settings launcher (Hyprland, Dunst, font) |
-| `sarch_fonts.sh` | Font preview & picker via rofi |
 
 ---
 

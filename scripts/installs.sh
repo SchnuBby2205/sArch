@@ -91,7 +91,7 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Linking configs... 0 3 20 'mkdir -p "$HOME/.config"' 'for d in "$HOME/sArch/configs/"*; do [[ "${d##*/}" == installConfigs ]] && continue; ln -sfnT "$d" "$HOME/.config/${d##*/}"; done'
     runCMDS 0 Linking binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'ln -sfnT "$HOME/sArch/bin" "$HOME/.config/sArch/bin"'
     runCMDS 0 Installing gtk-themes... 6 10 20 'mkdir -p "$HOME/.themes"' 'mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"'
-    runCMDS 0 Caching "fonts and wallpapers..." 10 20 20 'mkdir -p "$HOME/.local/share/fonts"' 'mv "$HOME/sArch/fonts" "$HOME/.local/share/"' 'fc-cache' '"$HOME/.config/sArch/bin/sarch_create_thumbnails.sh"'
+    runCMDS 0 Caching "fonts and wallpapers..." 10 20 20 'mkdir -p "$HOME/.local/share/fonts"' 'mv "$HOME/sArch/fonts" "$HOME/.local/share/"' 'fc-cache'
   addFirstbootAutostart
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...
     runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
@@ -231,7 +231,7 @@ installConfigs() { Banner; checkDebugFlag
 }
 
 # Zufälliges Wallpaper + Matugen-Farben (rofi liest ~/.cache/Wallpaper_thumbs/curr(_wide),
-# das erzeugt sonst nur sarch_change_wallpaper.sh, deshalb hier beim ersten Setzen mit anlegen)
+# das erzeugt sonst nur die Settings-App (Seite Hintergrund), deshalb hier beim ersten Setzen mit anlegen)
 _applyRandomWallpaper() {
   local thumbDir="$HOME/.cache/Wallpaper_thumbs/" wp
   wp=$(find "$HOME/Bilder/Wallpapers/" -type f \( -iname '*.jpg' -o -iname '*.png' \) | shuf -n 1)
@@ -241,6 +241,8 @@ _applyRandomWallpaper() {
   magick "$wp" -thumbnail 500x500^ -gravity center -extent 500x500 -quality 70 "${thumbDir}curr"
   magick "$wp" -thumbnail 1000x500^ -gravity center -extent 1000x500 -quality 70 "${thumbDir}curr_wide"
   matugen image "$wp"
+  # merkt sich die Settings-App als aktuelles Hintergrundbild (Pfad, Farb-Index)
+  mkdir -p "$HOME/.cache/sArch" && printf '%s\n0\n' "$wp" > "$HOME/.cache/sArch/current_wallpaper"
 }
 
 # ---------------------------------------------------------------------------

@@ -162,8 +162,9 @@ installBackup() {
     linkBackup "$BACKUP_DIR/.ts3client"          "$HOME/.ts3client"
 
     # Firefox: Profil "Default User" durch Link auf das Backup-Profil ersetzen
-    local ff
-    ff=$(find "$HOME/.mozilla/firefox" -maxdepth 1 -mindepth 1 -type d -name '*Default User*' 2>/dev/null | head -n1)
+    local ff="$_FF_DIR/$_FF_PROFILE"
+    [[ -e "$ff" || -L "$ff" ]] \
+      || ff=$(find "$_FF_DIR" -maxdepth 1 -mindepth 1 -type d -name '*Default User*' 2>/dev/null | head -n1)
     if [[ -n "$ff" ]]; then
       rm -rf "$ff"
       ln -sfn "$BACKUP_DIR/FireFox/3665cjzf.default-release" "$ff"
@@ -171,6 +172,26 @@ installBackup() {
       myPrint print yellow "Firefox-Profil 'Default User' nicht gefunden - übersprungen.\n"
     fi
   [[ "$debug" == false ]] && myPrint step ok
+}
+
+# Firefox-Profil "Default User" ohne ProfileManager anlegen (kein Fenster, Installer bleibt im Vollbild).
+# Bewusst ohne [Install...]-Abschnitt: Firefox übernimmt beim ersten Start das Profil mit Default=1.
+_FF_DIR="$HOME/.mozilla/firefox"
+_FF_PROFILE="sarch.default-user"
+createFirefoxProfile() {
+  [[ -f "$_FF_DIR/profiles.ini" ]] && return 0      # Firefox lief schon -> nichts überschreiben
+  mkdir -p "$_FF_DIR/$_FF_PROFILE"
+  cat > "$_FF_DIR/profiles.ini" <<EOF
+[Profile0]
+Name=Default User
+IsRelative=1
+Path=$_FF_PROFILE
+Default=1
+
+[General]
+StartWithLastProfile=1
+Version=2
+EOF
 }
 
 installConfigs() { Banner; checkDebugFlag
@@ -182,10 +203,12 @@ installConfigs() { Banner; checkDebugFlag
     [[ "$gpu" == nvidia ]] && install+=" ${kernel}-headers"
     dryRun runCMDS 0 Installing "$name" 0 $value 20 "$pacmanRun $install $debugstring"
     dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "yay -S --noconfirm dxvk-bin $debugstring"
-    dryRun runCMDS 0 Installing STEAM... 12 17 20 "steam $debugstring"
+    # Steam wird nicht gestartet (das Update-Fenster würde den Vollbild-Installer verdecken),
+    # das Steam-Runtime-Update passiert beim ersten eigenen Start.
+    [[ "$debug" == false ]] && drawProgress 12 20 "Creating Firefox profile..."
+    [[ "${dryRun:-}" == true ]] || createFirefoxProfile &>>"${logFile:-/dev/null}"
+    [[ "$debug" == false ]] && drawProgress 20 20
   [[ "$debug" == false ]] && myPrint step ok
-
-  firefox --ProfileManager &>>"${logFile:-/dev/null}"
 
   # --- Abfrage: Backups / SchnuBby specifics ---
   choice=""

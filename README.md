@@ -50,7 +50,7 @@ curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/main/bootstrap.s
 | 1 | **Base System** | live ISO | Asks for missing settings, formats and mounts the partitions (after typing `YES`), sets up mirrors with `reflector`, runs `pacstrap` |
 | 2 | **Arch-Chroot** | automatically inside `arch-chroot` | Timezone, locale, keymap, console font, GRUB, hostname, user, temporary install mode (passwordless sudo + tty1 autologin), NetworkManager; then reboot |
 | 3 | **Desktop** | automatic login on **tty1** | Enables multilib, installs system, audio and program packages plus `yay`, links configs, installs fonts, GTK theme and wallpapers, enables SDDM; then reboot |
-| 4 | **Configs** | first Hyprland start (SDDM autologin, fullscreen kitty) | GPU drivers (AMD/NVIDIA), `dxvk-bin`, Steam, Firefox profile, optionally backups / personal specifics, first wallpaper + Matugen colors, **root and user passwords**, install mode removed; then reboot |
+| 4 | **Configs** | first Hyprland start (SDDM autologin, fullscreen kitty) | GPU drivers (AMD/NVIDIA), `dxvk-bin`, Firefox profile (created without opening Firefox), optionally backups / personal specifics, first wallpaper + Matugen colors, **root and user passwords**, install mode removed; then reboot |
 
 Every stage hands over to the next one by itself (chroot call, `.bashrc` hook on tty1, Hyprland autostart). The hooks are removed again once they've done their job.
 

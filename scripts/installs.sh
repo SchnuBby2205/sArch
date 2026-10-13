@@ -5,7 +5,7 @@ installBaseSystem() { Banner; checkDebugFlag; checkUEFI; dmesg -n 1; runCFDiskIf
     validatePartition ${!p}
     myPrint print green "${p^} partition: "; myPrint print white "${!p}\n"
   done
-  myPrint print red "\n!!ATTENTION!!\nThese partitions will be WIPED AND FORMATTED without another Warning!! Please check them TWICE before you continue!!\n!!ATTENTION!!\n\n"
+  myPrint print red "\n!!ATTENTION!!\nThese partitions will be\n\nWIPED AND FORMATTED\n\nwithout another Warning!!\nPlease check them TWICE before you continue!!\n!!ATTENTION!!\n\n"
   getInput "Type YES to continue (STRG+C to exit now)..." check "N"; [[ "$check" != "YES" ]] && exitWithError "Formatting was not confirmed!" || printf "\n"
   myPrint countdown 3 "Starting installation in"; Banner
   [[ "$debug" == false ]] && myPrint step Installing "Base system..."

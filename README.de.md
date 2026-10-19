@@ -37,7 +37,13 @@ Der Installer-Bildschirm ist an [Omarchy](https://github.com/basecamp/omarchy) a
 curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/main/bootstrap.sh | bash
 ```
 
-`bootstrap.sh` installiert `git` und `terminus-font`, klont das Repo nach `~/sArch` (oder `$SARCH_DIR`) und startet `install.sh` mit dem Hauptmenü:
+Anderen Branch installieren (z.B. zum Testen):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/sArch-QS/bootstrap.sh | SARCH_BRANCH=sArch-QS bash
+```
+
+`bootstrap.sh` installiert `git` und `terminus-font`, klont das Repo nach `~/sArch` (oder `$SARCH_DIR`, Branch über `$SARCH_BRANCH`, Standard `main`) und startet `install.sh` mit dem Hauptmenü:
 
 - **Settings** – alle Installationseinstellungen prüfen oder ändern (Partitionen, Hostname, Benutzer, CPU, GPU, Zeitzone, Locale, Tastaturlayout, Kernel, Backup-/Spiele-Laufwerke). Die Werte werden in `configs/installConfigs/install_settings` gespeichert.
 - **Install** – eine Stage von Hand starten (normalerweise startest du nur *Base System*, der Rest läuft von selbst weiter).

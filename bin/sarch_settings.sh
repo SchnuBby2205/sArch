@@ -5,7 +5,7 @@
 #   sarch_settings.sh Keybindings
 # Läuft der Quickshell-Daemon noch nicht, wird er gestartet.
 page="${1:-}"
-cfg="sarch-settings"
+cfg="sarch"
 
 if qs -c "$cfg" ipc call settings toggle "$page" &>/dev/null; then
     exit 0

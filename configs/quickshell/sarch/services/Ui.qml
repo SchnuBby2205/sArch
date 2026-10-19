@@ -18,6 +18,7 @@ Singleton {
     property var resetHandler: null
 
     signal navigated(string name)
+    signal openRequested(string page)   // Bar -> Einstellungsfenster öffnen
     signal requestApply
     signal requestReset
 

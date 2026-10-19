@@ -1,0 +1,21 @@
+{
+  "position": "top",
+  "style": "islands",
+  "size": 42,
+  "margin": 8,
+  "radius": 18,
+  "opacity": 0.86,
+  "clock": { "seconds": false, "h24": true },
+  "date": { "format": "ddd, d. MMM" },
+  "workspaces": { "count": 8, "numbers": true },
+  "audio": { "percent": true },
+  "modules": [
+    { "id": "workspaces", "zone": "start" },
+    { "id": "clock", "zone": "center" },
+    { "id": "date", "zone": "center" },
+    { "id": "wallpaper", "zone": "end" },
+    { "id": "settings", "zone": "end" },
+    { "id": "audio", "zone": "end" },
+    { "id": "power", "zone": "end" }
+  ]
+}

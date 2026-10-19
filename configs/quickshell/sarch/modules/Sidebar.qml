@@ -134,7 +134,7 @@ Item {
     ListView {
         id: list
 
-        readonly property int rowH: 40
+        readonly property int rowH: 38
         readonly property int idx: root.indexOfCurrent()
         onIdxChanged: if (idx >= 0)
             positionViewAtIndex(idx, ListView.Contain)

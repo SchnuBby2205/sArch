@@ -1,10 +1,11 @@
-// sArch Settings – Quickshell-Frontend für bin/Settings/settings_backend.py
+// sArch Shell – Bar + Einstellungen (Frontend für bin/Settings/settings_backend.py)
+//   Bar-Konfiguration: bar.json (wird über die Einstellungen → "Leiste" bearbeitet)
 //
-//   Starten (Daemon, bleibt im Hintergrund):  qs -c sarch-settings -n -d
-//   Öffnen:      qs -c sarch-settings ipc call settings open ""          (letzte/erste Seite)
-//                qs -c sarch-settings ipc call settings open wallpaper   (Kategorie oder INI-Sektion)
-//   Umschalten:  qs -c sarch-settings ipc call settings toggle ""
-//   Schließen:   qs -c sarch-settings ipc call settings close
+//   Starten (Daemon, bleibt im Hintergrund):  qs -c sarch -n -d
+//   Öffnen:      qs -c sarch ipc call settings open ""          (letzte/erste Seite)
+//                qs -c sarch ipc call settings open wallpaper   (Kategorie oder INI-Sektion)
+//   Umschalten:  qs -c sarch ipc call settings toggle ""
+//   Schließen:   qs -c sarch ipc call settings close
 //   Bequemer:    ~/.config/sArch/bin/sarch_settings.sh [seite]
 
 import QtQuick
@@ -13,6 +14,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.modules
+import qs.modules.bar
 import qs.services
 
 ShellRoot {
@@ -34,6 +36,24 @@ ShellRoot {
             targetScreen = focusedScreen();
         shown = true;
         Qt.callLater(() => ui.show(page));
+    }
+
+    // ── Bar auf jedem Bildschirm ──
+    Variants {
+        model: Quickshell.screens
+
+        Bar {}
+    }
+
+    // Icons in der Bar öffnen das Einstellungsfenster direkt
+    Connections {
+        target: Ui
+        function onOpenRequested(page) {
+            if (shell.shown && ui.open && (page === "" || Backend.resolvePage(page) === Ui.current))
+                ui.requestClose(false);
+            else
+                shell.open(page);
+        }
     }
 
     IpcHandler {

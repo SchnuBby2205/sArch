@@ -18,7 +18,8 @@ Item {
         const cat = Backend.category(name);
         if (!cat)
             return;
-        const comp = cat.groups.some(g => g.kind === "wallpaper") ? wallpaperComp : genericComp;
+        const comp = cat.groups.some(g => g.kind === "wallpaper") ? wallpaperComp
+                   : cat.groups.some(g => g.kind === "bar") ? barComp : genericComp;
         if (stack.depth === 0)
             stack.push(comp, { catName: name }, StackView.Immediate);
         else
@@ -163,6 +164,11 @@ Item {
         id: wallpaperComp
 
         WallpaperPage {}
+    }
+    Component {
+        id: barComp
+
+        BarPage {}
     }
 
     PendingBar {

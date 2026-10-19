@@ -2,7 +2,7 @@
 """
 settings_backend.py – JSON-Backend für die Quickshell-Einstellungen (sarch-settings).
 
-Die Quickshell-Oberfläche (~/.config/quickshell/sarch-settings) ruft dieses Skript
+Die Quickshell-Oberfläche (~/.config/quickshell/sarch) ruft dieses Skript
 per Process auf. Jeder Aufruf ist zustandslos: INI + Konfigdateien werden frisch
 gelesen, das Ergebnis geht als genau ein JSON-Objekt nach stdout.
 
@@ -21,6 +21,8 @@ Befehle:
   set-wallpaper <bild> <index> [farbe]
   fonts                         aktuelle Schriften + installierte Familien
   apply-fonts '<json>'          {"ui": {"family", "size"}, "term": {"family", "size"}}
+  bar                           Bar-Konfiguration (bar.json)
+  apply-bar   '<json>'          bar.json schreiben
 
 Die eigentliche Lese-/Schreiblogik liegt in settings_core.py.
 """
@@ -62,8 +64,9 @@ CATEGORY_ICONS = {
     "hintergrund": "wallpaper", "wallpaper": "wallpaper",
     "schriften": "font_download", "fonts": "font_download",
     "benachrichtigungen": "notifications", "notifications": "notifications",
+    "leiste": "toolbar", "bar": "toolbar",
 }
-TYPE_ICONS = {"wallpaper": "wallpaper", "fonts": "font_download", "variable": "data_object",
+TYPE_ICONS = {"bar": "toolbar", "wallpaper": "wallpaper", "fonts": "font_download", "variable": "data_object",
               "autostart": "rocket_launch", "animation": "animation",
               "workspace_rule": "space_dashboard", "layer_rule": "layers"}
 
@@ -103,7 +106,7 @@ LEGACY_RULES = {
         ]},
 }
 
-SPECIAL_TYPES = ("variable", "autostart", "wallpaper", "fonts") + tuple(LEGACY_RULES)
+SPECIAL_TYPES = ("variable", "autostart", "wallpaper", "fonts", "bar") + tuple(LEGACY_RULES)
 
 
 # ── Hilfen ────────────────────────────────────────────────────────────────────
@@ -252,6 +255,8 @@ def collect(ini_path: str):
                     g["dir"] = _x(s["extra"].get("wallpaper_dir", "~/Bilder/Wallpapers"))
                 elif typ == "fonts":
                     pass
+                elif typ == "bar":
+                    g["file"] = _bar_file(s)
                 groups.append(g)
                 continue
 
@@ -530,6 +535,42 @@ def cmd_set_wallpaper(ini, args):
     return {"ok": ok, "error": err, "path": wp, "index": idx}
 
 
+# ── Bar ──
+
+DEFAULT_BAR_FILE = "~/.config/quickshell/sarch/bar.json"
+
+
+def _bar_file(s) -> str:
+    return _x((s or {}).get("extra", {}).get("bar_file", DEFAULT_BAR_FILE))
+
+
+def cmd_bar(ini, _args):
+    path = _bar_file(_find_section(ini, "bar"))
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        data = {}
+    return {"ok": True, "file": path, "config": data}
+
+
+def cmd_apply_bar(ini, args):
+    cfg = json.loads(args[0])
+    if not isinstance(cfg, dict):
+        return {"ok": False, "errors": ["ungültige Bar-Konfiguration"]}
+    path = _bar_file(_find_section(ini, "bar"))
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        tmp = path + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(cfg, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+        os.replace(tmp, path)        # atomar, damit die Bar nie eine halbe Datei liest
+    except OSError as e:
+        return {"ok": False, "errors": [f"{path}: {e}"]}
+    return {"ok": True, "file": path}
+
+
 # ── Schriften ──
 
 def _font_files(ini):
@@ -592,6 +633,7 @@ COMMANDS = {
     "wallpapers": cmd_wallpapers, "thumbs": cmd_thumbs, "colors": cmd_colors,
     "scheme": cmd_scheme, "set-wallpaper": cmd_set_wallpaper,
     "fonts": cmd_fonts, "apply-fonts": cmd_apply_fonts,
+    "bar": cmd_bar, "apply-bar": cmd_apply_bar,
 }
 
 

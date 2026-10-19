@@ -1,4 +1,7 @@
-# sarch-settings (Quickshell)
+# sarch (Quickshell): Bar + Einstellungen
+
+Quickshell-Shell für sArch: eine **Bar** auf jedem Bildschirm und die
+**Einstellungen** als Overlay – beides im selben Prozess.
 
 Quickshell-Oberfläche für die sArch-Einstellungen. Ersetzt die GTK-Maske
 `bin/Settings/settings_mask.py` optisch – die Lese-/Schreiblogik für die
@@ -13,20 +16,36 @@ bin/Settings/
   settings_mask.py      alte GTK-Maske (Fallback, nutzt settings_core)
   settings_de.ini       Kategorien / Felder (unverändert gültig)
 bin/sarch_settings.sh   öffnet die Oberfläche (startet den Daemon bei Bedarf)
-configs/quickshell/sarch-settings/
-  shell.qml             Layer-Shell-Fenster + IPC
+configs/quickshell/sarch/
+  shell.qml             Bar je Bildschirm + Einstellungsfenster + IPC
+  bar.json              Konfiguration der Bar
   services/             Theme (matugen-Farben), Backend, Ui-Zustand
   components/           Buttons, Slider, Felder, Dialoge, Toasts …
-  modules/              Sidebar, Seiten, Wallpaper-Karussell, Schriften
+  modules/              Sidebar, Seiten, Wallpaper-Karussell, Schriften, Leiste
+  modules/bar/          Bar und ihre Module
 ```
+
+## Bar
+
+Konfiguriert wird sie in den Einstellungen unter **Leiste** (Live-Vorschau –
+einfach die gewünschte Bildschirmkante anklicken). Gespeichert wird in
+`bar.json` in diesem Ordner, die Bar übernimmt Änderungen sofort.
+
+- Position: oben, unten, links, rechts (Bar fährt animiert an die neue Kante)
+- Stil: `islands` (jede Zone eine Pille), `floating`, `docked`
+- Größe, Abstand, Rundung, Deckkraft
+- Module je Zone (start / center / end bzw. links-mitte-rechts / oben-mitte-unten)
+  in beliebiger Reihenfolge: Workspaces, Uhrzeit, Datum, Hintergrundbild,
+  Einstellungen, Audio (Klick pavucontrol, Mausrad Lautstärke, Mitte stumm),
+  Power-Menü (`bin/sarch_powermenu.sh`)
 
 ## Benutzen
 
 ```sh
-qs -c sarch-settings -n -d                  # Daemon (steht in autostart.lua)
+qs -c sarch -n -d                  # Daemon (steht in autostart.lua)
 ~/.config/sArch/bin/sarch_settings.sh       # öffnen / schließen (SUPER+ALT+S)
 ~/.config/sArch/bin/sarch_settings.sh wallpaper   # direkt zur Seite (SUPER+W)
-qs -c sarch-settings ipc call settings open Keybindings
+qs -c sarch ipc call settings open Keybindings
 ```
 
 Tastatur: `Esc` schließen · `Strg+F` suchen · `Strg+S` übernehmen ·
@@ -54,6 +73,7 @@ per `matugen --dry-run --json hex` das komplette Schema als Live-Vorschau.
 | `SARCH_SETTINGS_INI`  | `$SARCH_SETTINGS_DIR/settings_de.ini`      |
 | `SARCH_SETTINGS_LANG` | `de`                                       |
 | `SARCH_QS_COLORS`     | `~/.cache/sArch/qs-colors.json`            |
+| `SARCH_BAR_CONFIG`    | `<shell-ordner>/bar.json`                  |
 
 ## Kategorie-Icons
 

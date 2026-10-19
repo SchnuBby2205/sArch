@@ -21,6 +21,7 @@ Loader {
         case "clock": return clockComp;
         case "date": return dateComp;
         case "audio": return audioComp;
+        case "launcher":
         case "wallpaper":
         case "settings":
         case "power": return buttonComp;
@@ -51,15 +52,18 @@ Loader {
             vertical: root.vertical
             icon: BarConfig.info(root.moduleId).icon
             accent: root.moduleId === "power" ? Theme.error : root.moduleId === "wallpaper" ? Theme.tertiary : Theme.primary
+            active: (root.moduleId === "launcher" && Ui.launcherOpen) || (root.moduleId === "power" && Ui.powerOpen)
             onClicked: {
                 if (root.preview)
                     return;
-                if (root.moduleId === "wallpaper")
+                if (root.moduleId === "launcher")
+                    Ui.launcherRequested();
+                else if (root.moduleId === "wallpaper")
                     Ui.openRequested("wallpaper");
                 else if (root.moduleId === "settings")
                     Ui.openRequested("");
                 else if (root.moduleId === "power")
-                    Quickshell.execDetached([`${root.home}/.config/sArch/bin/sarch_powermenu.sh`]);
+                    Ui.powerRequested();
             }
         }
     }

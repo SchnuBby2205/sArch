@@ -39,6 +39,17 @@ einfach die gewünschte Bildschirmkante anklicken). Gespeichert wird in
   Einstellungen, Audio (Klick pavucontrol, Mausrad Lautstärke, Mitte stumm),
   Power-Menü (`bin/sarch_powermenu.sh`)
 
+## App-Launcher & Powermenü
+
+- **App-Launcher** (SUPER+A oder Bar-Icon): tippen sucht sofort (Name, Beschreibung,
+  Stichworte, Buchstabenfolge wie „ffx“), Pfeile wählen, Enter startet.
+  Oft/zuletzt benutzte Apps stehen oben (`~/.cache/sArch/launcher.json`).
+- **Powermenü** (SUPER+Backspace oder Bar-Icon): Sperren, Bereitschaft, Ruhezustand,
+  Abmelden, Neustart, Herunterfahren. Abmelden/Neustart/Herunterfahren starten einen
+  Countdown-Ring – nochmal drücken = sofort, Esc bricht ab. Buchstaben L/S/H/E/R/P
+  wählen direkt. Ausgeführt wird über `bin/sarch_power_action.sh` (Sperren: hyprlock).
+- Ist Quickshell deaktiviert, öffnen `sarch_launcher.sh` / `sarch_power.sh` wieder Rofi.
+
 ## Benutzen
 
 ```sh

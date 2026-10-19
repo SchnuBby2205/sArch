@@ -18,7 +18,8 @@ for i = 1, 10 do
     local key = i % 10 -- 10 maps to key 0
     hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
     hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }))
-    hl.bind(mainMod .. " + CTRL + " .. key, function() hl.dispatch(hl.dsp.exec_cmd("hyprctl dispatch movetoworkspacesilent " .. i)) end)
+    -- Fenster auf Workspace schieben, ohne mitzuspringen (Lua-Syntax ab Hyprland 0.56)
+    hl.bind(mainMod .. " + CTRL + " .. key, function() hl.dispatch(hl.dsp.window.move({ workspace = i, follow = false })) end)
 end
 
 -- Cycle through Workspaces with Mousewheel
@@ -31,7 +32,7 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { description = "Ver�
 hl.bind(mainMod .. " + mouse:274", hl.dsp.window.fullscreen(), { description = "Fenster Vollbild toggle." })
 
 -- Starting programs
-hl.bind(mainMod .. " + Backspace", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_powermenu.sh"), { description = "Öffnet das Powermenu." })
+hl.bind(mainMod .. " + Backspace", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_power.sh"), { description = "Öffnet das Powermenu." })
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("kitty btop"), { description = "Öffnet den Taskmanager (btop)." })
 hl.bind(mainMod .. " + F", hl.dsp.exec_cmd("firefox"), { description = "Öffnet den Browser." })
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd("kitty yazi"), { description = "Öffnet den Datei Explorer" })
@@ -40,7 +41,7 @@ hl.bind(mainMod .. " + CTRL + T", hl.dsp.exec_cmd("teamspeak3"), { description =
 hl.bind(mainMod .. " + CTRL + S", hl.dsp.exec_cmd("steam"), { description = "Öffnet STEAM." })
 hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("lutris lutris:rungameid/1"), { description = "Öffnet Ballte.Net." })
 --
-hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("rofi -show drun -theme ~/.config/rofi/launcher.rasi"), { description = "Öffnet den Launcher (ROFI)." })
+hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_launcher.sh"), { description = "Öffnet den App-Launcher." })
 hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh"), { description = "Öffnet das Settings Fenster." })
 hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh wallpaper"), { description = "Öffnet die Hintergrundbild Auswahl." })
 hl.bind("F12", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%+ unmute"), { description = "Erhöht die Lautstärke um 5%." })

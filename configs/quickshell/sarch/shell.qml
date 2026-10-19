@@ -1,12 +1,11 @@
-// sArch Shell – Bar + Einstellungen (Frontend für bin/Settings/settings_backend.py)
-//   Bar-Konfiguration: bar.json (wird über die Einstellungen → "Leiste" bearbeitet)
+// sArch Shell – Bar, Einstellungen, App-Launcher und Powermenü
+//   (Frontend für bin/Settings/settings_backend.py, Bar-Konfiguration: bar.json)
 //
-//   Starten (Daemon, bleibt im Hintergrund):  qs -c sarch -n -d
-//   Öffnen:      qs -c sarch ipc call settings open ""          (letzte/erste Seite)
-//                qs -c sarch ipc call settings open wallpaper   (Kategorie oder INI-Sektion)
-//   Umschalten:  qs -c sarch ipc call settings toggle ""
-//   Schließen:   qs -c sarch ipc call settings close
-//   Bequemer:    ~/.config/sArch/bin/sarch_settings.sh [seite]
+//   Starten (Daemon):  qs -c sarch -n -d          (Autostart: bin/sarch_shell.sh)
+//   Einstellungen:     qs -c sarch ipc call settings toggle ""   | open wallpaper | close
+//   App-Launcher:      qs -c sarch ipc call launcher toggle      | open | close
+//   Powermenü:         qs -c sarch ipc call power toggle         | open | close
+//   Bequemer:          bin/sarch_settings.sh [seite], bin/sarch_launcher.sh, bin/sarch_power.sh
 
 import QtQuick
 import Quickshell
@@ -20,7 +19,9 @@ import qs.services
 ShellRoot {
     id: shell
 
-    property bool shown: false
+    property bool shown: false              // Einstellungen
+    property bool launcherShown: false
+    property bool powerShown: false
     property var targetScreen: Quickshell.screens[0]
 
     function focusedScreen() {
@@ -31,11 +32,56 @@ ShellRoot {
         return Quickshell.screens[0];
     }
 
+    // immer nur ein Overlay gleichzeitig
+    function closeOthers(keep) {
+        if (keep !== "settings" && shown && ui.open)
+            ui.requestClose(true);
+        if (keep !== "launcher" && launcherShown)
+            launcher.requestClose();
+        if (keep !== "power" && powerShown)
+            power.requestClose();
+    }
+
     function open(page) {
+        closeOthers("settings");
         if (!shown)
             targetScreen = focusedScreen();
         shown = true;
         Qt.callLater(() => ui.show(page));
+    }
+    function toggleSettings(page) {
+        if (shown && ui.open && (page === "" || Backend.resolvePage(page) === Ui.current))
+            ui.requestClose(false);
+        else
+            open(page);
+    }
+
+    function openLauncher() {
+        closeOthers("launcher");
+        if (!launcherShown)
+            targetScreen = focusedScreen();
+        launcherShown = true;
+        Qt.callLater(() => launcher.show());
+    }
+    function toggleLauncher() {
+        if (launcherShown && launcher.open)
+            launcher.requestClose();
+        else
+            openLauncher();
+    }
+
+    function openPower() {
+        closeOthers("power");
+        if (!powerShown)
+            targetScreen = focusedScreen();
+        powerShown = true;
+        Qt.callLater(() => power.show());
+    }
+    function togglePower() {
+        if (powerShown && power.open)
+            power.requestClose();
+        else
+            openPower();
     }
 
     // ── Bar auf jedem Bildschirm ──
@@ -45,14 +91,17 @@ ShellRoot {
         Bar {}
     }
 
-    // Icons in der Bar öffnen das Einstellungsfenster direkt
+    // Icons in der Bar öffnen die Overlays direkt
     Connections {
         target: Ui
         function onOpenRequested(page) {
-            if (shell.shown && ui.open && (page === "" || Backend.resolvePage(page) === Ui.current))
-                ui.requestClose(false);
-            else
-                shell.open(page);
+            shell.toggleSettings(page);
+        }
+        function onLauncherRequested() {
+            shell.toggleLauncher();
+        }
+        function onPowerRequested() {
+            shell.togglePower();
         }
     }
 
@@ -63,10 +112,7 @@ ShellRoot {
             shell.open(page);
         }
         function toggle(page: string): void {
-            if (shell.shown && ui.open)
-                ui.requestClose(false);
-            else
-                shell.open(page);
+            shell.toggleSettings(page);
         }
         function close(): void {
             if (shell.shown)
@@ -74,20 +120,47 @@ ShellRoot {
         }
     }
 
-    PanelWindow {
-        id: win
+    IpcHandler {
+        target: "launcher"
 
+        function open(): void {
+            shell.openLauncher();
+        }
+        function toggle(): void {
+            shell.toggleLauncher();
+        }
+        function close(): void {
+            if (shell.launcherShown)
+                launcher.requestClose();
+        }
+    }
+
+    IpcHandler {
+        target: "power"
+
+        function open(): void {
+            shell.openPower();
+        }
+        function toggle(): void {
+            shell.togglePower();
+        }
+        function close(): void {
+            if (shell.powerShown)
+                power.requestClose();
+        }
+    }
+
+    // ── Einstellungen ──
+    PanelWindow {
         visible: shell.shown
         screen: shell.targetScreen
         color: "transparent"
-
         anchors {
             top: true
             bottom: true
             left: true
             right: true
         }
-
         WlrLayershell.namespace: "sarch-settings"
         WlrLayershell.exclusionMode: ExclusionMode.Ignore
         WlrLayershell.layer: WlrLayer.Overlay
@@ -98,6 +171,56 @@ ShellRoot {
 
             anchors.fill: parent
             onClosed: shell.shown = false
+        }
+    }
+
+    // ── App-Launcher ──
+    PanelWindow {
+        visible: shell.launcherShown
+        screen: shell.targetScreen
+        color: "transparent"
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+        WlrLayershell.namespace: "sarch-launcher"
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: shell.launcherShown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        Launcher {
+            id: launcher
+
+            anchors.fill: parent
+            onOpenChanged: Ui.launcherOpen = open
+            onClosed: shell.launcherShown = false
+        }
+    }
+
+    // ── Powermenü ──
+    PanelWindow {
+        visible: shell.powerShown
+        screen: shell.targetScreen
+        color: "transparent"
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+        WlrLayershell.namespace: "sarch-power"
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: shell.powerShown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        PowerMenu {
+            id: power
+
+            anchors.fill: parent
+            onOpenChanged: Ui.powerOpen = open
+            onClosed: shell.powerShown = false
         }
     }
 }

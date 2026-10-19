@@ -23,6 +23,7 @@ Singleton {
         workspaces: { count: 8, numbers: true },
         audio: { percent: true },
         modules: [
+            { id: "launcher", zone: "start" },
             { id: "workspaces", zone: "start" },
             { id: "clock", zone: "center" },
             { id: "date", zone: "center" },
@@ -35,6 +36,7 @@ Singleton {
 
     // Katalog aller Module (Reihenfolge = Anzeige in den Einstellungen)
     readonly property var catalog: [
+        { id: "launcher", icon: "apps", label: "App-Launcher", desc: "Öffnet den App-Launcher" },
         { id: "workspaces", icon: "space_dashboard", label: "Workspaces", desc: "Workspace-Anzeige · Klick wechselt, Mausrad blättert" },
         { id: "clock", icon: "schedule", label: "Uhrzeit", desc: "Uhr mit rollenden Ziffern" },
         { id: "date", icon: "calendar_month", label: "Datum", desc: "Datum im frei wählbaren Format" },

@@ -10,6 +10,7 @@
   "workspaces": { "count": 8, "numbers": true },
   "audio": { "percent": true },
   "modules": [
+    { "id": "launcher", "zone": "start" },
     { "id": "workspaces", "zone": "start" },
     { "id": "clock", "zone": "center" },
     { "id": "date", "zone": "center" },

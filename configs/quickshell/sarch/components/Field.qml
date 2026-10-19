@@ -13,6 +13,8 @@ Rectangle {
     property bool modified: false
     property bool compact: false
     property alias input: input
+    property int fontSize: Theme.size.body
+    property var keyHandler: null   // function(event) – z.B. Pfeiltasten an eine Liste weiterreichen
 
     signal edited
     signal accepted
@@ -81,10 +83,16 @@ Rectangle {
         selectionColor: Theme.alpha(Theme.primary, 0.4)
         selectedTextColor: Theme.surfaceFg
         font.family: root.mono ? Theme.mono : Theme.sans
-        font.pixelSize: Theme.size.body
+        font.pixelSize: root.fontSize
         clip: true
         selectByMouse: true
         onTextEdited: root.edited()
+        Keys.onPressed: e => {
+            if (root.keyHandler)
+                root.keyHandler(e);
+            else
+                e.accepted = false;
+        }
         onAccepted: root.accepted()
         Txt {
             anchors.verticalCenter: parent.verticalCenter

@@ -19,6 +19,10 @@ Singleton {
 
     signal navigated(string name)
     signal openRequested(string page)   // Bar -> Einstellungsfenster öffnen
+    signal powerRequested               // Bar -> Powermenü
+    signal launcherRequested            // Bar -> App-Launcher
+    property bool launcherOpen: false
+    property bool powerOpen: false
     signal requestApply
     signal requestReset
 

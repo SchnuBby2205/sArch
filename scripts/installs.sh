@@ -131,7 +131,7 @@ applyQuickshell() {
   checkDebugFlag
   if [[ "$want" == true ]]; then
     [[ "$debug" == false ]] && myPrint step Enabling "Quickshell..."
-      dryRun runCMDS 0 Installing quickshell... 0 6 20 "$pacmanRun quickshell $debugstring"
+      dryRun runCMDS 0 Installing quickshell... 0 6 20 "$pacmanRun quickshell hyprlock $debugstring"
       dryRun runCMDS 0 Installing "Material Symbols..." 6 12 20 "$yayRun ttf-material-symbols-variable $debugstring" "fc-cache $debugstring"
       # Shell-Ordner verlinken (Neuinstallation: ~/.config/quickshell kommt schon vom Config-Link)
       dryRun runCMDS 0 Linking "Quickshell config..." 12 15 20 "mkdir -p '$HOME/.config/sArch'; if [[ -L '$HOME/.config/quickshell' || ! -e '$HOME/.config/quickshell' ]]; then ln -sfnT '$repo/configs/quickshell' '$HOME/.config/quickshell'; else ln -sfnT '$repo/configs/quickshell/$_QS_CONFIG' '$HOME/.config/quickshell/$_QS_CONFIG'; fi" "rm -f '$_QS_MARKER'"

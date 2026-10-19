@@ -85,7 +85,8 @@ installDE() { Banner; checkDebugFlag
     runCMDS 1 Creating "SDDM config directory..." 0 1 20 "mkdir -p /etc/sddm.conf.d"
     runCMDS 0 Installing pywalfox... 2 3 20 "$yayRun python-pywalfox $debugstring"
     runCMDS 0 Installing grimblast... 3 4 20 "$yayRun grimblast $debugstring"
-    runCMDS 0 Downloading Wallpapers... 4 15 20 "git clone --depth 1 https://github.com/SchnuBby2205/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
+    runCMDS 0 Installing "Material Symbols..." 4 5 20 "$yayRun ttf-material-symbols-variable $debugstring"
+    runCMDS 0 Downloading Wallpapers... 5 15 20 "git clone --depth 1 https://github.com/SchnuBby2205/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Creating Theme...
 #   runCMDS 0 Copying configs... 0 3 20 'mkdir -p "$HOME/.config"' 'find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"'
 #   runCMDS 0 Copying binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'mv "$HOME/sArch/bin" "$HOME/.config/sArch"'

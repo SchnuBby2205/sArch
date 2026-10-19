@@ -41,6 +41,10 @@ input_path = '~/.config/matugen/templates/pywalfox-colors.json'
 output_path = '~/.cache/wal/colors.json'
 post_hook = 'pywalfox update'
 
+[templates.sarch-settings]
+input_path = '~/.config/matugen/templates/quickshell-colors.json'
+output_path = '~/.cache/sArch/qs-colors.json'
+
 #[templates.myshell]
 #input_path = '~/.config/matugen/templates/myshell-colors.json'
 #output_path = '~/.config/quickshell/myShell/Configs/colors.json'

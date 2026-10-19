@@ -17,7 +17,7 @@ Item {
     readonly property string hh: (h24 ? String(hours).padStart(2, "0") : String(hours).padStart(2, " "))
     readonly property string mm: String(Time.now.getMinutes()).padStart(2, "0")
     readonly property string ss: String(Time.now.getSeconds()).padStart(2, "0")
-    readonly property int fontSize: Math.round(thick * (vertical ? 0.36 : 0.4))
+    readonly property int fontSize: Math.round(Math.min(thick * (vertical ? 0.36 : 0.4) * Theme.fontScale, thick * 0.6))
 
     implicitWidth: vertical ? thick : row.implicitWidth + 16
     implicitHeight: vertical ? col.implicitHeight + 14 : thick
@@ -33,7 +33,6 @@ Item {
         RollingDigit { digit: root.hh[1]; pixelSize: root.fontSize }
         Txt {
             text: ":"
-            mono: true
             font.pixelSize: root.fontSize
             font.weight: Font.DemiBold
             color: Theme.primary

@@ -63,8 +63,7 @@ Item {
 
                 visible: !root.vertical && root.label !== ""
                 text: root.label
-                mono: true
-                font.pixelSize: Math.round(root.thick * 0.3)
+                font.pixelSize: Math.round(Math.min(root.thick * 0.3 * Theme.fontScale, root.thick * 0.46))
                 font.weight: Font.DemiBold
                 color: Theme.surfaceFgDim
                 anchors.verticalCenter: parent.verticalCenter

@@ -182,7 +182,6 @@ Item {
 
                     anchors.centerIn: parent
                     text: root.results.length
-                    mono: true
                     font.weight: Font.Bold
                     color: Theme.primary
                 }

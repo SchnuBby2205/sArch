@@ -29,7 +29,6 @@ Item {
 
             anchors.centerIn: parent
             text: root.label
-            mono: true
             font.pixelSize: Theme.size.small
             font.weight: Font.DemiBold
             color: root.accent ? Theme.primaryContainerFg : Theme.surfaceFg

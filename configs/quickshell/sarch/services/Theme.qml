@@ -137,19 +137,25 @@ Singleton {
     }
     // Oberflächen-Schrift aus den Einstellungen (Schriften → Oberfläche) – dieselbe wie Rofi/Dunst
     property string uiFont: ""
+    property real uiFontSize: 0            // Punktgröße aus den Einstellungen (0 = unbekannt)
+    // Skalierung aller Schriftgrößen: Referenz ist 12 pt (Rofi/Dunst-Standard)
+    readonly property real fontScale: uiFontSize > 0 ? Math.max(0.8, Math.min(1.5, uiFontSize / 12)) : 1
+    function fs(px) {
+        return Math.round(px * fontScale);
+    }
     readonly property string fallbackSans: pickFont(["Rubik", "Google Sans", "Inter", "Noto Sans", "Cantarell", "DejaVu Sans", "sans-serif"])
     readonly property string sans: uiFont !== "" && Qt.fontFamilies().indexOf(uiFont) >= 0 ? uiFont : fallbackSans
     readonly property string mono: pickFont(["JetBrainsMono Nerd Font", "JetBrainsMonoNL Nerd Font", "JetBrains Mono", "Iosevka Nerd Font", "DejaVu Sans Mono", "monospace"])
     readonly property string icons: "Material Symbols Rounded"
 
     readonly property QtObject size: QtObject {
-        readonly property int tiny: 11
-        readonly property int small: 12
-        readonly property int body: 14
-        readonly property int label: 15
-        readonly property int title: 18
-        readonly property int headline: 26
-        readonly property int display: 40
+        readonly property int tiny: root.fs(11)
+        readonly property int small: root.fs(12)
+        readonly property int body: root.fs(14)
+        readonly property int label: root.fs(15)
+        readonly property int title: root.fs(18)
+        readonly property int headline: root.fs(26)
+        readonly property int display: root.fs(40)
     }
 
     readonly property QtObject radius: QtObject {
@@ -190,16 +196,22 @@ Singleton {
     readonly property string rofiFontPath: Quickshell.env("SARCH_UI_FONT_FILE") || `${home}/.config/rofi/colors.rasi`
     readonly property string dunstFontPath: `${home}/.config/dunst/dunstrc`
 
+    // "Familie 12" -> { family: "Familie", size: 12 }
     function fontFrom(txt, re) {
         const m = re.exec(txt || "");
         if (!m)
-            return "";
-        return m[1].trim().replace(/\s+\d+(\.\d+)?$/, "");   // Größe am Ende abschneiden
+            return null;
+        const spec = m[1].trim();
+        const sm = /\s+(\d+(\.\d+)?)$/.exec(spec);
+        return { family: sm ? spec.slice(0, sm.index).trim() : spec, size: sm ? parseFloat(sm[1]) : 0 };
     }
     function updateUiFont() {
         const f = fontFrom(rofiFont.text(), /^\s*mainfont:\s*"([^"]*)"/m) || fontFrom(dunstFont.text(), /^\s*font\s*=\s*"([^"]*)"/m);
-        if (f !== uiFont)
-            uiFont = f;
+        const fam = f?.family ?? "", size = f?.size ?? 0;
+        if (fam !== uiFont)
+            uiFont = fam;
+        if (size !== uiFontSize)
+            uiFontSize = size;
     }
 
     FileView {

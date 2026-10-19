@@ -198,17 +198,16 @@ Item {
             readonly property string hh: String(Time.now.getHours()).padStart(2, "0")
             readonly property string mm: String(Time.now.getMinutes()).padStart(2, "0")
 
-            RollingDigit { digit: parent.hh[0]; pixelSize: 112; weight: Font.Bold }
-            RollingDigit { digit: parent.hh[1]; pixelSize: 112; weight: Font.Bold }
+            RollingDigit { digit: parent.hh[0]; pixelSize: Theme.fs(112); weight: Font.Bold }
+            RollingDigit { digit: parent.hh[1]; pixelSize: Theme.fs(112); weight: Font.Bold }
             Txt {
                 text: ":"
-                mono: true
-                font.pixelSize: 112
+                font.pixelSize: Theme.fs(112)
                 font.weight: Font.Bold
                 color: Theme.primary
             }
-            RollingDigit { digit: parent.mm[0]; pixelSize: 112; weight: Font.Bold }
-            RollingDigit { digit: parent.mm[1]; pixelSize: 112; weight: Font.Bold }
+            RollingDigit { digit: parent.mm[0]; pixelSize: Theme.fs(112); weight: Font.Bold }
+            RollingDigit { digit: parent.mm[1]; pixelSize: Theme.fs(112); weight: Font.Bold }
         }
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter

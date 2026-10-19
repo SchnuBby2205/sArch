@@ -147,8 +147,7 @@ Item {
                     visible: root.numbers
                     anchors.centerIn: parent
                     text: slot.wsId
-                    mono: true
-                    font.pixelSize: Math.round(root.cell * 0.46)
+                    font.pixelSize: Math.round(Math.min(root.cell * 0.46 * Theme.fontScale, root.cell * 0.72))
                     font.weight: slot.isActive || slot.isOccupied ? Font.Bold : Font.Normal
                     color: slot.isActive ? Theme.primaryFg : Theme.surfaceFg
                     opacity: slot.isActive ? 1 : slot.isOccupied ? 0.9 : 0.35

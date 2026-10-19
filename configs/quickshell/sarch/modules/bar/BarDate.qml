@@ -23,7 +23,7 @@ Item {
         visible: !root.vertical
         anchors.centerIn: parent
         text: { root.dayKey; return Time.now.toLocaleDateString(root.loc, root.fmt); }
-        font.pixelSize: Math.round(root.thick * 0.33)
+        font.pixelSize: Math.round(Math.min(root.thick * 0.33 * Theme.fontScale, root.thick * 0.5))
         font.weight: Font.Medium
         color: Theme.surfaceFgDim
     }
@@ -38,14 +38,14 @@ Item {
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter
             text: { root.dayKey; return Time.now.toLocaleDateString(root.loc, "dd"); }
-            font.pixelSize: Math.round(root.thick * 0.36)
+            font.pixelSize: Math.round(Math.min(root.thick * 0.36 * Theme.fontScale, root.thick * 0.5))
             font.weight: Font.Bold
             color: Theme.surfaceFg
         }
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter
             text: { root.dayKey; return Time.now.toLocaleDateString(root.loc, "MMM").replace(".", "").toUpperCase(); }
-            font.pixelSize: Math.round(root.thick * 0.24)
+            font.pixelSize: Math.round(Math.min(root.thick * 0.24 * Theme.fontScale, root.thick * 0.36))
             font.weight: Font.DemiBold
             font.letterSpacing: 1
             color: Theme.primary

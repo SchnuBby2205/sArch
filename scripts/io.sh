@@ -263,9 +263,17 @@ setPathSetting() { # $1 = BACKUP_DEV|BACKUP_MNT|BACKUP_DIR|GAMES_DEV|GAMES_MNT
     fi
 }
 
+# quickshell=true|false wählen (wirkt bei der Installation; sofort umschalten: Install -> Quickshell)
+_chooseQuickshell() {
+    local idx
+    idx=$(list "Quickshell (Bar + Einstellungen) installieren?" "true" "false") || return 1
+    if (( idx == 0 )); then quickshell=true; else quickshell=false; fi
+    setSetting quickshell "$quickshell"
+}
+
 _installMenu() {
     local sub
-    local -a entries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Back")
+    local -a entries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Quickshell" "Back")
     Banner
     sub=$(list "Install" "${entries[@]}") || return 1
     case "${entries[$sub]}" in
@@ -274,6 +282,7 @@ _installMenu() {
         "Desktop")     installDE ;;
         "Configs")     installConfigs ;;
         "Backups")     installBackup ;;
+        "Quickshell")  installQuickshell ;;
         "Back")        return 0 ;;
     esac
     return 0
@@ -311,6 +320,7 @@ showSettings() {
             "locale=${locale:-}"
             "keymap=${keymap:-}"
             "kernel=${kernel:-}"
+            "quickshell=${quickshell:-true}"
             "BACKUP_DEV=${BACKUP_DEV:-}"
             "BACKUP_MNT=${BACKUP_MNT:-}"
             "BACKUP_DIR=${BACKUP_DIR:-}"
@@ -322,6 +332,7 @@ showSettings() {
         [[ "${entries[$choice]}" == "Back" ]] && return 0
         case "${entries[$choice]%%=*}" in
             BACKUP_*|GAMES_*) setPathSetting "${entries[$choice]%%=*}" ;;
+            quickshell) _chooseQuickshell ;;
             *)        checkInstallSettings "${entries[$choice]%%=*}" ;;
         esac
     done

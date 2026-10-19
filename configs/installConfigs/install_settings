@@ -2,6 +2,8 @@
 debug=false
 dryRun=false
 defaults=false
+# Quickshell (Bar + Einstellungen): true = installieren & starten, false = aus (GTK-Einstellungen)
+quickshell=true
 BACKUP_DEV="/dev/nvme0n1p4"
 BACKUP_MNT="/programmieren"
 BACKUP_DIR="$BACKUP_MNT/backups"

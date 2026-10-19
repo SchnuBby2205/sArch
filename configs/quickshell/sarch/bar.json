@@ -5,7 +5,7 @@
   "margin": 8,
   "radius": 18,
   "opacity": 0.86,
-  "clock": { "seconds": false, "h24": true },
+  "clock": { "seconds": false, "h24": true, "blink": true },
   "date": { "format": "ddd, d. MMM" },
   "workspaces": { "count": 8, "numbers": true },
   "audio": { "percent": true },

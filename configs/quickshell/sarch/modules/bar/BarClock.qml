@@ -12,6 +12,7 @@ Item {
 
     readonly property bool seconds: cfg?.clock?.seconds ?? false
     readonly property bool h24: cfg?.clock?.h24 ?? true
+    readonly property bool blink: cfg?.clock?.blink ?? true
     readonly property int hours: h24 ? Time.now.getHours() : ((Time.now.getHours() + 11) % 12) + 1
     readonly property string hh: (h24 ? String(hours).padStart(2, "0") : String(hours).padStart(2, " "))
     readonly property string mm: String(Time.now.getMinutes()).padStart(2, "0")
@@ -36,7 +37,7 @@ Item {
             font.pixelSize: root.fontSize
             font.weight: Font.DemiBold
             color: Theme.primary
-            opacity: root.seconds || Time.now.getSeconds() % 2 === 0 ? 1 : 0.35
+            opacity: !root.blink || Time.now.getSeconds() % 2 === 0 ? 1 : 0.35
             Behavior on opacity { Anim { curve: "standard" } }
         }
         RollingDigit { digit: root.mm[0]; pixelSize: root.fontSize }

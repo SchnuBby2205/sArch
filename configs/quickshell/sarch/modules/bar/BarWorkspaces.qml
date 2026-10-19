@@ -15,8 +15,16 @@ Item {
     property var screen: null            // ShellScreen (null = fokussierter Monitor)
 
     readonly property bool numbers: cfg?.workspaces?.numbers ?? true
-    readonly property var monitor: screen ? Hyprland.monitorFor(screen) : Hyprland.focusedMonitor
-    readonly property int activeId: monitor?.activeWorkspace?.id ?? Hyprland.focusedWorkspace?.id ?? 1
+    // markiert wird der Workspace, auf dem gerade der Cursor bzw. Fokus ist (monitorübergreifend)
+    readonly property int activeId: Hyprland.focusedWorkspace?.id ?? Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1
+    // auf anderen Monitoren gerade sichtbare Workspaces (bekommen einen Ring)
+    readonly property var visibleIds: {
+        const v = {};
+        for (const m of (Hyprland.monitors?.values ?? []))
+            if (m?.activeWorkspace && m.activeWorkspace.id > 0)
+                v[m.activeWorkspace.id] = true;
+        return v;
+    }
     readonly property var occupied: {
         const o = {};
         for (const w of (Hyprland.workspaces?.values ?? []))
@@ -37,8 +45,11 @@ Item {
     implicitWidth: vertical ? thick : track.len + 12
     implicitHeight: vertical ? track.len + 12 : thick
 
+    property real wheelAcc: 0
+    readonly property string wsScript: `${Quickshell.env("HOME")}/.config/sArch/bin/sarch_workspace.sh`
+
     function go(id) {
-        Hyprland.dispatch(`workspace ${id}`);
+        Quickshell.execDetached([wsScript, String(id)]);
     }
 
     Item {
@@ -103,6 +114,21 @@ Item {
                 Behavior on width { Anim { curve: "spatial" } }
                 Behavior on height { Anim { curve: "spatial" } }
 
+                // auf einem anderen Monitor sichtbar -> Ring
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: root.cell - 4
+                    height: root.cell - 4
+                    radius: width / 2
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Theme.primary
+                    opacity: !slot.isActive && root.visibleIds[slot.wsId] ? 0.55 : 0
+                    scale: opacity > 0 ? 1 : 0.6
+                    Behavior on opacity { Anim { curve: "effects" } }
+                    Behavior on scale { Anim { curve: "spatialFast" } }
+                }
+
                 // Punkt (ohne Zahlen)
                 Rectangle {
                     visible: !root.numbers
@@ -157,6 +183,13 @@ Item {
 
     WheelHandler {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-        onWheel: e => Hyprland.dispatch(e.angleDelta.y > 0 ? "workspace e-1" : "workspace e+1")
+        onWheel: e => {
+            // Trackpads liefern viele kleine Schritte -> sammeln, erst ab einer Raste wechseln
+            root.wheelAcc += e.angleDelta.y !== 0 ? e.angleDelta.y : e.angleDelta.x;
+            if (Math.abs(root.wheelAcc) >= 120) {
+                root.go(root.wheelAcc > 0 ? "e-1" : "e+1");
+                root.wheelAcc = 0;
+            }
+        }
     }
 }

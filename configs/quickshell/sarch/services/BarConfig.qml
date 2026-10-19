@@ -18,7 +18,7 @@ Singleton {
         margin: 8,                // Abstand zum Bildschirmrand (islands / floating)
         radius: 18,               // Eckenradius
         opacity: 0.86,            // Deckkraft des Hintergrunds
-        clock: { seconds: false, h24: true },
+        clock: { seconds: false, h24: true, blink: true },
         date: { format: "ddd, d. MMM" },
         workspaces: { count: 8, numbers: true },
         audio: { percent: true },

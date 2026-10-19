@@ -2,6 +2,8 @@
 debug=false
 dryRun=false
 defaults=false
+# Quickshell (Bar + Einstellungen): true = installieren & starten, false = aus (GTK-Einstellungen)
+quickshell=true
 boot="/dev/vda1"
 swap="/dev/vda2"
 root="/dev/vda3"

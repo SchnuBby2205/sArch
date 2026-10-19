@@ -6,6 +6,14 @@
 # Läuft der Quickshell-Daemon noch nicht, wird er gestartet.
 page="${1:-}"
 cfg="sarch"
+gtk() {
+    exec python3 "$HOME/.config/sArch/bin/Settings/settings_mask.py" \
+        "$HOME/.config/sArch/bin/Settings/settings_de.ini" --lang de ${page:+--page "$page"}
+}
+
+# Quickshell deaktiviert (install.sh -> Install -> Quickshell) -> GTK-Maske
+[[ -e "$HOME/.config/sArch/quickshell.disabled" ]] && gtk
+command -v qs >/dev/null || gtk
 
 if qs -c "$cfg" ipc call settings toggle "$page" &>/dev/null; then
     exit 0
@@ -18,5 +26,4 @@ for _ in $(seq 1 40); do
 done
 
 # Fallback: alte GTK-Maske
-exec python3 "$HOME/.config/sArch/bin/Settings/settings_mask.py" \
-    "$HOME/.config/sArch/bin/Settings/settings_de.ini" --lang de ${page:+--page "$page"}
+gtk

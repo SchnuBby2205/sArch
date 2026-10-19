@@ -8,7 +8,6 @@ polkit-gnome
 xdg-user-dirs
 imagemagick
 matugen
-quickshell
 rofi
 qt5-wayland
 qt5ct

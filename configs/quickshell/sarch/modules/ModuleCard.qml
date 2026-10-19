@@ -200,6 +200,11 @@ Card {
                 onToggled: v => root.page.set("clock.seconds", v)
             }
             Toggle {
+                label: Backend.t("qs_bar_blink", "Doppelpunkt blinkt")
+                checked: root.page.draft.clock.blink ?? true
+                onToggled: v => root.page.set("clock.blink", v)
+            }
+            Toggle {
                 label: Backend.t("qs_bar_24h", "Zeitformat")
                 labels: ["12 h", "24 h"]
                 checked: root.page.draft.clock.h24

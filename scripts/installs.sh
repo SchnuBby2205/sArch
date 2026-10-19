@@ -85,8 +85,7 @@ installDE() { Banner; checkDebugFlag
     runCMDS 1 Creating "SDDM config directory..." 0 1 20 "mkdir -p /etc/sddm.conf.d"
     runCMDS 0 Installing pywalfox... 2 3 20 "$yayRun python-pywalfox $debugstring"
     runCMDS 0 Installing grimblast... 3 4 20 "$yayRun grimblast $debugstring"
-    runCMDS 0 Installing "Material Symbols..." 4 5 20 "$yayRun ttf-material-symbols-variable $debugstring"
-    runCMDS 0 Downloading Wallpapers... 5 15 20 "git clone --depth 1 https://github.com/SchnuBby2205/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
+    runCMDS 0 Downloading Wallpapers... 4 15 20 "git clone --depth 1 https://github.com/SchnuBby2205/wallpaper.git $HOME/Bilder/Wallpapers $debugstring"
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Creating Theme...
 #   runCMDS 0 Copying configs... 0 3 20 'mkdir -p "$HOME/.config"' 'find "$HOME/sArch/configs/" -maxdepth 1 -mindepth 1 -not -name installConfigs -print0 | xargs -0 mv -t "$HOME/.config/"'
 #   runCMDS 0 Copying binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'mv "$HOME/sArch/bin" "$HOME/.config/sArch"'
@@ -94,6 +93,8 @@ installDE() { Banner; checkDebugFlag
     runCMDS 0 Linking binaries... 3 6 20 'mkdir -p "$HOME/.config/sArch"' 'ln -sfnT "$HOME/sArch/bin" "$HOME/.config/sArch/bin"'
     runCMDS 0 Installing gtk-themes... 6 10 20 'mkdir -p "$HOME/.themes"' 'mv "$HOME/sArch/themes/Matugen" "$HOME/.themes/"'
     runCMDS 0 Caching "fonts and wallpapers..." 10 20 20 'mkdir -p "$HOME/.local/share/fonts"' 'mv "$HOME/sArch/fonts" "$HOME/.local/share/"' 'fc-cache'
+  [[ "$debug" == false ]] && myPrint step ok
+  applyQuickshell "${quickshell:-true}" install
   addFirstbootAutostart
   [[ "$debug" == false ]] && myPrint step ok && myPrint step Starting Services...
     runCMDS 0 Starting "Greeter (SDDM)..." 0 10 20 "sudo systemctl enable sddm.service $debugstring"
@@ -106,6 +107,69 @@ installDE() { Banner; checkDebugFlag
     | sudo tee "$_SDDM_FIRSTBOOT" >/dev/null
   Banner
   myPrint countdown 3 "Reboot in"; reboot
+}
+
+# ---------------------------------------------------------------------------
+# Quickshell (Bar + Einstellungen) an/aus
+# ---------------------------------------------------------------------------
+# Schalter zur Laufzeit: ~/.config/sArch/quickshell.disabled
+#   vorhanden -> autostart (bin/sarch_shell.sh) startet nichts, Einstellungen = GTK-Maske
+#   fehlt     -> Quickshell läuft (Bar + Quickshell-Einstellungen)
+_QS_MARKER="$HOME/.config/sArch/quickshell.disabled"
+_QS_CONFIG="sarch"
+
+_qsRunning() {
+  { command -v qs >/dev/null && qs -c "$_QS_CONFIG" ipc show &>/dev/null; } \
+    || pgrep -f "(^|/)[q](s|uickshell) .*-c ${_QS_CONFIG}( |\$)" >/dev/null
+}
+
+# applyQuickshell true|false [install]
+#   install: im Installer-Ablauf (kein laufendes Hyprland, eigene Stage)
+applyQuickshell() {
+  local want=$1 mode=${2:-} repo
+  repo=$(cd "$sARCH_MAIN" && pwd)
+  checkDebugFlag
+  if [[ "$want" == true ]]; then
+    [[ "$debug" == false ]] && myPrint step Enabling "Quickshell..."
+      dryRun runCMDS 0 Installing quickshell... 0 6 20 "$pacmanRun quickshell $debugstring"
+      dryRun runCMDS 0 Installing "Material Symbols..." 6 12 20 "$yayRun ttf-material-symbols-variable $debugstring" "fc-cache $debugstring"
+      # Shell-Ordner verlinken (Neuinstallation: ~/.config/quickshell kommt schon vom Config-Link)
+      dryRun runCMDS 0 Linking "Quickshell config..." 12 15 20 "mkdir -p '$HOME/.config/sArch'; if [[ -L '$HOME/.config/quickshell' || ! -e '$HOME/.config/quickshell' ]]; then ln -sfnT '$repo/configs/quickshell' '$HOME/.config/quickshell'; else ln -sfnT '$repo/configs/quickshell/$_QS_CONFIG' '$HOME/.config/quickshell/$_QS_CONFIG'; fi" "rm -f '$_QS_MARKER'"
+      if [[ "$mode" != install ]] && pgrep -x Hyprland >/dev/null; then
+        dryRun runCMDS 0 Starting quickshell... 15 20 20 "_qs=\$(command -v qs || command -v quickshell); pgrep -f '(^|/)[q](s|uickshell) .*-c $_QS_CONFIG( |\$)' >/dev/null || setsid -f \"\$_qs\" -c $_QS_CONFIG -n -d >/dev/null 2>&1 </dev/null"
+      fi
+    [[ "$debug" == false ]] && myPrint step ok
+  else
+    [[ "$debug" == false ]] && myPrint step Disabling "Quickshell..."
+      dryRun runCMDS 0 Disabling autostart... 0 10 20 "mkdir -p '$HOME/.config/sArch' && touch '$_QS_MARKER'"
+      dryRun runCMDS 0 Stopping quickshell... 10 20 20 "command -v qs >/dev/null && qs kill -c $_QS_CONFIG &>/dev/null; pkill -f '(^|/)[q](s|uickshell) .*-c $_QS_CONFIG( |\$)' || true"
+    [[ "$debug" == false ]] && myPrint step ok
+  fi
+  return 0
+}
+
+# Menüpunkt Install -> Quickshell
+installQuickshell() {
+  local sel state
+  if [[ -e "$_QS_MARKER" ]]; then state="deaktiviert"; else state="aktiviert"; fi
+  _qsRunning && state+=", läuft" || state+=", läuft nicht"
+  Banner
+  sel=$(list "Quickshell (Bar + Einstellungen) – aktuell: $state" "Aktivieren" "Deaktivieren" "Back") || return 1
+  case "$sel" in
+    0) quickshell=true;  setSetting quickshell true;  applyQuickshell true ;;
+    1) quickshell=false; setSetting quickshell false; applyQuickshell false ;;
+    *) return 0 ;;
+  esac
+  Banner
+  if [[ "$quickshell" == true ]]; then
+    myPrint print green "Quickshell ist aktiviert.\n"
+    myPrint print white "Bar + Einstellungen laufen jetzt (SUPER+ALT+S, SUPER+W).\n"
+  else
+    myPrint print yellow "Quickshell ist deaktiviert.\n"
+    myPrint print white "Keine Bar, SUPER+ALT+S öffnet wieder die GTK-Einstellungen.\n"
+  fi
+  sleep 2
+  return 0
 }
 
 # ---------------------------------------------------------------------------

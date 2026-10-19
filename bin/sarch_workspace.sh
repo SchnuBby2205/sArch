@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Wechselt den Workspace (von der Quickshell-Bar aufgerufen).
+# Wechselt den Workspace (manuell / für Skripte; die Bar dispatcht direkt per IPC).
 #   sarch_workspace.sh 3      -> Workspace 3
 #   sarch_workspace.sh e+1    -> nächster belegter Workspace (e-1 = vorheriger)
 # Probiert der Reihe nach die klassische Dispatcher-Syntax und die Lua-Varianten,
@@ -14,10 +14,10 @@ attempt() {
     [[ "${out,,}" == ok* ]]
 }
 
-attempt hyprctl dispatch workspace "$ws" && exit 0
-first="$out"
-attempt hyprctl dispatch "hl.dsp.focus({ workspace = $lua })" && exit 0
+attempt hyprctl dispatch "hl.dsp.focus({ workspace = $lua })" && exit 0   # Hyprland >= 0.56 (Lua)
 second="$out"
+attempt hyprctl dispatch workspace "$ws" && exit 0                         # ältere Hyprland-Versionen
+first="$out"
 attempt hyprctl eval "hl.dispatch(hl.dsp.focus({ workspace = $lua }))" && exit 0
 
 mkdir -p "${log%/*}"

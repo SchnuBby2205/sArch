@@ -46,10 +46,10 @@ Item {
     implicitHeight: vertical ? track.len + 12 : thick
 
     property real wheelAcc: 0
-    readonly property string wsScript: `${Quickshell.env("HOME")}/.config/sArch/bin/sarch_workspace.sh`
-
+    // Hyprland 0.56 (Lua-Config): "dispatch" erwartet einen Lua-Ausdruck, kein "workspace 3" mehr
     function go(id) {
-        Quickshell.execDetached([wsScript, String(id)]);
+        const ws = /^\d+$/.test(String(id)) ? String(id) : `"${id}"`;
+        Hyprland.dispatch(`hl.dsp.focus({ workspace = ${ws} })`);
     }
 
     Item {

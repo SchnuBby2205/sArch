@@ -135,7 +135,10 @@ Singleton {
                 return f;
         return list[list.length - 1];
     }
-    readonly property string sans: pickFont(["Rubik", "Google Sans", "Inter", "Noto Sans", "Cantarell", "DejaVu Sans", "sans-serif"])
+    // Oberflächen-Schrift aus den Einstellungen (Schriften → Oberfläche) – dieselbe wie Rofi/Dunst
+    property string uiFont: ""
+    readonly property string fallbackSans: pickFont(["Rubik", "Google Sans", "Inter", "Noto Sans", "Cantarell", "DejaVu Sans", "sans-serif"])
+    readonly property string sans: uiFont !== "" && Qt.fontFamilies().indexOf(uiFont) >= 0 ? uiFont : fallbackSans
     readonly property string mono: pickFont(["JetBrainsMono Nerd Font", "JetBrainsMonoNL Nerd Font", "JetBrains Mono", "Iosevka Nerd Font", "DejaVu Sans Mono", "monospace"])
     readonly property string icons: "Material Symbols Rounded"
 
@@ -181,6 +184,41 @@ Singleton {
             spatialSlow: 650,
             effects: 200
         })
+    }
+
+    // ── Oberflächen-Schrift beobachten (rofi: mainfont: "Familie 12", dunst: font = "Familie 12") ──
+    readonly property string rofiFontPath: Quickshell.env("SARCH_UI_FONT_FILE") || `${home}/.config/rofi/colors.rasi`
+    readonly property string dunstFontPath: `${home}/.config/dunst/dunstrc`
+
+    function fontFrom(txt, re) {
+        const m = re.exec(txt || "");
+        if (!m)
+            return "";
+        return m[1].trim().replace(/\s+\d+(\.\d+)?$/, "");   // Größe am Ende abschneiden
+    }
+    function updateUiFont() {
+        const f = fontFrom(rofiFont.text(), /^\s*mainfont:\s*"([^"]*)"/m) || fontFrom(dunstFont.text(), /^\s*font\s*=\s*"([^"]*)"/m);
+        if (f !== uiFont)
+            uiFont = f;
+    }
+
+    FileView {
+        id: rofiFont
+
+        path: root.rofiFontPath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.updateUiFont()
+    }
+    FileView {
+        id: dunstFont
+
+        path: root.dunstFontPath
+        watchChanges: true
+        printErrors: false
+        onFileChanged: reload()
+        onLoaded: root.updateUiFont()
     }
 
     // ── matugen-Farben laden + live beobachten ───────────────────────────────

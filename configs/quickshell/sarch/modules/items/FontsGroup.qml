@@ -63,8 +63,8 @@ Item {
 
             order: 0
             width: (grid.width - (grid.columns - 1) * 14) / grid.columns
-            title: Backend.t("font_ui_group", "Oberfläche (Dunst + Rofi)")
-            subtitle: Backend.t("font_ui_desc", "Schrift für Benachrichtigungen und Menüs")
+            title: Backend.t("font_ui_group", "Oberfläche (Dunst, Rofi, Quickshell)")
+            subtitle: Backend.t("font_ui_desc", "Schrift für Benachrichtigungen, Menüs, Bar und Einstellungen")
             icon: "notifications"
             families: root.fontData?.families ?? []
             originalFamily: root.fontData?.ui.family ?? ""

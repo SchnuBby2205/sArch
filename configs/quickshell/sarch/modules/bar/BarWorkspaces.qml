@@ -26,7 +26,20 @@ Item {
                 v[m.activeWorkspace.id] = true;
         return v;
     }
+    // belegt = mindestens ein Fenster darauf (Hyprland führt auch leere Workspaces, z. B. persistente)
     readonly property var occupied: {
+        const o = {};
+        for (const t of (Hyprland.toplevels?.values ?? []))
+            if (t?.workspace?.id > 0)
+                o[t.workspace.id] = true;
+        // Rückfall, falls die Fensterliste (noch) leer ist: Fensterzahl aus der Hyprland-IPC
+        for (const w of (Hyprland.workspaces?.values ?? []))
+            if (w.id > 0 && (w.lastIpcObject?.windows ?? 0) > 0)
+                o[w.id] = true;
+        return o;
+    }
+    // alle Workspaces, die Hyprland gerade kennt (für die Anzahl der Slots)
+    readonly property var existing: {
         const o = {};
         for (const w of (Hyprland.workspaces?.values ?? []))
             if (w.id > 0)
@@ -35,7 +48,7 @@ Item {
     }
     readonly property int count: {
         let n = Math.max(1, cfg?.workspaces?.count ?? 8);
-        for (const k in occupied)
+        for (const k in existing)
             n = Math.max(n, Number(k));
         return Math.max(n, activeId);
     }

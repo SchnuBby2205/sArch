@@ -272,13 +272,17 @@ ShellRoot {
     }
 
     // ── Benachrichtigungen: Popups ──
+    // Position aus den Einstellungen (Leiste → Benachrichtigungen): top|middle|bottom - left|center|right
     PanelWindow {
+        readonly property string pos: BarConfig.current.notifications?.position ?? "top-right"
         visible: Notifs.popupModel.count > 0
         screen: shell.notifScreen
         color: "transparent"
         anchors {
-            top: true
-            right: true
+            top: pos.startsWith("top")
+            bottom: pos.startsWith("bottom")
+            left: pos.endsWith("left")
+            right: pos.endsWith("right")
         }
         implicitWidth: popups.implicitWidth
         implicitHeight: popups.implicitHeight
@@ -291,6 +295,7 @@ ShellRoot {
             id: popups
 
             anchors.fill: parent
+            position: parent.pos
         }
     }
 

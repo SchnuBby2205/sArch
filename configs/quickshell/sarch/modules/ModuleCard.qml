@@ -14,8 +14,8 @@ Card {
     readonly property var origMod: page.original.modules.find(m => m.id === info.id) ?? { id: info.id, zone: "off" }
     readonly property int idx: page.draft.modules.findIndex(m => m.id === info.id)
     readonly property bool off: mod.zone === "off"
-    readonly property bool hasOptions: ["clock", "date", "workspaces", "audio"].indexOf(info.id) >= 0
-    readonly property string optKey: info.id === "clock" ? "clock" : info.id === "date" ? "date" : info.id === "workspaces" ? "workspaces" : info.id === "audio" ? "audio" : ""
+    readonly property bool hasOptions: ["clock", "date", "workspaces", "audio", "notifications"].indexOf(info.id) >= 0
+    readonly property string optKey: hasOptions ? info.id : ""
     readonly property bool modified: mod.zone !== origMod.zone || idx !== page.original.modules.findIndex(m => m.id === info.id)
                                      || (optKey !== "" && JSON.stringify(page.draft[optKey]) !== JSON.stringify(page.original[optKey]))
 
@@ -161,6 +161,7 @@ Card {
             sourceComponent: root.info.id === "clock" ? clockOpts
                            : root.info.id === "date" ? dateOpts
                            : root.info.id === "workspaces" ? wsOpts
+                           : root.info.id === "notifications" ? notifOpts
                            : audioOpts
         }
     }
@@ -330,6 +331,88 @@ Card {
                     font.weight: Font.Bold
                     color: Theme.primary
                 }
+            }
+        }
+    }
+
+    Component {
+        id: notifOpts
+
+        Row {
+            spacing: 14
+
+            Txt {
+                width: 190
+                anchors.verticalCenter: parent.verticalCenter
+                text: Backend.t("qs_bar_notif_pos", "Position der Popups")
+                color: Theme.surfaceFgDim
+            }
+
+            // Bildschirm als 3×3-Raster: Klick auf eine Zelle setzt die Position
+            Rectangle {
+                id: screenBox
+
+                readonly property string cur: root.page.draft.notifications?.position ?? "top-right"
+                readonly property var rows: ["top", "middle", "bottom"]
+                readonly property var cols: ["left", "center", "right"]
+                width: 168
+                height: 104
+                radius: 12
+                color: Theme.alpha(Theme.surface, 0.6)
+                border.width: 1
+                border.color: Theme.alpha(Theme.outline, 0.3)
+
+                Grid {
+                    anchors.fill: parent
+                    anchors.margins: 6
+                    rows: 3
+                    columns: 3
+                    spacing: 4
+
+                    Repeater {
+                        model: 9
+
+                        Rectangle {
+                            id: cell
+
+                            required property int index
+                            readonly property string pos: `${screenBox.rows[Math.floor(index / 3)]}-${screenBox.cols[index % 3]}`
+                            readonly property bool sel: screenBox.cur === pos
+                            width: (screenBox.width - 12 - 8) / 3
+                            height: (screenBox.height - 12 - 8) / 3
+                            radius: 7
+                            color: sel ? Theme.alpha(Theme.primary, 0.22) : cellArea.containsMouse ? Theme.alpha(Theme.surfaceFg, 0.08) : "transparent"
+                            Behavior on color { CAnim {} }
+
+                            // Mini-Benachrichtigung in der gewählten Ecke
+                            Rectangle {
+                                anchors.centerIn: parent
+                                width: parent.width * 0.72
+                                height: parent.height * 0.42
+                                radius: 4
+                                color: Theme.primary
+                                scale: cell.sel ? 1 : 0
+                                Behavior on scale { Anim { curve: "spatialFast" } }
+                            }
+                            StateLayer {
+                                id: cellArea
+
+                                radius: 7
+                                tint: Theme.primary
+                                onClicked: root.page.set("notifications.position", cell.pos)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Txt {
+                anchors.verticalCenter: parent.verticalCenter
+                text: ({ "top-left": "Oben links", "top-center": "Oben Mitte", "top-right": "Oben rechts",
+                         "middle-left": "Mitte links", "middle-center": "Mitte", "middle-right": "Mitte rechts",
+                         "bottom-left": "Unten links", "bottom-center": "Unten Mitte", "bottom-right": "Unten rechts" })[root.page.draft.notifications?.position ?? "top-right"] ?? ""
+                font.weight: Font.DemiBold
+                color: Theme.primary
             }
         }
     }

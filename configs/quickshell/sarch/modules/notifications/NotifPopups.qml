@@ -7,6 +7,9 @@ Item {
     id: root
 
     readonly property real cardWidth: 400
+    property string position: "top-right"
+    readonly property bool fromBottom: position.startsWith("bottom")
+    readonly property string side: position.endsWith("left") ? "left" : position.endsWith("right") ? "right" : "center"
     implicitWidth: cardWidth + 24
     implicitHeight: Math.max(1, list.contentHeight + 24)
 
@@ -19,11 +22,13 @@ Item {
         height: contentHeight
         interactive: false
         spacing: 10
+        // unten: neueste Meldung direkt am Rand, der Stapel wächst nach oben
+        verticalLayoutDirection: root.fromBottom ? ListView.BottomToTop : ListView.TopToBottom
         model: Notifs.popupModel
 
         add: Transition {
             ParallelAnimation {
-                Anim { property: "x"; from: root.cardWidth * 0.6; to: 0; curve: "spatialSlow" }
+                Anim { property: "x"; from: root.side === "left" ? -root.cardWidth * 0.6 : root.side === "right" ? root.cardWidth * 0.6 : 0; to: 0; curve: "spatialSlow" }
                 Anim { property: "opacity"; from: 0; to: 1; curve: "effects"; duration: 260 }
                 Anim { property: "scale"; from: 0.92; to: 1; curve: "spatial" }
             }

@@ -22,6 +22,8 @@ Singleton {
         date: { format: "ddd, d. MMM" },
         workspaces: { count: 8, numbers: true, preview: true },
         audio: { percent: true },
+        // Popups: top|middle|bottom - left|center|right (wie Dunst "origin")
+        notifications: { position: "top-right" },
         modules: [
             { id: "launcher", zone: "start" },
             { id: "workspaces", zone: "start" },

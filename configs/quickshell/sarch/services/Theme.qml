@@ -116,6 +116,21 @@ Singleton {
 
     readonly property int colorDuration: 650
 
+    // Bar-Farbe aus bar.json: ""/"auto" = Wallpaper (surface), "role:<name>" = Wallpaper-Rolle (folgt dem
+    // Wallpaper), "#rrggbb" = feste Farbe
+    function barColor(spec) {
+        const s = String(spec || "");
+        if (s.startsWith("role:") && root[s.slice(5)] !== undefined)
+            return root[s.slice(5)];
+        if (/^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(s))
+            return Qt.lighter(s, 1.0);          // Text -> color (r/g/b für alpha() und luminance())
+        return root.surface;
+    }
+    function luminance(col) {
+        const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+        return 0.2126 * f(col.r) + 0.7152 * f(col.g) + 0.0722 * f(col.b);
+    }
+
     function alpha(col, a) {
         return Qt.rgba(col.r, col.g, col.b, a);
     }

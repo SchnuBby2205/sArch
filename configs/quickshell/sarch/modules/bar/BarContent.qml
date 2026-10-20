@@ -22,7 +22,7 @@ Item {
     readonly property real gap: style === "docked" ? 0 : cfg.margin
     readonly property real radius: style === "docked" ? 0 : cfg.radius
     readonly property real stripThickness: thick + gap
-    readonly property color bgColor: Theme.alpha(Theme.surface, cfg.opacity)
+    readonly property color bgColor: Theme.alpha(Theme.barColor(cfg.color), cfg.opacity)
     // Ränder blenden mit der Deckkraft aus (bei 0 % bleiben nur die Icons)
     readonly property real edgeFade: Math.min(1, cfg.opacity / 0.3)
 

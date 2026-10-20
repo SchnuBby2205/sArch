@@ -401,6 +401,15 @@ Item {
                 }
             }
 
+            // ── Farbe ─────────────────────────────────────────────────────
+            ColorCard {
+                width: parent.width
+                order: 7
+                value: bp.draft.color ?? ""
+                original: bp.original.color ?? ""
+                onPicked: v => bp.set("color", v)
+            }
+
             // ── Module ────────────────────────────────────────────────────
             Item {
                 width: parent.width
@@ -464,7 +473,7 @@ Item {
 
                         info: modelData
                         page: bp
-                        order: 7 + index
+                        order: 8 + index
                         width: modList.width
                         y: modList.yFor(modelData.id)
                         Behavior on y { Anim { curve: "spatial" } }
@@ -604,6 +613,191 @@ Item {
                         sl.value = sc.value;
                 }
             }
+        }
+    }
+
+    // Farbe der Bar: Wallpaper-Rollen (passen sich an), feste Farben, Hex-Eingabe
+    component ColorCard: Card {
+        id: colc
+
+        property string value: ""
+        property string original: ""
+        signal picked(string v)
+
+        readonly property bool modified: value !== original
+        readonly property color shown: Theme.barColor(value)
+        readonly property bool light: Theme.luminance(shown) > 0.45
+
+        readonly property var roles: [
+            { spec: "", label: "Automatisch" },
+            { spec: "role:surfaceContainer", label: "Fläche" },
+            { spec: "role:surfaceHighest", label: "Fläche hell" },
+            { spec: "role:primaryContainer", label: "Primär" },
+            { spec: "role:secondaryContainer", label: "Sekundär" },
+            { spec: "role:tertiaryContainer", label: "Tertiär" },
+            { spec: "role:primary", label: "Akzent" },
+            { spec: "role:tertiary", label: "Akzent 2" }
+        ]
+        readonly property var fixed: ["#000000", "#11111b", "#1e1e2e", "#2e3440", "#1a1b26", "#282828", "#0f2a2e", "#2a0f1f", "#3b2f63", "#ffffff"]
+
+        height: colBody.y + colBody.implicitHeight + 20
+        highlighted: modified
+        Behavior on height { Anim { curve: "spatial" } }
+
+        CardHead {
+            x: 18
+            y: 16
+            icon: "palette"
+            title: Backend.t("qs_bar_color", "Farbe")
+            modified: colc.modified
+        }
+
+        // aktuelle Farbe + Hinweis
+        Row {
+            anchors.right: parent.right
+            anchors.rightMargin: 18
+            y: 18
+            spacing: 10
+            Txt {
+                anchors.verticalCenter: parent.verticalCenter
+                text: colc.value === "" ? "Wallpaper" : colc.value.startsWith("role:") ? "Wallpaper · " + (colc.roles.find(r => r.spec === colc.value)?.label ?? "") : colc.value.toUpperCase()
+                mono: colc.value.startsWith("#")
+                font.pixelSize: Theme.size.small
+                color: Theme.surfaceFgDim
+            }
+            Rectangle {
+                width: 46
+                height: 30
+                radius: 15
+                color: colc.shown
+                border.width: 1
+                border.color: Theme.alpha(Theme.outline, 0.5)
+                Behavior on color { CAnim {} }
+            }
+        }
+
+        Column {
+            id: colBody
+
+            x: 18
+            y: 66
+            width: parent.width - 36
+            spacing: 10
+
+            Txt {
+                text: "Aus dem Wallpaper – passt sich beim Wechsel an"
+                font.pixelSize: Theme.size.tiny
+                font.weight: Font.DemiBold
+                color: Theme.surfaceFgDim
+            }
+            Flow {
+                width: parent.width
+                spacing: 8
+                Repeater {
+                    model: colc.roles
+                    Swatch {
+                        required property var modelData
+                        col: Theme.barColor(modelData.spec)
+                        tip: modelData.label
+                        auto: modelData.spec === ""
+                        sel: colc.value === modelData.spec
+                        onClicked: colc.picked(modelData.spec)
+                    }
+                }
+            }
+
+            Txt {
+                text: "Feste Farbe"
+                font.pixelSize: Theme.size.tiny
+                font.weight: Font.DemiBold
+                color: Theme.surfaceFgDim
+            }
+            Row {
+                spacing: 8
+                Repeater {
+                    model: colc.fixed
+                    Swatch {
+                        required property string modelData
+                        anchors.verticalCenter: parent.verticalCenter
+                        col: modelData
+                        tip: modelData
+                        sel: colc.value.toLowerCase() === modelData
+                        onClicked: colc.picked(modelData)
+                    }
+                }
+                Field {
+                    id: hex
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 130
+                    compact: true
+                    mono: true
+                    placeholder: "#RRGGBB"
+                    text: colc.value.startsWith("#") ? colc.value : ""
+                    onEdited: if (/^#?([0-9a-f]{6})$/i.test(text.trim()))
+                        colc.picked("#" + text.trim().replace("#", "").toLowerCase())
+                    Connections {
+                        target: colc
+                        function onValueChanged() {
+                            const v = colc.value.startsWith("#") ? colc.value : "";
+                            if (!hex.input.activeFocus && hex.text !== v)
+                                hex.text = v;
+                        }
+                    }
+                }
+            }
+            Txt {
+                visible: colc.light
+                text: "Heller Hintergrund: Icons und Schrift der Bar bleiben hell und sind evtl. schlecht lesbar."
+                font.pixelSize: Theme.size.tiny
+                color: Theme.tertiary
+            }
+        }
+    }
+
+    // runder Farbknopf
+    component Swatch: Item {
+        id: sw
+
+        property color col
+        property string tip: ""
+        property bool sel: false
+        property bool auto: false
+        signal clicked
+
+        width: 34
+        height: 34
+
+        Rectangle {
+            anchors.centerIn: parent
+            width: sw.sel ? 34 : 28
+            height: width
+            radius: sw.sel ? 11 : 14
+            color: sw.col
+            border.width: sw.sel ? 3 : 1
+            border.color: sw.sel ? Theme.primary : Theme.alpha(Theme.outline, 0.5)
+            Behavior on width { Anim { curve: "spatialFast" } }
+            Behavior on radius { Anim { curve: "spatialFast" } }
+
+            Icon {
+                anchors.centerIn: parent
+                visible: sw.auto || sw.sel
+                icon: sw.auto ? "wallpaper" : "check"
+                size: 16
+                fill: 1
+                color: Theme.luminance(sw.col) > 0.45 ? "#000000" : "#ffffff"
+            }
+            StateLayer {
+                id: swArea
+
+                radius: parent.radius
+                tint: Theme.surfaceFg
+                onClicked: sw.clicked()
+            }
+        }
+        Tip {
+            text: sw.tip
+            shown: swArea.containsMouse && sw.tip !== ""
         }
     }
 }

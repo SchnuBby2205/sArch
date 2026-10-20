@@ -27,6 +27,14 @@ jobs:
         with:
           persist-credentials: false
 
+      # fertig gebaute AUR-Pakete (Calamares & Co.) vom letzten Lauf – spart das Kompilieren
+      - name: AUR-Cache laden
+        uses: actions/cache@v4
+        with:
+          path: iso/aurcache
+          key: sarch-aur-${{ github.run_id }}
+          restore-keys: sarch-aur-
+
       - name: ISO im Arch-Container bauen
         run: |
           docker run --rm --privileged \
@@ -36,7 +44,7 @@ jobs:
             -e GITHUB_REF_NAME="${{ github.ref_name }}" \
             archlinux/archlinux:latest \
             bash iso/build_iso.sh
-          sudo chown -R "$(id -u):$(id -g)" iso/out
+          sudo chown -R "$(id -u):$(id -g)" iso/out iso/aurcache
 
       - name: ISO hochladen
         uses: actions/upload-artifact@v4

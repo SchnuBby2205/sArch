@@ -11,6 +11,8 @@
 #   SARCH_BRANCH   Branch, den ~/sArch auf dem System verfolgt (Standard: aktueller Branch)
 #   SARCH_WORK     Arbeitsverzeichnis                         (Standard: iso/work)
 #   SARCH_OUT      Ausgabeordner für die ISO                  (Standard: iso/out)
+#   SARCH_AUR_CACHE  fertig gebaute AUR-Pakete zwischen Builds (Standard: iso/aurcache)
+#   SARCH_ZSTD_LEVEL squashfs-Kompression 1-22               (Standard: 6 – schnell, kaum größer als 15)
 #   SARCH_KEEP_WORK=1  Arbeitsverzeichnis nach dem Bauen behalten
 # =============================================================================
 set -euo pipefail
@@ -22,6 +24,8 @@ WORK=${SARCH_WORK:-$ISO_DIR/work}
 OUT=${SARCH_OUT:-$ISO_DIR/out}
 PROFILE=$WORK/profile
 LOCALREPO=$WORK/localrepo
+AURCACHE=${SARCH_AUR_CACHE:-$ISO_DIR/aurcache}
+ZSTD_LEVEL=${SARCH_ZSTD_LEVEL:-6}
 BUILDER=sarchbuild
 GITHUB_URL=https://github.com/SchnuBby2205/sArch.git
 WALLPAPER_REPO=https://github.com/SchnuBby2205/wallpaper.git
@@ -47,7 +51,7 @@ grep -q '^\[multilib\]' /etc/pacman.conf || printf '\n[multilib]\nInclude = /etc
 sed -i 's/^#\?ParallelDownloads.*/ParallelDownloads = 10/' /etc/pacman.conf
 pacman-key --init >/dev/null 2>&1 || true
 pacman-key --populate archlinux >/dev/null 2>&1 || true
-pacman -Syu --noconfirm --needed archiso git base-devel sudo curl
+pacman -Syu --noconfirm --needed archiso git base-devel sudo curl pacman-contrib
 BRANCH=${SARCH_BRANCH:-$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}
 [[ "$BRANCH" == HEAD ]] && BRANCH=${GITHUB_REF_NAME:-main}
 info "Branch: $BRANCH   Kernel: $KERNEL"
@@ -91,19 +95,30 @@ chmod 440 /etc/sudoers.d/90-sarchbuild
 BH=$(getent passwd "$BUILDER" | cut -d: -f6)
 asBuilder() { sudo -u "$BUILDER" env HOME="$BH" MAKEFLAGS="-j$(nproc)" "$@"; }
 
+# Cache: schon gebaute AUR-Pakete vorab installieren -> yay --needed baut nur, was im AUR neuer ist
+mkdir -p "$AURCACHE"
+find "$AURCACHE" -name '*-debug-*.pkg.tar.zst' -delete
+mapfile -t CACHED < <(find "$AURCACHE" -maxdepth 1 -name '*.pkg.tar.zst' | sort)
+if (( ${#CACHED[@]} )); then
+    info "${#CACHED[@]} AUR-Pakete aus dem Cache"
+    if ! pacman -U --noconfirm --needed "${CACHED[@]}" >/dev/null; then
+        warn "Cache nicht komplett installierbar – einzeln (Rest wird neu gebaut)"
+        for _ in 1 2; do for f in "${CACHED[@]}"; do pacman -U --noconfirm --needed "$f" &>/dev/null || true; done; done
+    fi
+fi
+
 # yay-bin zuerst (fertiges Binary, braucht kein Go); baut danach auch AUR-Abhängigkeiten mit
 if ! command -v yay >/dev/null; then
     asBuilder bash -c "rm -rf '$BH/yay-bin' && git clone --depth 1 https://aur.archlinux.org/yay-bin.git '$BH/yay-bin' && cd '$BH/yay-bin' && makepkg -si --noconfirm"
 fi
-AUR_BUILD=()
-for p in "${AUR_PKGS[@]}"; do [[ "$p" == yay-bin ]] || AUR_BUILD+=("$p"); done
-if (( ${#AUR_BUILD[@]} )); then
-    asBuilder yay -S --noconfirm --needed --builddir "$BH/aur" \
-        --answerdiff None --answerclean None --answeredit None --removemake \
-        "${AUR_BUILD[@]}"
-fi
-find "$BH/yay-bin" "$BH/aur" -name '*.pkg.tar.zst' ! -name '*-debug-*' -exec cp -t "$LOCALREPO" {} + 2>/dev/null || true
-ls "$LOCALREPO"/*.pkg.tar.zst &>/dev/null || die "Keine AUR-Pakete gebaut."
+# --needed: was aus dem Cache schon aktuell installiert ist, wird übersprungen
+asBuilder yay -S --noconfirm --needed --builddir "$BH/aur" \
+    --answerdiff None --answerclean None --answeredit None --removemake \
+    "${AUR_PKGS[@]}"
+# neu gebaute Pakete in den Cache, dort nur die neueste Version behalten
+find "$BH/yay-bin" "$BH/aur" -name '*.pkg.tar.zst' ! -name '*-debug-*' -exec cp -t "$AURCACHE" {} + 2>/dev/null || true
+paccache -q -r -k1 -c "$AURCACHE" >/dev/null 2>&1 || true
+cp "$AURCACHE"/*.pkg.tar.zst "$LOCALREPO"/ 2>/dev/null || die "Keine AUR-Pakete vorhanden."
 repo-add -q "$LOCALREPO/sarch-local.db.tar.gz" "$LOCALREPO"/*.pkg.tar.zst
 info "$(ls "$LOCALREPO"/*.pkg.tar.zst | wc -l) Pakete im lokalen Repo"
 
@@ -190,7 +205,7 @@ iso_label="SARCH_$(date +%Y%m)"
 iso_publisher="SchnuBby2205 <https://github.com/SchnuBby2205/sArch>"
 iso_application="sArch Live/Installer"
 airootfs_image_type="squashfs"
-airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '15' '-b' '1M')
+airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '$ZSTD_LEVEL' '-b' '1M')
 file_permissions["/etc/sudoers.d/sarch-live"]="0:0:440"
 file_permissions["/usr/local/bin/sarch-install"]="0:0:755"
 EOF

@@ -13,9 +13,9 @@ BRANCH=$(git -C "$REPO" rev-parse --abbrev-ref HEAD)
 echo "==> Baue sArch-ISO mit $RT (Branch $BRANCH) – dauert je nach Rechner 20-60 Minuten"
 $SUDO $RT run --rm --privileged \
     -v "$REPO:/src" -w /src \
-    -e SARCH_KERNEL="${SARCH_KERNEL:-linux-lts}" -e SARCH_BRANCH="$BRANCH" -e SARCH_KEEP_WORK="${SARCH_KEEP_WORK:-0}" \
+    -e SARCH_KERNEL="${SARCH_KERNEL:-linux-lts}" -e SARCH_BRANCH="$BRANCH" -e SARCH_KEEP_WORK="${SARCH_KEEP_WORK:-0}" -e SARCH_ZSTD_LEVEL="${SARCH_ZSTD_LEVEL:-6}" \
     docker.io/archlinux/archlinux:latest \
     bash iso/build_iso.sh
 # Container läuft als root -> Ergebnis dem Benutzer zurückgeben
-[[ -n "$SUDO" ]] && $SUDO chown -R "$(id -u):$(id -g)" "$REPO/iso/out" "$REPO/iso/work" 2>/dev/null
+[[ -n "$SUDO" ]] && $SUDO chown -R "$(id -u):$(id -g)" "$REPO/iso/out" "$REPO/iso/work" "$REPO/iso/aurcache" 2>/dev/null
 ls -lh "$REPO/iso/out"

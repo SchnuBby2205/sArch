@@ -20,6 +20,13 @@ sudo pacman -S --needed docker && sudo systemctl start docker   # oder: podman
 SARCH_KERNEL=linux ./iso/build_local.sh # anderer Kernel (Standard: linux-lts)
 ```
 
+**Größe:** ca. 2,5–3,5 GB, je nach Umfang des Wallpaper-Repos.
+
+**Bauzeit:** Der erste Build kompiliert Calamares (dauert am längsten). Fertige AUR-Pakete landen in
+`iso/aurcache` (bei GitHub im Actions-Cache) und werden beim nächsten Mal nur neu gebaut, wenn es im
+AUR eine neuere Version gibt. Das Live-System wird mit zstd Stufe 6 gepackt
+(`SARCH_ZSTD_LEVEL=15` für eine etwas kleinere, aber deutlich langsamer gebaute ISO).
+
 Gebaut wird der **letzte Commit**, nicht committete Änderungen sind nicht dabei. Der Build läuft
 in einem Arch-Container, dein System bleibt unverändert.
 

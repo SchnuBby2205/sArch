@@ -334,15 +334,25 @@ _askBackupSpecifics() {
 _isoKernel() { # Kernel-Paket des laufenden Systems (linux, linux-lts, ...)
   cat /usr/lib/modules/"$(uname -r)"/pkgbase 2>/dev/null || echo "${kernel:-linux}"
 }
-# Internet = Namensauflösung + Verbindung (nur Ping auf eine IP reicht pacman nicht)
-_hasInternet() { getent hosts archlinux.org &>/dev/null && ping -c1 -W3 archlinux.org &>/dev/null; }
+# Internet = Namensauflösung + HTTPS (so wie pacman es braucht); jede Prüfung mit Zeitlimit,
+# Ergebnis landet im Log
+_hasInternet() {
+  local dns=fail web=fail
+  timeout 6 getent hosts archlinux.org &>/dev/null && dns=ok
+  [[ $dns == ok ]] && timeout 10 curl -fsS -o /dev/null --max-time 8 https://geo.mirror.pkgbuild.com/ &>/dev/null && web=ok
+  printf '[%(%T)T] Internet-Prüfung: DNS=%s HTTPS=%s\n' -1 "$dns" "$web" >>"${logFile:-/dev/null}"
+  [[ $web == ok ]]
+}
 _removeFirstbootAutostart() {
   sed -i '/sARCH-FIRSTBOOT-BEGIN/,/sARCH-FIRSTBOOT-END/d' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null
 }
 
 installISOFirstboot() { Banner; checkDebugFlag
   local c
+  printf '\n=== ISO-Ersteinrichtung %(%F %T)T ===\n' -1 >>"${logFile:-/dev/null}"
   # --- Internet (ohne geht nur Theme/Firefox) ---
+  myPrint print white "Warte auf Netzwerk und prüfe die Internetverbindung...\n"
+  timeout 25 nm-online -q -t 20 &>/dev/null || true       # NetworkManager kurz Zeit geben
   while ! _hasInternet; do
     Banner
     myPrint print yellow "Keine Internetverbindung.\n\n"
@@ -355,11 +365,12 @@ installISOFirstboot() { Banner; checkDebugFlag
     esac
   done
   local online=false; _hasInternet && online=true
+  printf '[%(%T)T] online=%s\n' -1 "$online" >>"${logFile:-/dev/null}"
 
   if [[ "$online" == true ]]; then
     # schnellste deutsche Mirrors; Fehler hier sind nicht schlimm (Liste von der Installation bleibt)
     [[ "$debug" == false ]] && myPrint step Running "Mirrors..."
-      ( dryRun runCMDS 1 Sorting "German mirrors..." 0 20 20 "reflector --country Germany --protocol https --latest 10 --sort rate --save /etc/pacman.d/mirrorlist $debugstring" ) \
+      ( dryRun runCMDS 1 Sorting "German mirrors..." 0 20 20 "timeout 120 reflector --country Germany --protocol https --latest 10 --sort rate --connection-timeout 3 --download-timeout 5 --save /etc/pacman.d/mirrorlist $debugstring" ) \
         || myPrint print yellow "reflector fehlgeschlagen - nehme die vorhandene Mirrorliste.\n"
     [[ "$debug" == false ]] && myPrint step ok
     bash -c "sudo pacman -Syy $debugstring"

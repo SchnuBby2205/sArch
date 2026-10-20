@@ -349,6 +349,10 @@ _removeFirstbootAutostart() {
 
 installISOFirstboot() { Banner; checkDebugFlag
   local c
+  # Log muss dem Benutzer gehören (ein früherer Lauf kann es als root angelegt haben)
+  if [[ -n "${logFile:-}" && -e "$logFile" && ! -w "$logFile" ]]; then
+    sudo chown "$(id -u):$(id -g)" "$logFile"
+  fi
   printf '\n=== ISO-Ersteinrichtung %(%F %T)T ===\n' -1 >>"${logFile:-/dev/null}"
   # Build-Repo der ISO (file://…) darf nicht in pacman.conf bleiben, sonst bricht jedes pacman -S ab
   if grep -q '^\[sarch-local\]' /etc/pacman.conf 2>/dev/null; then
@@ -375,7 +379,9 @@ installISOFirstboot() { Banner; checkDebugFlag
   if [[ "$online" == true ]]; then
     # schnellste deutsche Mirrors; Fehler hier sind nicht schlimm (Liste von der Installation bleibt)
     [[ "$debug" == false ]] && myPrint step Running "Mirrors..."
-      ( dryRun runCMDS 1 Sorting "German mirrors..." 0 20 20 "reflector --country Germany --protocol https --latest 10 --sort rate --save /etc/pacman.d/mirrorlist $debugstring" ) \
+      # sudo nur für reflector, das Log schreibt der Benutzer (sonst gehört es root und alles danach scheitert);
+      # "failed to rate"-Warnungen (Mirror blockt den Geschwindigkeitstest) sind harmlos -> ausgeblendet
+      ( dryRun runCMDS 0 Sorting "German mirrors..." 0 20 20 "{ sudo reflector --country Germany --protocol https --latest 10 --sort rate --save /etc/pacman.d/mirrorlist 2>&1; } | { grep -v 'failed to rate' || true; } $debugstring" ) \
         || myPrint print yellow "reflector fehlgeschlagen - nehme die vorhandene Mirrorliste.\n"
     [[ "$debug" == false ]] && myPrint step ok
     bash -c "sudo pacman -Syy $debugstring"

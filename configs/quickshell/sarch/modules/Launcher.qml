@@ -17,9 +17,39 @@ Item {
 
     readonly property var results: Apps.search(query)
     readonly property bool showRecent: query.trim() === "" && Apps.recent.length > 0
+    // "!" am Anfang der Suche: ausgeblendete Apps (Rechtsklick -> Einblenden)
+    readonly property bool hiddenMode: query.trim().startsWith("!")
+
+    // Kontextmenü (Rechtsklick auf eine App)
+    property var menuEntry: null
+    property point menuPos: Qt.point(0, 0)
+    readonly property bool menuOpen: menuEntry !== null
+    function openMenu(e, p) {
+        menuEntry = e;
+        menuPos = p;
+    }
+    function closeMenu() {
+        menuEntry = null;
+    }
+    // zuletzt ausgeblendet (für "Rückgängig")
+    property var lastHidden: null
+    function hideApp(e) {
+        closeMenu();
+        Apps.hide(e);
+        lastHidden = e;
+        undoTimer.restart();
+    }
+    Timer {
+        id: undoTimer
+
+        interval: 6000
+        onTriggered: root.lastHidden = null
+    }
     readonly property int columns: 6
 
     function show() {
+        menuEntry = null;
+        lastHidden = null;
         query = "";
         search.text = "";
         animateIn = true;
@@ -147,7 +177,7 @@ Item {
 
                 keyHandler: e => {
                     switch (e.key) {
-                    case Qt.Key_Escape: root.requestClose(); break;
+                    case Qt.Key_Escape: root.menuOpen ? root.closeMenu() : root.requestClose(); break;
                     case Qt.Key_Down: root.move(0, 1); break;
                     case Qt.Key_Up: root.move(0, -1); break;
                     case Qt.Key_Tab: root.move(1, 0); break;
@@ -428,7 +458,15 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.launch(tile.modelData)
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: e => {
+                        if (e.button === Qt.RightButton) {
+                            grid.currentIndex = tile.index;
+                            root.openMenu(tile.modelData, tileArea.mapToItem(panel, e.x, e.y));
+                        } else {
+                            root.launch(tile.modelData);
+                        }
+                    }
                 }
             }
 
@@ -446,8 +484,162 @@ Item {
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: Backend.t("qs_no_results", "Nichts gefunden für „{q}“", { q: root.query })
+                    text: root.hiddenMode ? Backend.t("qs_ln_no_hidden", "Keine ausgeblendeten Apps") : Backend.t("qs_no_results", "Nichts gefunden für „{q}“", { q: root.query })
                     color: Theme.surfaceFgDim
+                }
+            }
+        }
+
+        // ── Kontextmenü ──
+        MouseArea {
+            anchors.fill: parent
+            visible: root.menuOpen
+            z: 40
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: root.closeMenu()
+        }
+        Rectangle {
+            id: ctx
+
+            readonly property var e: root.menuEntry
+            z: 41
+            width: 220
+            height: ctxCol.implicitHeight + 12
+            x: Math.min(root.menuPos.x, panel.width - width - 8)
+            y: Math.min(root.menuPos.y, panel.height - height - 8)
+            radius: Theme.radius.normal
+            color: Theme.surfaceHighest
+            border.width: 1
+            border.color: Theme.alpha(Theme.outline, 0.3)
+            transformOrigin: Item.TopLeft
+            opacity: root.menuOpen ? 1 : 0
+            scale: root.menuOpen ? 1 : 0.85
+            visible: opacity > 0
+            Behavior on opacity { Anim { curve: "effects"; duration: 140 } }
+            Behavior on scale { Anim { curve: "spatialFast" } }
+
+            Column {
+                id: ctxCol
+
+                x: 6
+                y: 6
+                width: parent.width - 12
+
+                Txt {
+                    width: parent.width
+                    leftPadding: 10
+                    topPadding: 4
+                    bottomPadding: 6
+                    text: ctx.e?.name ?? ""
+                    font.pixelSize: Theme.size.tiny
+                    font.weight: Font.DemiBold
+                    color: Theme.surfaceFgDim
+                }
+                Repeater {
+                    model: [
+                        { id: "launch", icon: "play_arrow", label: Backend.t("qs_ln_launch", "Starten") },
+                        root.hiddenMode
+                            ? { id: "show", icon: "visibility", label: Backend.t("qs_ln_unhide", "Wieder einblenden") }
+                            : { id: "hide", icon: "visibility_off", label: Backend.t("qs_ln_hide", "Im Launcher ausblenden") }
+                    ]
+
+                    Rectangle {
+                        id: mi
+
+                        required property var modelData
+                        width: ctxCol.width
+                        height: 38
+                        radius: 10
+                        color: "transparent"
+
+                        Row {
+                            x: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+                            Icon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                icon: mi.modelData.icon
+                                size: 20
+                                fill: miArea.containsMouse ? 1 : 0
+                                color: mi.modelData.id === "hide" ? Theme.error : Theme.surfaceFg
+                            }
+                            Txt {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: mi.modelData.label
+                                color: mi.modelData.id === "hide" ? Theme.error : Theme.surfaceFg
+                            }
+                        }
+                        StateLayer {
+                            id: miArea
+
+                            radius: 10
+                            tint: mi.modelData.id === "hide" ? Theme.error : Theme.surfaceFg
+                            onClicked: {
+                                const e = ctx.e;
+                                if (mi.modelData.id === "launch") {
+                                    root.closeMenu();
+                                    root.launch(e);
+                                } else if (mi.modelData.id === "hide") {
+                                    root.hideApp(e);
+                                } else {
+                                    root.closeMenu();
+                                    Apps.unhide(e);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // ── "Ausgeblendet · Rückgängig" ──
+        Rectangle {
+            z: 30
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: footer.y - height - 8
+            width: undoRow.implicitWidth + 28
+            height: 40
+            radius: 20
+            color: Theme.surfaceHighest
+            border.width: 1
+            border.color: Theme.alpha(Theme.outline, 0.3)
+            opacity: root.lastHidden ? 1 : 0
+            scale: root.lastHidden ? 1 : 0.9
+            visible: opacity > 0
+            Behavior on opacity { Anim { curve: "effects" } }
+            Behavior on scale { Anim { curve: "spatialFast" } }
+
+            Row {
+                id: undoRow
+
+                anchors.centerIn: parent
+                spacing: 12
+                Icon {
+                    anchors.verticalCenter: parent.verticalCenter
+                    icon: "visibility_off"
+                    size: 18
+                    color: Theme.surfaceFgDim
+                }
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.t("qs_ln_hidden_toast", "„{name}“ ausgeblendet", { name: root.lastHidden?.name ?? "" })
+                    font.pixelSize: Theme.size.small + 1
+                }
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.t("qs_ln_undo", "Rückgängig")
+                    font.pixelSize: Theme.size.small + 1
+                    font.weight: Font.Bold
+                    color: Theme.primary
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -8
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            Apps.unhide(root.lastHidden);
+                            root.lastHidden = null;
+                        }
+                    }
                 }
             }
         }
@@ -470,7 +662,9 @@ Item {
                 Keycap { label: "↑↓←→"; anchors.verticalCenter: parent.verticalCenter }
                 Txt { text: Backend.t("qs_ln_move", "wählen"); color: Theme.surfaceFgDim; font.pixelSize: Theme.size.small; anchors.verticalCenter: parent.verticalCenter; rightPadding: 12 }
                 Keycap { label: "Esc"; anchors.verticalCenter: parent.verticalCenter }
-                Txt { text: Backend.t("qs_ln_close", "schließen"); color: Theme.surfaceFgDim; font.pixelSize: Theme.size.small; anchors.verticalCenter: parent.verticalCenter }
+                Txt { text: Backend.t("qs_ln_close", "schließen"); color: Theme.surfaceFgDim; font.pixelSize: Theme.size.small; anchors.verticalCenter: parent.verticalCenter; rightPadding: 12 }
+                Keycap { label: "!"; anchors.verticalCenter: parent.verticalCenter }
+                Txt { text: Backend.t("qs_ln_hidden", "ausgeblendete"); color: Theme.surfaceFgDim; font.pixelSize: Theme.size.small; anchors.verticalCenter: parent.verticalCenter }
             }
 
             Txt {
@@ -478,7 +672,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width / 2
                 horizontalAlignment: Text.AlignRight
-                text: root.results[grid.currentIndex]?.comment || root.results[grid.currentIndex]?.genericName || ""
+                text: root.hiddenMode ? Backend.t("qs_ln_hidden_hint", "Ausgeblendet · Rechtsklick: Einblenden")
+                    : root.results[grid.currentIndex]?.comment || root.results[grid.currentIndex]?.genericName || Backend.t("qs_ln_menu_hint", "Rechtsklick: Ausblenden")
                 font.pixelSize: Theme.size.small
                 color: Theme.surfaceFgDim
             }

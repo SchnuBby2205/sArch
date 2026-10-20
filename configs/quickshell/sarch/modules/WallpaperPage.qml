@@ -752,7 +752,7 @@ Item {
         width: 560
         height: transCol.implicitHeight + 36
         anchors.right: toolbar.right
-        y: toolbar.y - height - 8          // klappt nach oben über das Vorschaubild auf
+        y: Math.max(4, toolbar.y - height - 8)     // klappt nach oben über das Vorschaubild auf
         radius: Theme.radius.xl
         color: Theme.alpha(Theme.surfaceContainer, 0.98)
         border.width: 1
@@ -776,7 +776,7 @@ Item {
             x: 18
             y: 18
             width: parent.width - 36
-            spacing: 14
+            spacing: 12
 
             // Kopf
             Item {
@@ -811,19 +811,32 @@ Item {
                         }
                     }
                 }
-                IconButton {
+                Row {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    icon: "close"
-                    size: 32
-                    onClicked: page.transOpen = false
+                    spacing: 6
+                    Btn {
+                        anchors.verticalCenter: parent.verticalCenter
+                        icon: "play_arrow"
+                        text: Backend.t("qs_wp_try", "Ausprobieren")
+                        variant: "tonal"
+                        h: 34
+                        disabled: Theme.wallpaper === ""
+                        onClicked: WallTrans.tryNow()
+                    }
+                    IconButton {
+                        anchors.verticalCenter: parent.verticalCenter
+                        icon: "close"
+                        size: 32
+                        onClicked: page.transOpen = false
+                    }
                 }
             }
 
             // Effekte
             Grid {
                 width: parent.width
-                columns: 5
+                columns: 4
                 spacing: 8
 
                 Repeater {
@@ -834,8 +847,8 @@ Item {
 
                         required property var modelData
                         readonly property bool sel: WallTrans.type === modelData.id
-                        width: (transCol.width - 4 * 8) / 5
-                        height: 72
+                        width: (transCol.width - 3 * 8) / 4
+                        height: 58
                         radius: sel ? 18 : 14
                         color: sel ? Theme.primaryContainer : ttArea.containsMouse ? Theme.surfaceHighest : Theme.alpha(Theme.surfaceHigh, 0.8)
                         border.width: sel ? 2 : 0
@@ -957,19 +970,6 @@ Item {
                 }
             }
 
-            // Ausprobieren
-            Item {
-                width: parent.width
-                height: 40
-                Btn {
-                    anchors.right: parent.right
-                    icon: "play_arrow"
-                    text: Backend.t("qs_wp_try", "Ausprobieren")
-                    variant: "tonal"
-                    disabled: Theme.wallpaper === ""
-                    onClicked: WallTrans.tryNow()
-                }
-            }
         }
     }
 }

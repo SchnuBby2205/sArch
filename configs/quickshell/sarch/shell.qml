@@ -6,6 +6,7 @@
 //   App-Launcher:      qs -c sarch ipc call launcher toggle      | open | close
 //   Powermenü:         qs -c sarch ipc call power toggle         | open | close
 //   Benachrichtigungen: qs -c sarch ipc call notifications toggle | dnd | clear
+//   Wallpaper-Effekt:  qs -c sarch ipc call wallpaper transition <alt> <neu> slice|flip <sekunden>
 //   Bequemer:          bin/sarch_settings.sh [seite], bin/sarch_launcher.sh, bin/sarch_power.sh
 
 import QtQuick
@@ -135,6 +136,43 @@ ShellRoot {
         function onCountChanged() {
             if (Notifs.popupModel.count === 1)
                 shell.notifScreen = shell.focusedScreen();
+        }
+    }
+
+    IpcHandler {
+        target: "wallpaper"
+
+        function transition(oldImg: string, newImg: string, type: string, duration: real): void {
+            WallFxState.start(oldImg, newImg, type, duration);
+        }
+    }
+
+    // eigene Wallpaper-Übergänge: Overlay direkt über dem Wallpaper (unter Fenstern und Bar)
+    Variants {
+        model: Quickshell.screens
+
+        PanelWindow {
+            required property var modelData
+
+            screen: modelData
+            visible: WallFxState.active
+            color: "transparent"
+            anchors {
+                top: true
+                bottom: true
+                left: true
+                right: true
+            }
+            exclusiveZone: 0
+            WlrLayershell.namespace: "sarch-wallfx"
+            WlrLayershell.layer: WlrLayer.Bottom
+            WlrLayershell.exclusionMode: ExclusionMode.Ignore
+            WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+            mask: Region {}
+
+            WallFx {
+                anchors.fill: parent
+            }
         }
     }
 

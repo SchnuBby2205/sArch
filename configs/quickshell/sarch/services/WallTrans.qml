@@ -25,6 +25,8 @@ Singleton {
         { id: "wave", icon: "waves", label: "Welle", desc: "Wellenkante in zufälligem Winkel" },
         { id: "wipe", icon: "swipe_right", label: "Wischen", desc: "Gerade Kante in zufälligem Winkel" },
         { id: "slide", icon: "open_in_full", label: "Schieben", desc: "Von einem zufälligen Rand" },
+        { id: "slice", icon: "content_cut", label: "Zerschneiden", desc: "Schräge Streifen fliegen nach rechts oben und links unten weg" },
+        { id: "flip", icon: "grid_view", label: "Kacheln", desc: "Kacheln klappen in einer Welle um" },
         { id: "center", icon: "center_focus_strong", label: "Mitte", desc: "Kreis aus der Bildschirmmitte" },
         { id: "any", icon: "scatter_plot", label: "Irgendwo", desc: "Kreis an einer zufälligen Stelle" },
         { id: "fade", icon: "gradient", label: "Überblenden", desc: "Weiches Ineinanderblenden" },
@@ -45,6 +47,8 @@ Singleton {
         saveTimer.restart();
     }
     // aktuelles Wallpaper mit dem eingestellten Übergang neu setzen
+    // Vorschau: erst auf eine abgedunkelte Version des Bildes, dann zurück – beide Male mit dem Effekt
+    // (awww zeigt beim Setzen desselben Bildes keinen Übergang)
     function tryNow() {
         saveTimer.stop();
         save();
@@ -61,7 +65,7 @@ Singleton {
         id: tryTimer
 
         interval: 150      // Datei erst schreiben lassen
-        onTriggered: Quickshell.execDetached([root.setter])
+        onTriggered: Quickshell.execDetached([root.setter, "--try"])
     }
 
     FileView {

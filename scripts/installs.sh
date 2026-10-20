@@ -334,7 +334,8 @@ _askBackupSpecifics() {
 _isoKernel() { # Kernel-Paket des laufenden Systems (linux, linux-lts, ...)
   cat /usr/lib/modules/"$(uname -r)"/pkgbase 2>/dev/null || echo "${kernel:-linux}"
 }
-_hasInternet() { ping -c1 -W3 archlinux.org &>/dev/null || ping -c1 -W3 1.1.1.1 &>/dev/null; }
+# Internet = Namensauflösung + Verbindung (nur Ping auf eine IP reicht pacman nicht)
+_hasInternet() { getent hosts archlinux.org &>/dev/null && ping -c1 -W3 archlinux.org &>/dev/null; }
 _removeFirstbootAutostart() {
   sed -i '/sARCH-FIRSTBOOT-BEGIN/,/sARCH-FIRSTBOOT-END/d' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null
 }
@@ -356,6 +357,11 @@ installISOFirstboot() { Banner; checkDebugFlag
   local online=false; _hasInternet && online=true
 
   if [[ "$online" == true ]]; then
+    # schnellste deutsche Mirrors; Fehler hier sind nicht schlimm (Liste von der Installation bleibt)
+    [[ "$debug" == false ]] && myPrint step Running "Mirrors..."
+      ( dryRun runCMDS 1 Sorting "German mirrors..." 0 20 20 "reflector --country Germany --protocol https --latest 10 --sort rate --save /etc/pacman.d/mirrorlist $debugstring" ) \
+        || myPrint print yellow "reflector fehlgeschlagen - nehme die vorhandene Mirrorliste.\n"
+    [[ "$debug" == false ]] && myPrint step ok
     bash -c "sudo pacman -Syy $debugstring"
     # --- NVIDIA: die ISO bringt nur Mesa (AMD/Intel) mit ---
     if lspci 2>/dev/null | grep -Ei 'vga|3d|display' | grep -qi nvidia; then
@@ -364,7 +370,8 @@ installISOFirstboot() { Banner; checkDebugFlag
       if [[ "$c" == 0 ]]; then
         [[ "$debug" == false ]] && myPrint step Installing "NVIDIA..."
           readList "$sARCH_INSTALLCONFIGS/nvidia"
-          dryRun runCMDS 0 Installing "$name" 0 20 20 "$pacmanRun ${list[*]} $(_isoKernel)-headers $debugstring"
+          ( dryRun runCMDS 0 Installing "$name" 0 20 20 "$pacmanRun ${list[*]} $(_isoKernel)-headers $debugstring" ) \
+            || myPrint print red "NVIDIA-Treiber konnten nicht installiert werden (siehe $logFile).\n"
         [[ "$debug" == false ]] && myPrint step ok
       fi
     fi
@@ -374,8 +381,10 @@ installISOFirstboot() { Banner; checkDebugFlag
     if [[ "$c" == 0 ]]; then
       [[ "$debug" == false ]] && myPrint step Installing "Extra programs..."
         readList "$sARCH_INSTALLCONFIGS/programs_extra"
-        dryRun runCMDS 0 Installing "$name" 0 15 20 "$pacmanRun ${list[*]} $debugstring"
-        dryRun runCMDS 0 Installing "dxvk-bin..." 15 20 20 "$yayRun dxvk-bin $debugstring"
+        ( dryRun runCMDS 0 Installing "$name" 0 15 20 "$pacmanRun ${list[*]} $debugstring" ) \
+          || myPrint print red "Zusatzprogramme konnten nicht installiert werden (siehe $logFile).\n"
+        ( dryRun runCMDS 0 Installing "dxvk-bin..." 15 20 20 "$yayRun dxvk-bin $debugstring" ) \
+          || myPrint print red "dxvk-bin konnte nicht installiert werden.\n"
       [[ "$debug" == false ]] && myPrint step ok
     fi
   fi

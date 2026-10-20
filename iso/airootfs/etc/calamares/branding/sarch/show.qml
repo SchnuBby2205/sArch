@@ -10,7 +10,7 @@ Presentation {
         interval: 7000
         running: false
         repeat: true
-        onTriggered: nextSlide()
+        onTriggered: presentation.goToNextSlide()
     }
 
     component SarchSlide: Slide {

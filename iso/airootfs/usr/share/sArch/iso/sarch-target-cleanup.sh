@@ -33,11 +33,25 @@ PRESET
     log "  $kb"
 done
 
-log "Pacman: Keyring + Mirrors"
+log "DNS: systemd-resolved (NetworkManager trägt die Server dort ein)"
+ln -sfn ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+
+log "Pacman: Keyring + deutsche Mirrors"
 pacman-key --init >/dev/null 2>&1
 pacman-key --populate archlinux >/dev/null 2>&1
-grep -q '^[[:space:]]*Server' /etc/pacman.d/mirrorlist 2>/dev/null \
-    || echo 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' >> /etc/pacman.d/mirrorlist
+# aus der Liste von pacman-mirrorlist nur die deutschen HTTPS-Mirrors; mit Internet sortiert
+# die Ersteinrichtung sie per reflector nach Geschwindigkeit
+ml=/etc/pacman.d/mirrorlist
+src=$ml; [[ -f $ml.pacnew ]] && src=$ml.pacnew
+de=$(awk '/^## Germany/{g=1; next} /^## /{g=0} g && /^#?Server = https:/{sub(/^#/, ""); print}' "$src")
+if [[ -n "$de" ]]; then
+    printf '## sArch: deutsche Mirrors (reflector --country Germany aktualisiert die Liste)\n%s\n' "$de" > "$ml"
+else
+    grep -q '^[[:space:]]*Server' "$ml" 2>/dev/null \
+        || echo 'Server = https://geo.mirror.pkgbuild.com/$repo/os/$arch' >> "$ml"
+fi
+rm -f "$ml.pacnew"
+log "  $(grep -c '^Server' "$ml") Mirrors"
 
 log "Live-Pakete entfernen"
 mapfile -t keep < <(grep -v '^[[:space:]]*$' "$D/target-packages.txt")

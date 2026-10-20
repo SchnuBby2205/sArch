@@ -253,9 +253,9 @@ Item {
                     Behavior on opacity { Anim { curve: "effects" } }
                 }
 
-                // belegter, aber nicht aktiver Workspace: kleiner Akzent-Strich
+                // belegter, aber nicht aktiver Workspace: kleiner Akzent-Strich (Zahlen und Punkte)
                 Rectangle {
-                    visible: root.numbers && slot.isOccupied && !slot.isActive
+                    visible: slot.isOccupied && !slot.isActive
                     width: root.vertical ? 3 : root.cell * 0.3
                     height: root.vertical ? root.cell * 0.3 : 3
                     radius: 1.5

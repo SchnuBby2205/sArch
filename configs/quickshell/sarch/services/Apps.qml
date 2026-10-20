@@ -86,15 +86,15 @@ Singleton {
         return s > 0 ? s + Math.min(150, frecency(e) * 10) : 0;
     }
 
-    // von uns ausgeblendete Apps (sind jetzt NoDisplay) – im Launcher mit "!" am Anfang der Suche
+    // von uns ausgeblendete Apps – im Launcher mit "!" am Anfang der Suche.
+    // Sie sind jetzt NoDisplay und fehlen deshalb in DesktopEntries.applications;
+    // byId() findet sie trotzdem. Notfalls ein Platzhalter, damit man sie wieder einblenden kann.
     readonly property var hidden: {
+        DesktopEntries.applications?.values;          // neu berechnen, wenn sich Einträge ändern
         const out = [];
-        const seen = {};
-        for (const e of (DesktopEntries.applications?.values ?? [])) {
-            if (!e || !e.name || !root.isHidden(e) || seen[root.idOf(e)])
-                continue;
-            seen[root.idOf(e)] = true;
-            out.push(e);
+        for (const id of Object.keys(root.hiddenIds)) {
+            const e = DesktopEntries.byId ? (DesktopEntries.byId(id) ?? DesktopEntries.byId(id + ".desktop")) : null;
+            out.push(e && e.name ? e : { id: id, name: id, icon: "", placeholder: true });
         }
         out.sort((a, b) => a.name.localeCompare(b.name, "de"));
         return out;
@@ -128,6 +128,8 @@ Singleton {
     }
 
     function launch(e) {
+        if (!e || e.placeholder)               // Platzhalter (Desktop-Datei nicht gefunden)
+            return;
         const k = keyOf(e);
         const u = Object.assign({}, usage);
         u[k] = { count: (u[k]?.count ?? 0) + 1, last: Date.now() };

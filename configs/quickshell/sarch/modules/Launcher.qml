@@ -417,6 +417,15 @@ Item {
                 transform: Translate { y: tile.dy }
                 Component.onCompleted: if (root.animateIn && index < 30)
                     tileIn.start()
+                // Kacheln, die schon existieren, wenn animateIn wieder an geht (Launcher erneut
+                // geöffnet, nachdem gesucht wurde), sonst blieben sie unsichtbar
+                Connections {
+                    target: root
+                    function onAnimateInChanged() {
+                        if (root.animateIn && tile.index < 30)
+                            tileIn.restart();
+                    }
+                }
                 SequentialAnimation {
                     id: tileIn
 

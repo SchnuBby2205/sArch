@@ -33,6 +33,10 @@ PRESET
     log "  $kb"
 done
 
+log "pacman.conf: Build-Repo entfernen"
+sed -i '/^\[sarch-local\]/,/^[[:space:]]*$/d' /etc/pacman.conf
+grep -q '^\[multilib\]' /etc/pacman.conf || printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> /etc/pacman.conf
+
 log "DNS: systemd-resolved (NetworkManager trägt die Server dort ein)"
 ln -sfn ../run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 

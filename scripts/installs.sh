@@ -202,7 +202,7 @@ installSpecifics() {
   [[ -n "$BACKUP_DEV" && -n "$BACKUP_MNT" && -n "$GAMES_DEV" && -n "$GAMES_MNT" ]] \
     || { myPrint print yellow "Backup-/Games-Variablen nicht gesetzt - übersprungen.\n"; return 0; }
 
-  [[ "$debug" == false ]] && myPrint step Installing "SchnuBby specifics..."
+  [[ "$debug" == false ]] && myPrint step Installing "Specifics (GRUB, Autologin, Laufwerke)..."
     sudo mkdir -p "$BACKUP_MNT" "$GAMES_MNT" /etc/sddm.conf.d
     addFstabLine "$BACKUP_DEV" "$BACKUP_MNT" ext4 rw,relatime
     addFstabLine "$GAMES_DEV"  "$GAMES_MNT"  ext4 rw,relatime
@@ -313,7 +313,7 @@ _askBackupSpecifics() {
   local choice=""
   if [[ "${defaults:-false}" != true ]]; then
     Banner
-    choice=$(list "Was soll eingerichtet werden?" "Backups einspielen" "SchnuBby specifics installieren" "Beides" "Überspringen") || choice=3
+    choice=$(list "Was soll eingerichtet werden?" "Backups einspielen" "Specifics installieren (GRUB, Autologin etc.)" "Beides (Backups + Specifics)" "Überspringen") || choice=3
     choice=$(( choice + 1 ))
   fi
   case "$choice" in
@@ -350,6 +350,11 @@ _removeFirstbootAutostart() {
 installISOFirstboot() { Banner; checkDebugFlag
   local c
   printf '\n=== ISO-Ersteinrichtung %(%F %T)T ===\n' -1 >>"${logFile:-/dev/null}"
+  # Build-Repo der ISO (file://…) darf nicht in pacman.conf bleiben, sonst bricht jedes pacman -S ab
+  if grep -q '^\[sarch-local\]' /etc/pacman.conf 2>/dev/null; then
+    sudo sed -i '/^\[sarch-local\]/,/^[[:space:]]*$/d' /etc/pacman.conf
+    printf '[%(%T)T] sarch-local aus pacman.conf entfernt\n' -1 >>"${logFile:-/dev/null}"
+  fi
   # --- Internet (ohne geht nur Theme/Firefox) ---
   myPrint print white "Warte auf Netzwerk und prüfe die Internetverbindung...\n"
   timeout 25 nm-online -q -t 20 &>/dev/null || true       # NetworkManager kurz Zeit geben

@@ -73,7 +73,7 @@ Auf einen USB-Stick schreiben: `sudo dd if=iso/out/sarch-*.iso of=/dev/sdX bs=4M
 | **Live-Start** | Autologin als `live` (ohne Passwort), Hyprland + Quickshell starten, zufälliges Wallpaper + Matugen-Farben. Der Installer öffnet sich automatisch (sonst: App-Launcher → „sArch installieren“ oder `sarch-install`). WLAN: `nmtui`. |
 | **Calamares** | Sprache, Zeitzone, Tastatur, Partitionierung (inkl. LUKS, ext4/btrfs/xfs), Benutzer + Passwörter. |
 | **Installation** | Live-System wird kopiert, danach: Live-Reste und Live-Pakete (Calamares, archiso …) entfernt, passender Microcode, Kernel + mkinitcpio, GRUB (UEFI + BIOS), SDDM, NetworkManager, WLAN-Verbindungen aus dem Live-System übernommen. Dein Benutzer bekommt `~/sArch` (git-Repo, verfolgt den Branch der ISO), verlinkte Configs, Schriften, GTK-Theme, Wallpaper und ein fertiges Farbschema. |
-| **Erster Start** | Ersteinrichtung im Vollbild-kitty (`install.sh installISOFirstboot`): NVIDIA-Treiber (wenn erkannt), Zusatzprogramme (Steam, Lutris, TeamSpeak 3, VS Code, dxvk), Backups/SchnuBby-Specifics, Firefox-Profil. Erneut aufrufbar: `~/sArch/install.sh` → Install → ISO-Ersteinrichtung. |
+| **Erster Start** | Ersteinrichtung im Vollbild-kitty (`install.sh installISOFirstboot`): NVIDIA-Treiber (wenn erkannt), Zusatzprogramme (Steam, Lutris, TeamSpeak 3, VS Code, dxvk), Backups/Specifics (GRUB, Autologin etc.), Firefox-Profil. Erneut aufrufbar: `~/sArch/install.sh` → Install → ISO-Ersteinrichtung. |
 
 ## Aufbau
 

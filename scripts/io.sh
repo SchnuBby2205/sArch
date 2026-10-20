@@ -273,7 +273,7 @@ _chooseQuickshell() {
 
 _installMenu() {
     local sub
-    local -a entries=("Base System" "Arch-Chroot" "Desktop" "Configs" "Backups" "Quickshell" "Back")
+    local -a entries=("Base System" "Arch-Chroot" "Desktop" "Configs" "ISO-Ersteinrichtung" "Backups" "Quickshell" "Back")
     Banner
     sub=$(list "Install" "${entries[@]}") || return 1
     case "${entries[$sub]}" in
@@ -281,6 +281,7 @@ _installMenu() {
         "Arch-Chroot") installArchCHRoot ;;
         "Desktop")     installDE ;;
         "Configs")     installConfigs ;;
+        "ISO-Ersteinrichtung") installISOFirstboot ;;
         "Backups")     installBackup ;;
         "Quickshell")  installQuickshell ;;
         "Back")        return 0 ;;

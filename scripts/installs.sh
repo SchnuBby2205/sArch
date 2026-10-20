@@ -45,16 +45,17 @@ installArchCHRoot() { Banner; checkDebugFlag
 }
 
 # Autostart für installConfigs in die Lua-Config schreiben (wird am Ende wieder entfernt)
-addFirstbootAutostart() {
+addFirstbootAutostart() { # $1 = Stufe von install.sh (Standard: installConfigs)
+  local stage="${1:-installConfigs}"
   local cfg="$HOME/.config/hypr/hyprland.lua"
   [[ -f "$cfg" ]] || { myPrint print red "Hyprland-Config $cfg nicht gefunden - Autostart nicht gesetzt!\n"; return 1; }
   grep -q 'sARCH-FIRSTBOOT-BEGIN' "$cfg" && return 0
-  cat >> "$cfg" <<'EOF'
+  cat >> "$cfg" <<EOF
 
 -- sARCH-FIRSTBOOT-BEGIN
-hl.window_rule({ name = "sArch installer fullscreen", match = { class = "^sarch-installer$" }, fullscreen = true, opacity = "1.0 1.0" })
+hl.window_rule({ name = "sArch installer fullscreen", match = { class = "^sarch-installer\$" }, fullscreen = true, opacity = "1.0 1.0" })
 hl.on("hyprland.start", function()
-  hl.exec_cmd("kitty --class sarch-installer bash -c 'cd $HOME/sArch && ./install.sh installConfigs'")
+  hl.exec_cmd("kitty --class sarch-installer bash -c 'cd \$HOME/sArch && ./install.sh ${stage}'")
 end)
 -- sARCH-FIRSTBOOT-END
 EOF
@@ -67,7 +68,7 @@ installDE() { Banner; checkDebugFlag
   Banner
   [[ "$debug" == false ]] && myPrint step Installing "Dependencies..."
     s=0
-    for r in systemdeps audiodeps programs fonts; do
+    for r in systemdeps audiodeps programs programs_extra fonts; do
       readList "$sARCH_INSTALLCONFIGS/$r"
       install="${list[*]}"
       dryRun runCMDS 0 Installing "$name" $s $value 20 "$pacmanRun $install $debugstring"
@@ -276,19 +277,7 @@ installConfigs() { Banner; checkDebugFlag
     [[ "$debug" == false ]] && drawProgress 20 20
   [[ "$debug" == false ]] && myPrint step ok
 
-  # --- Abfrage: Backups / SchnuBby specifics ---
-  choice=""
-  if [[ "${defaults:-false}" != true ]]; then
-    Banner
-    choice=$(list "Was soll eingerichtet werden?" "Backups einspielen" "SchnuBby specifics installieren" "Beides" "Überspringen") || choice=3
-    choice=$(( choice + 1 ))
-  fi
-  case "$choice" in
-    1) installBackup ;;
-    2) installSpecifics ;;
-    3) installSpecifics; installBackup ;;
-    *) myPrint print yellow "Übersprungen.\n" ;;
-  esac
+  _askBackupSpecifics
 
 # mv "$HOME/sArch" "$HOME/sArch_finished"
 
@@ -317,6 +306,92 @@ installConfigs() { Banner; checkDebugFlag
   Banner
   myPrint print green "Installation finished! System will reboot...\n\n"
   myPrint countdown 3 "Reboot in"; reboot
+}
+
+# Abfrage: Backups / SchnuBby specifics (installConfigs und ISO-Ersteinrichtung)
+_askBackupSpecifics() {
+  local choice=""
+  if [[ "${defaults:-false}" != true ]]; then
+    Banner
+    choice=$(list "Was soll eingerichtet werden?" "Backups einspielen" "SchnuBby specifics installieren" "Beides" "Überspringen") || choice=3
+    choice=$(( choice + 1 ))
+  fi
+  case "$choice" in
+    1) installBackup ;;
+    2) installSpecifics ;;
+    3) installSpecifics; installBackup ;;
+    *) myPrint print yellow "Übersprungen.\n" ;;
+  esac
+}
+
+# ---------------------------------------------------------------------------
+# Ersteinrichtung nach einer Installation von der sArch-ISO (Calamares)
+#   Partitionen, Benutzer, Passwörter, Bootloader, Desktop und Theme hat Calamares
+#   schon erledigt. Hier kommt nur noch Optionales, das Internet braucht.
+#   Startet einmalig beim ersten Hyprland-Start (Vollbild-kitty), danach wieder per
+#   install.sh -> Install -> ISO-Ersteinrichtung.
+# ---------------------------------------------------------------------------
+_isoKernel() { # Kernel-Paket des laufenden Systems (linux, linux-lts, ...)
+  cat /usr/lib/modules/"$(uname -r)"/pkgbase 2>/dev/null || echo "${kernel:-linux}"
+}
+_hasInternet() { ping -c1 -W3 archlinux.org &>/dev/null || ping -c1 -W3 1.1.1.1 &>/dev/null; }
+_removeFirstbootAutostart() {
+  sed -i '/sARCH-FIRSTBOOT-BEGIN/,/sARCH-FIRSTBOOT-END/d' "$HOME/.config/hypr/hyprland.lua" 2>/dev/null
+}
+
+installISOFirstboot() { Banner; checkDebugFlag
+  local c
+  # --- Internet (ohne geht nur Theme/Firefox) ---
+  while ! _hasInternet; do
+    Banner
+    myPrint print yellow "Keine Internetverbindung.\n\n"
+    c=$(list "Wie weiter?" "Netzwerk einrichten (nmtui)" "Erneut prüfen" "Beim nächsten Start nochmal" "Ohne Internet fortfahren") || c=3
+    case "$c" in
+      0) nmtui ;;
+      1) sleep 2 ;;
+      2) clear; exit 0 ;;                       # Autostart bleibt -> nächster Login
+      3) break ;;
+    esac
+  done
+  local online=false; _hasInternet && online=true
+
+  if [[ "$online" == true ]]; then
+    bash -c "sudo pacman -Syy $debugstring"
+    # --- NVIDIA: die ISO bringt nur Mesa (AMD/Intel) mit ---
+    if lspci 2>/dev/null | grep -Ei 'vga|3d|display' | grep -qi nvidia; then
+      Banner
+      c=$(list "NVIDIA-Grafikkarte erkannt - Treiber installieren?" "Ja (nvidia-dkms)" "Nein") || c=1
+      if [[ "$c" == 0 ]]; then
+        [[ "$debug" == false ]] && myPrint step Installing "NVIDIA..."
+          readList "$sARCH_INSTALLCONFIGS/nvidia"
+          dryRun runCMDS 0 Installing "$name" 0 20 20 "$pacmanRun ${list[*]} $(_isoKernel)-headers $debugstring"
+        [[ "$debug" == false ]] && myPrint step ok
+      fi
+    fi
+    # --- persönliche Programme ---
+    Banner
+    c=$(list "Zusatzprogramme installieren? (Steam, Lutris, TeamSpeak 3, VS Code, dxvk)" "Ja" "Nein") || c=1
+    if [[ "$c" == 0 ]]; then
+      [[ "$debug" == false ]] && myPrint step Installing "Extra programs..."
+        readList "$sARCH_INSTALLCONFIGS/programs_extra"
+        dryRun runCMDS 0 Installing "$name" 0 15 20 "$pacmanRun ${list[*]} $debugstring"
+        dryRun runCMDS 0 Installing "dxvk-bin..." 15 20 20 "$yayRun dxvk-bin $debugstring"
+      [[ "$debug" == false ]] && myPrint step ok
+    fi
+  fi
+
+  [[ "${dryRun:-}" == true ]] || createFirefoxProfile &>>"${logFile:-/dev/null}"
+  [[ "$online" == true ]] && _askBackupSpecifics
+
+  # Theme: setzt die ISO-Installation normalerweise schon, sonst hier nachholen
+  [[ -s "$HOME/.cache/sArch/current_wallpaper" ]] || _applyRandomWallpaper &>>"${logFile:-/dev/null}"
+
+  _removeFirstbootAutostart
+  Banner
+  myPrint print green "Ersteinrichtung abgeschlossen!\n\n"
+  c=$(list "Jetzt neu starten?" "Ja" "Nein, weiterarbeiten") || c=1
+  [[ "$c" == 0 ]] && reboot
+  clear
 }
 
 # Zufälliges Wallpaper + Matugen-Farben (rofi liest ~/.cache/Wallpaper_thumbs/curr(_wide),

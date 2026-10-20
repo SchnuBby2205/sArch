@@ -1,0 +1,2 @@
+# Live-ISO: Benutzer "live" darf alles ohne Passwort (Calamares, pacman)
+live ALL=(ALL:ALL) NOPASSWD: ALL

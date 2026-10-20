@@ -1,0 +1,49 @@
+name: sArch ISO bauen
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel:
+        description: "Kernel (linux-lts oder linux)"
+        default: "linux-lts"
+        required: true
+  push:
+    tags:
+      - "iso-*"
+
+jobs:
+  iso:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - name: Speicherplatz schaffen
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache \
+                      /usr/local/share/boost /usr/share/swift /usr/local/.ghcup
+          sudo docker image prune -af >/dev/null
+          df -h /
+
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: ISO im Arch-Container bauen
+        run: |
+          docker run --rm --privileged \
+            -v "$GITHUB_WORKSPACE:/src" -w /src \
+            -e SARCH_KERNEL="${{ github.event.inputs.kernel || 'linux-lts' }}" \
+            -e SARCH_BRANCH="${{ github.ref_name }}" \
+            -e GITHUB_REF_NAME="${{ github.ref_name }}" \
+            archlinux/archlinux:latest \
+            bash iso/build_iso.sh
+          sudo chown -R "$(id -u):$(id -g)" iso/out
+
+      - name: ISO hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: sarch-iso
+          path: |
+            iso/out/*.iso
+            iso/out/*.sha256
+          compression-level: 0
+          retention-days: 14

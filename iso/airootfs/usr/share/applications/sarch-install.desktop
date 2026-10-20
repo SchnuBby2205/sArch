@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=sArch installieren
+GenericName=Installer
+Comment=sArch mit Calamares auf die Festplatte installieren
+Exec=sarch-install
+Icon=system-software-install
+Terminal=false
+Categories=System;
+Keywords=install;installer;calamares;

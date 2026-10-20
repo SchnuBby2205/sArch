@@ -1,0 +1,13 @@
+[Unit]
+Description=sArch Live-Benutzer einrichten
+After=systemd-sysusers.service systemd-tmpfiles-setup.service
+Before=getty@tty1.service systemd-user-sessions.service
+ConditionPathExists=/etc/sarch-live
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/share/sArch/iso/sarch-live-setup.sh
+
+[Install]
+WantedBy=multi-user.target

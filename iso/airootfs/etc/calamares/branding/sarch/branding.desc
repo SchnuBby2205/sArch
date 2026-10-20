@@ -1,0 +1,40 @@
+---
+componentName:  sarch
+
+welcomeStyleCalamares:  false
+welcomeExpandingLogo:   true
+windowExpanding:        normal
+windowSize:             1100px,720px
+windowPlacement:        center
+sidebar:                widget
+navigation:             widget
+
+strings:
+    productName:         "sArch"
+    shortProductName:    "sArch"
+    version:             "rolling"
+    shortVersion:        "rolling"
+    versionedName:       "sArch (rolling)"
+    shortVersionedName:  "sArch"
+    bootloaderEntryName: "sArch"
+    productUrl:          "https://github.com/SchnuBby2205/sArch"
+    supportUrl:          "https://github.com/SchnuBby2205/sArch/issues"
+
+images:
+    productLogo:         "logo.png"
+    productIcon:         "logo.png"
+    productWelcome:      "welcome.png"
+
+slideshow:               "show.qml"
+slideshowAPI:            2
+
+# Farben wie die sArch-Shell (Calamares 3.3 / ältere Schreibweise)
+style:
+    SidebarBackground:        "#16131a"
+    SidebarText:              "#e6e0e9"
+    SidebarTextCurrent:       "#1d1b20"
+    SidebarBackgroundCurrent: "#f0d39a"
+    sidebarBackground:        "#16131a"
+    sidebarText:              "#e6e0e9"
+    sidebarTextSelect:        "#1d1b20"
+    sidebarTextHighlight:     "#f0d39a"

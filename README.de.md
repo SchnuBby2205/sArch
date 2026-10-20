@@ -49,6 +49,10 @@ curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/sArch-QS/bootstr
 - **Install** – eine Stage von Hand starten (normalerweise startest du nur *Base System*, der Rest läuft von selbst weiter).
 - **Exit**
 
+### Live-ISO mit grafischem Installer (Calamares)
+
+Statt des Skripts gibt es auch eine bootfähige ISO: Sie startet direkt in den sArch-Desktop und installiert per **Calamares** (offline, inkl. Partitionierung/LUKS, Benutzer, GRUB). Gebaut wird sie über **GitHub Actions** (Actions → „sArch ISO bauen“) oder lokal mit `./iso/build_local.sh`. Nach dem ersten Start bietet die Ersteinrichtung NVIDIA-Treiber, Zusatzprogramme und Backups an. Details: [iso/README.md](iso/README.md).
+
 ### Installations-Stages
 
 | # | Stage | Läuft | Was passiert |
@@ -128,7 +132,7 @@ Configs und `bin/` werden nach `~/.config` bzw. `~/.config/sArch/bin` **verlinkt
 
 ### Paketlisten
 
-Die Dateien in `configs/installConfigs/` (`systemdeps`, `audiodeps`, `programs`, `fonts`, `amd`, `nvidia`) haben ein einfaches Format:
+Die Dateien in `configs/installConfigs/` (`systemdeps`, `audiodeps`, `programs`, `programs_extra`, `fonts`, `amd`, `nvidia`) haben ein einfaches Format:
 
 ```
 Anzeigename...       # Zeile 1: Beschriftung im Fortschrittsbildschirm

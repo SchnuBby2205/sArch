@@ -1,0 +1,11 @@
+# Live-ISO: deutsche + englische Locale beim Bauen erzeugen
+[Trigger]
+Operation = Install
+Type = Package
+Target = glibc
+
+[Action]
+Description = sArch: Locales erzeugen (de_DE, en_US)...
+When = PostTransaction
+Depends = glibc
+Exec = /bin/sh /usr/share/sArch/iso/sarch-locale-gen.sh

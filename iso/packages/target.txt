@@ -1,0 +1,58 @@
+# Pakete, die auf dem installierten System bleiben – zusätzlich zu den sArch-Listen
+# aus configs/installConfigs (systemdeps, audiodeps, programs, fonts, amd) und dem Kernel.
+# Nicht in den offiziellen Repos? -> wird beim Bauen automatisch aus dem AUR gebaut.
+
+# Basis
+base
+base-devel
+linux-firmware
+sof-firmware
+intel-ucode
+amd-ucode
+mkinitcpio
+sudo
+networkmanager
+terminus-font
+man-db
+less
+nano
+pciutils
+usbutils
+rsync
+
+# Bootloader
+grub
+efibootmgr
+os-prober
+
+# Dateisysteme / Datenträger
+dosfstools
+e2fsprogs
+btrfs-progs
+xfsprogs
+ntfs-3g
+exfatprogs
+cryptsetup
+lvm2
+
+# Pacman-Werkzeuge
+reflector
+arch-install-scripts
+pacman-contrib
+
+# Grafik: Intel zusätzlich zu AMD (configs/installConfigs/amd); NVIDIA folgt bei der Ersteinrichtung
+vulkan-intel
+lib32-vulkan-intel
+intel-media-driver
+
+# Schriften für Live-System und Desktop
+noto-fonts
+noto-fonts-emoji
+
+# sArch-Extras, die install.sh sonst nachinstalliert (Quickshell, Theme, Screenshots, yay)
+quickshell
+hyprlock
+ttf-material-symbols-variable
+python-pywalfox
+grimblast
+yay-bin

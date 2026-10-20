@@ -1,0 +1,24 @@
+#!/bin/bash
+# Live-ISO: Calamares starten (als root im Wayland-Fenster des Live-Benutzers)
+pgrep -x calamares >/dev/null && exit 0
+
+# Calamares entpackt das Live-Dateisystem; Pfad hängt davon ab, ob copytoram aktiv ist
+sfs=""
+for f in /run/archiso/bootmnt/arch/x86_64/airootfs.sfs /run/archiso/copytoram/airootfs.sfs; do
+    [[ -f "$f" ]] && { sfs=$f; break; }
+done
+[[ -n "$sfs" ]] || sfs=$(find /run/archiso -name airootfs.sfs 2>/dev/null | head -n1)
+if [[ -z "$sfs" ]]; then
+    notify-send -u critical "sArch-Installer" "airootfs.sfs nicht gefunden – ist das die sArch-ISO?" 2>/dev/null
+    echo "airootfs.sfs nicht gefunden" >&2
+    exit 1
+fi
+sudo mkdir -p /run/sarch
+sudo ln -sfn "$sfs" /run/sarch/airootfs.sfs
+
+# root darf auf den Wayland-Socket des Benutzers; absoluter Pfad, falls Qt ein eigenes Runtime-Dir nimmt
+wl="${WAYLAND_DISPLAY:-wayland-1}"
+[[ "$wl" == /* ]] || wl="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/$wl"
+exec sudo env WAYLAND_DISPLAY="$wl" XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" \
+    XDG_SESSION_TYPE=wayland QT_QPA_PLATFORM="wayland;xcb" LANG="${LANG:-de_DE.UTF-8}" \
+    calamares "$@"

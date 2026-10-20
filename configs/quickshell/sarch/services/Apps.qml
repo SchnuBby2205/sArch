@@ -89,6 +89,20 @@ Singleton {
         u[k] = { count: (u[k]?.count ?? 0) + 1, last: Date.now() };
         usage = u;
         store.setText(JSON.stringify(u));
+        // Terminal-Programme (Terminal=true, z. B. yazi, nvim, btop) brauchen ein Terminal –
+        // execute() würde sie ohne starten, dann beenden sie sich sofort
+        if (e.runInTerminal) {
+            const term = Quickshell.env("TERMINAL") || "kitty";
+            let cmd = (e.command || []).filter(a => !/^%[fFuUdDnNickvm]$/.test(a));
+            if (cmd.length === 0)
+                cmd = ["sh", "-c", String(e.execString || "").replace(/%[fFuUdDnNickvm]/g, "").trim()];
+            const args = [term, "-e", ...cmd];
+            if (e.workingDirectory)
+                Quickshell.execDetached({ command: args, workingDirectory: e.workingDirectory });
+            else
+                Quickshell.execDetached(args);
+            return;
+        }
         e.execute();
     }
 

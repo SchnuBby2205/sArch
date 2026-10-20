@@ -224,7 +224,19 @@ Item {
             SequentialAnimation {
                 id: clearAnim
                 Anim { target: list; property: "clearT"; from: 0; to: 1; curve: "emphasizedAccel"; duration: 380 }
-                ScriptAction { script: { Notifs.clearHistory(); list.clearT = 0; } }
+                // Liste leeren, Verschiebung aber erst zurücksetzen, wenn die Karten weg sind –
+                // sonst springen sie für die Dauer der Entfernen-Animation an ihren Platz zurück
+                ScriptAction { script: { list.clearing = true; Notifs.clearHistory(); clearReset.restart(); } }
+            }
+            property bool clearing: false
+            Timer {
+                id: clearReset
+
+                interval: 450
+                onTriggered: {
+                    list.clearT = 0;
+                    list.clearing = false;
+                }
             }
 
             add: Transition {
@@ -232,6 +244,7 @@ Item {
                 Anim { property: "x"; from: 60; to: 0; curve: "spatial" }
             }
             remove: Transition {
+                enabled: !list.clearing
                 ParallelAnimation {
                     Anim { property: "x"; to: list.width; curve: "emphasizedAccel"; duration: 240 }
                     Anim { property: "opacity"; to: 0; curve: "effects"; duration: 200 }
@@ -265,7 +278,7 @@ Item {
                 Component.onCompleted: enterAnim.start()
                 SequentialAnimation {
                     id: enterAnim
-                    PauseAnimation { duration: Math.min(hc.index, 8) * 45 }
+                    PauseAnimation { duration: Math.max(0, Math.min(hc.index, 8)) * 45 }
                     Anim { target: hc; property: "enter"; to: 1; curve: "spatial" }
                 }
                 Connections {

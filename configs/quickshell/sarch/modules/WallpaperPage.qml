@@ -175,8 +175,10 @@ Item {
             if (String(front.source) === url)
                 return;
             back.source = url;
+            // eindeutig setzen statt umschalten: bei Cache-Treffern meldet das Bild "Ready" schon während
+            // der Zuweisung (onStatusChanged hat dann bereits umgeschaltet)
             if (back.status === Image.Ready)
-                aFront = !aFront;
+                aFront = back === imgA;
         }
 
         Rectangle {

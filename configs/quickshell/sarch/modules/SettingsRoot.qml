@@ -171,7 +171,7 @@ Item {
                     return;
                 back.source = url;
                 if (back.status === Image.Ready)
-                    aFront = !aFront;
+                    aFront = back === bgA;          // eindeutig (Cache-Treffer meldet Ready schon beim Setzen)
             }
 
             Item {

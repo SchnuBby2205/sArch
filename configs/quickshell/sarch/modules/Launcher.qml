@@ -23,6 +23,8 @@ Item {
         query = "";
         search.text = "";
         animateIn = true;
+        keyNav = true;
+        grid.mousePos = Qt.point(-1, -1);
         grid.currentIndex = 0;
         grid.positionViewAtBeginning();
         open = true;
@@ -37,15 +39,21 @@ Item {
         Apps.launch(e);
         open = false;
     }
+    // true, solange mit der Tastatur navigiert wird -> Maus ignorieren, bis sie sich wirklich bewegt
+    property bool keyNav: false
+
     function move(dx, dy) {
         const n = grid.count;
         if (n === 0)
             return;
+        keyNav = true;
         let i = grid.currentIndex + dx + dy * columns;
         grid.currentIndex = Math.max(0, Math.min(n - 1, i));
+        grid.ensureVisible(grid.currentIndex);
     }
 
     onQueryChanged: {
+        keyNav = true;                 // Tippen -> erster Treffer, nicht die Kachel unter der Maus
         animateIn = false;
         grid.currentIndex = 0;
         grid.positionViewAtBeginning();
@@ -280,6 +288,59 @@ Item {
             highlightFollowsCurrentItem: false
             Behavior on y { Anim { curve: "spatial" } }
 
+            // markierte Kachel weich in den sichtbaren Bereich scrollen
+            function ensureVisible(i) {
+                const top = originY + Math.floor(i / root.columns) * cellHeight;
+                const maxY = originY + Math.max(0, contentHeight - height);
+                let target = contentY;
+                if (top < contentY)
+                    target = top;
+                else if (top + cellHeight > contentY + height)
+                    target = top + cellHeight - height;
+                target = Math.max(originY, Math.min(maxY, target));
+                if (Math.abs(target - contentY) < 0.5)
+                    return;
+                scrollAnim.stop();
+                scrollAnim.from = contentY;
+                scrollAnim.to = target;
+                scrollAnim.start();
+            }
+            NumberAnimation {
+                id: scrollAnim
+
+                target: grid
+                property: "contentY"
+                duration: 260
+                easing.type: Easing.OutCubic
+            }
+
+            // Maus: Kachel unter dem Zeiger markieren – auch beim Scrollen mit dem Mausrad
+            property point mousePos: Qt.point(-1, -1)
+            function selectUnderMouse() {
+                if (!hover.hovered || root.keyNav)
+                    return;
+                const i = indexAt(mousePos.x + contentX, mousePos.y + contentY);
+                if (i >= 0)
+                    currentIndex = i;
+            }
+            HoverHandler {
+                id: hover
+
+                onPointChanged: {
+                    // der Handler sitzt im scrollenden Inhalt -> in Raster-Koordinaten umrechnen
+                    const p = hover.parent.mapToItem(grid, point.position.x, point.position.y);
+                    if (Math.abs(p.x - grid.mousePos.x) < 1 && Math.abs(p.y - grid.mousePos.y) < 1)
+                        return;                         // nur echte Mausbewegung
+                    grid.mousePos = Qt.point(p.x, p.y);
+                    root.keyNav = false;
+                    grid.selectUnderMouse();
+                }
+            }
+            // Mausrad/Ziehen = Maus ist wieder zuständig; programmatisches Scrollen zählt nicht
+            onMovementStarted: root.keyNav = false
+            onContentYChanged: if (moving || !scrollAnim.running)
+                selectUnderMouse()
+
             ScrollBar.vertical: ScrollBar {
                 id: sb
 
@@ -296,6 +357,7 @@ Item {
                 id: hl
 
                 readonly property Item cur: grid.currentItem
+                parent: grid.contentItem        // scrollt mit den Kacheln
                 z: -1
                 x: cur ? cur.x + 6 : 0
                 y: cur ? cur.y + 4 : 0
@@ -366,7 +428,6 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onEntered: grid.currentIndex = tile.index
                     onClicked: root.launch(tile.modelData)
                 }
             }

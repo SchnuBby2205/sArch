@@ -78,16 +78,28 @@ Item {
 
             Behavior on edgeA { enabled: pill.ready; Anim { id: aAnim; curve: "spatial" } }
             Behavior on edgeB { enabled: pill.ready; Anim { id: bAnim; curve: "spatial" } }
+            // Workspace-Wechsel: elastisch animieren
             onTargetChanged: {
                 const fwd = target > edgeA;
                 aAnim.duration = fwd ? 520 : 330;
                 bAnim.duration = fwd ? 330 : 520;
+                place();
+            }
+            // Größenänderung (z. B. bar.json wird beim Start nachgeladen): sofort anpassen
+            readonly property real len: root.activeLen
+            onLenChanged: {
+                if (!ready)
+                    return;
+                ready = false;
+                place();
+                ready = true;
+            }
+            function place() {
                 edgeA = target;
                 edgeB = target + root.activeLen;
             }
             Component.onCompleted: {
-                edgeA = target;
-                edgeB = target + root.activeLen;
+                place();
                 ready = true;
             }
         }

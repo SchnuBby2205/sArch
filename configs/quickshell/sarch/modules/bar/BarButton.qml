@@ -7,6 +7,7 @@ Item {
     id: root
 
     property string icon: ""
+    property var cfg: BarConfig.current     // für Schriftfarbe (Vorschau in den Einstellungen: Entwurf)
     property real thick: 40
     property bool vertical: false
     property color accent: Theme.primary
@@ -54,7 +55,7 @@ Item {
                 icon: root.icon
                 size: root.cell * 0.62
                 fill: area.containsMouse || root.active ? 1 : 0
-                color: area.containsMouse || root.active ? root.accent : Theme.surfaceFg
+                color: area.containsMouse || root.active ? root.accent : Theme.barFg(root.cfg)
                 anchors.verticalCenter: parent.verticalCenter
                 scale: area.pressed ? 0.8 : area.containsMouse ? 1.12 : 1
                 rotation: (area.containsMouse && root.icon === "settings" ? 90 : 0) + root.iconRotation
@@ -68,7 +69,7 @@ Item {
                 text: root.label
                 font.pixelSize: Math.round(Math.min(root.thick * 0.3 * Theme.fontScale, root.thick * 0.46))
                 font.weight: Font.DemiBold
-                color: Theme.surfaceFgDim
+                color: Theme.barFgDim(root.cfg)
                 anchors.verticalCenter: parent.verticalCenter
             }
         }

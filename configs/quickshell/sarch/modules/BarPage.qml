@@ -405,9 +405,36 @@ Item {
             ColorCard {
                 width: parent.width
                 order: 7
+                icon: "palette"
+                title: Backend.t("qs_bar_color", "Hintergrundfarbe")
                 value: bp.draft.color ?? ""
                 original: bp.original.color ?? ""
                 onPicked: v => bp.set("color", v)
+            }
+            ColorCard {
+                width: parent.width
+                order: 7
+                icon: "format_color_text"
+                title: Backend.t("qs_bar_text_color", "Schrift- und Icon-Farbe")
+                autoHint: "Automatisch: Wallpaper-Schrift, auf heller Bar dunkel"
+                roles: [
+                    { spec: "", label: "Automatisch" },
+                    { spec: "role:surfaceFg", label: "Schrift" },
+                    { spec: "role:surfaceFgDim", label: "Schrift gedämpft" },
+                    { spec: "role:primary", label: "Akzent" },
+                    { spec: "role:secondary", label: "Sekundär" },
+                    { spec: "role:tertiary", label: "Tertiär" },
+                    { spec: "role:primaryContainerFg", label: "Primär hell" },
+                    { spec: "role:surface", label: "Fläche (dunkel)" }
+                ]
+                fixed: ["#ffffff", "#e6e0e9", "#cdd6f4", "#eceff4", "#f5c2e7", "#a6e3a1", "#f9e2af", "#89b4fa", "#585b70", "#000000"]
+                resolve: spec => spec === "" ? Theme.barFg(Object.assign({}, bp.draft, { textColor: "" })) : Theme.barColor(spec)
+                // Kontrast zur gewählten Hintergrundfarbe
+                warn: (bp.draft.opacity ?? 1) >= 0.35 && Theme.contrastRatio(shown, Theme.barColor(bp.draft.color)) < 3
+                    ? "Wenig Kontrast zur Hintergrundfarbe – Schrift ist evtl. schlecht lesbar." : ""
+                value: bp.draft.textColor ?? ""
+                original: bp.original.textColor ?? ""
+                onPicked: v => bp.set("textColor", v)
             }
 
             // ── Module ────────────────────────────────────────────────────
@@ -620,15 +647,19 @@ Item {
     component ColorCard: Card {
         id: colc
 
+        property string icon: "palette"
+        property string title: ""
         property string value: ""
         property string original: ""
+        property string autoHint: "Automatisch: Farbe aus dem Wallpaper"
+        property string warn: ""
+        property var resolve: spec => Theme.barColor(spec)
         signal picked(string v)
 
         readonly property bool modified: value !== original
-        readonly property color shown: Theme.barColor(value)
-        readonly property bool light: Theme.luminance(shown) > 0.45
+        readonly property color shown: resolve(value)
 
-        readonly property var roles: [
+        property var roles: [
             { spec: "", label: "Automatisch" },
             { spec: "role:surfaceContainer", label: "Fläche" },
             { spec: "role:surfaceHighest", label: "Fläche hell" },
@@ -638,7 +669,7 @@ Item {
             { spec: "role:primary", label: "Akzent" },
             { spec: "role:tertiary", label: "Akzent 2" }
         ]
-        readonly property var fixed: ["#000000", "#11111b", "#1e1e2e", "#2e3440", "#1a1b26", "#282828", "#0f2a2e", "#2a0f1f", "#3b2f63", "#ffffff"]
+        property var fixed: ["#000000", "#11111b", "#1e1e2e", "#2e3440", "#1a1b26", "#282828", "#0f2a2e", "#2a0f1f", "#3b2f63", "#ffffff"]
 
         height: colBody.y + colBody.implicitHeight + 20
         highlighted: modified
@@ -647,8 +678,8 @@ Item {
         CardHead {
             x: 18
             y: 16
-            icon: "palette"
-            title: Backend.t("qs_bar_color", "Farbe")
+            icon: colc.icon
+            title: colc.title
             modified: colc.modified
         }
 
@@ -660,7 +691,7 @@ Item {
             spacing: 10
             Txt {
                 anchors.verticalCenter: parent.verticalCenter
-                text: colc.value === "" ? "Wallpaper" : colc.value.startsWith("role:") ? "Wallpaper · " + (colc.roles.find(r => r.spec === colc.value)?.label ?? "") : colc.value.toUpperCase()
+                text: colc.value === "" ? "Automatisch" : colc.value.startsWith("role:") ? "Wallpaper · " + (colc.roles.find(r => r.spec === colc.value)?.label ?? "") : colc.value.toUpperCase()
                 mono: colc.value.startsWith("#")
                 font.pixelSize: Theme.size.small
                 color: Theme.surfaceFgDim
@@ -697,8 +728,8 @@ Item {
                     model: colc.roles
                     Swatch {
                         required property var modelData
-                        col: Theme.barColor(modelData.spec)
-                        tip: modelData.label
+                        col: colc.resolve(modelData.spec)
+                        tip: modelData.spec === "" ? colc.autoHint : modelData.label
                         auto: modelData.spec === ""
                         sel: colc.value === modelData.spec
                         onClicked: colc.picked(modelData.spec)
@@ -747,8 +778,8 @@ Item {
                 }
             }
             Txt {
-                visible: colc.light
-                text: "Heller Hintergrund: Icons und Schrift der Bar bleiben hell und sind evtl. schlecht lesbar."
+                visible: colc.warn !== ""
+                text: colc.warn
                 font.pixelSize: Theme.size.tiny
                 color: Theme.tertiary
             }

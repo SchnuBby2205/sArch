@@ -17,6 +17,7 @@ Item {
     BarButton {
         id: btn
 
+        cfg: root.cfg
         thick: root.thick
         vertical: root.vertical
         icon: Notifs.dnd ? "notifications_paused" : Notifs.unread > 0 ? "notifications_unread" : "notifications"

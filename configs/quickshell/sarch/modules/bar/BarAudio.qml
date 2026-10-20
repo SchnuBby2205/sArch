@@ -27,6 +27,7 @@ Item {
     BarButton {
         id: btn
 
+        cfg: root.cfg
         thick: root.thick
         vertical: root.vertical
         icon: root.muted || root.volume <= 0.001 ? "volume_off" : root.volume < 0.35 ? "volume_mute" : root.volume < 0.7 ? "volume_down" : "volume_up"

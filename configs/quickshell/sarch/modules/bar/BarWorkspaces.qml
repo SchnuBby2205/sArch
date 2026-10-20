@@ -246,7 +246,7 @@ Item {
                     width: slot.isActive ? root.cell * 0.34 : slot.isOccupied ? root.cell * 0.34 : root.cell * 0.2
                     height: width
                     radius: width / 2
-                    color: slot.isActive ? Theme.primaryFg : Theme.surfaceFg
+                    color: slot.isActive ? Theme.primaryFg : Theme.barFg(root.cfg)
                     opacity: slot.isActive ? 1 : slot.isOccupied ? 0.75 : 0.28
                     Behavior on width { Anim { curve: "spatialFast" } }
                     Behavior on opacity { Anim { curve: "effects" } }
@@ -259,7 +259,7 @@ Item {
                     text: slot.wsId
                     font.pixelSize: Math.round(Math.min(root.cell * 0.46 * Theme.fontScale, root.cell * 0.72))
                     font.weight: slot.isActive || slot.isOccupied ? Font.Bold : Font.Normal
-                    color: slot.isActive ? Theme.primaryFg : Theme.surfaceFg
+                    color: slot.isActive ? Theme.primaryFg : Theme.barFg(root.cfg)
                     opacity: slot.isActive ? 1 : slot.isOccupied ? 0.9 : 0.35
                     scale: wsArea.containsMouse && !slot.isActive ? 1.2 : 1
                     Behavior on scale { Anim { curve: "spatialFast" } }

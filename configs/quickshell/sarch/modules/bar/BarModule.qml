@@ -53,6 +53,7 @@ Loader {
     Component {
         id: buttonComp
         BarButton {
+            cfg: root.cfg
             thick: root.thick
             vertical: root.vertical
             icon: BarConfig.info(root.moduleId).icon

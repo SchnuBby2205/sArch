@@ -19,6 +19,7 @@ Singleton {
         radius: 18,               // Eckenradius
         opacity: 0.86,            // Deckkraft des Hintergrunds
         color: "",                // "" = Wallpaper-Farbe, "role:primaryContainer" o. ä., "#rrggbb" = fest
+        textColor: "",            // Schrift/Icons: "" = automatisch, sonst wie color
         clock: { seconds: false, h24: true, blink: true },
         date: { format: "ddd, d. MMM" },
         workspaces: { count: 8, numbers: true, preview: true },

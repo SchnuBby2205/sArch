@@ -25,7 +25,7 @@ Item {
         text: { root.dayKey; return Time.now.toLocaleDateString(root.loc, root.fmt); }
         font.pixelSize: Math.round(Math.min(root.thick * 0.33 * Theme.fontScale, root.thick * 0.5))
         font.weight: Font.Medium
-        color: Theme.surfaceFgDim
+        color: Theme.barFgDim(root.cfg)
     }
 
     Column {
@@ -40,7 +40,7 @@ Item {
             text: { root.dayKey; return Time.now.toLocaleDateString(root.loc, "dd"); }
             font.pixelSize: Math.round(Math.min(root.thick * 0.36 * Theme.fontScale, root.thick * 0.5))
             font.weight: Font.Bold
-            color: Theme.surfaceFg
+            color: Theme.barFg(root.cfg)
         }
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter

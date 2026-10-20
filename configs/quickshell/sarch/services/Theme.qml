@@ -126,6 +126,25 @@ Singleton {
             return Qt.lighter(s, 1.0);          // Text -> color (r/g/b für alpha() und luminance())
         return root.surface;
     }
+    // Schriftfarbe der Bar: "" = automatisch (Wallpaper-Schrift, auf heller Bar dunkel),
+    // "role:<name>" oder "#rrggbb" wie bei barColor()
+    function barFg(cfg) {
+        const s = String(cfg?.textColor || "");
+        if (s !== "" && s !== "auto")
+            return barColor(s);
+        const bg = barColor(cfg?.color);
+        if ((cfg?.opacity ?? 1) >= 0.5 && luminance(bg) > 0.45)
+            return Qt.lighter("#1b1b1f", 1.0);
+        return root.surfaceFg;
+    }
+    function barFgDim(cfg) {
+        return alpha(barFg(cfg), 0.7);
+    }
+    // Kontrastverhältnis nach WCAG (1..21)
+    function contrastRatio(a, b) {
+        const la = luminance(a) + 0.05, lb = luminance(b) + 0.05;
+        return Math.max(la, lb) / Math.min(la, lb);
+    }
     function luminance(col) {
         const f = v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
         return 0.2126 * f(col.r) + 0.7152 * f(col.g) + 0.0722 * f(col.b);

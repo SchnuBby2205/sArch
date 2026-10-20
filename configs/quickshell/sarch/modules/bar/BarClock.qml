@@ -29,8 +29,8 @@ Item {
         anchors.centerIn: parent
         spacing: 0
 
-        RollingDigit { digit: root.hh[0]; pixelSize: root.fontSize }
-        RollingDigit { digit: root.hh[1]; pixelSize: root.fontSize }
+        RollingDigit { digit: root.hh[0]; pixelSize: root.fontSize; color: Theme.barFg(root.cfg) }
+        RollingDigit { digit: root.hh[1]; pixelSize: root.fontSize; color: Theme.barFg(root.cfg) }
         Txt {
             text: ":"
             font.pixelSize: root.fontSize
@@ -39,8 +39,8 @@ Item {
             opacity: !root.blink || Time.now.getSeconds() % 2 === 0 ? 1 : 0.35
             Behavior on opacity { Anim { curve: "standard" } }
         }
-        RollingDigit { digit: root.mm[0]; pixelSize: root.fontSize }
-        RollingDigit { digit: root.mm[1]; pixelSize: root.fontSize }
+        RollingDigit { digit: root.mm[0]; pixelSize: root.fontSize; color: Theme.barFg(root.cfg) }
+        RollingDigit { digit: root.mm[1]; pixelSize: root.fontSize; color: Theme.barFg(root.cfg) }
         Item {
             visible: root.seconds
             width: visible ? secRow.implicitWidth + 4 : 0
@@ -52,8 +52,8 @@ Item {
                 x: 4
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 2
-                RollingDigit { digit: root.ss[0]; pixelSize: root.fontSize * 0.62; color: Theme.surfaceFgDim }
-                RollingDigit { digit: root.ss[1]; pixelSize: root.fontSize * 0.62; color: Theme.surfaceFgDim }
+                RollingDigit { digit: root.ss[0]; pixelSize: root.fontSize * 0.62; color: Theme.barFgDim(root.cfg) }
+                RollingDigit { digit: root.ss[1]; pixelSize: root.fontSize * 0.62; color: Theme.barFgDim(root.cfg) }
             }
         }
         Txt {
@@ -64,7 +64,7 @@ Item {
             text: Time.now.getHours() < 12 ? "AM" : "PM"
             font.pixelSize: root.fontSize * 0.55
             font.weight: Font.Bold
-            color: Theme.surfaceFgDim
+            color: Theme.barFgDim(root.cfg)
         }
     }
 
@@ -82,14 +82,14 @@ Item {
         }
         Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            RollingDigit { digit: root.mm[0]; pixelSize: root.fontSize }
-            RollingDigit { digit: root.mm[1]; pixelSize: root.fontSize }
+            RollingDigit { digit: root.mm[0]; pixelSize: root.fontSize; color: Theme.barFg(root.cfg) }
+            RollingDigit { digit: root.mm[1]; pixelSize: root.fontSize; color: Theme.barFg(root.cfg) }
         }
         Row {
             visible: root.seconds
             anchors.horizontalCenter: parent.horizontalCenter
-            RollingDigit { digit: root.ss[0]; pixelSize: root.fontSize * 0.7; color: Theme.surfaceFgDim }
-            RollingDigit { digit: root.ss[1]; pixelSize: root.fontSize * 0.7; color: Theme.surfaceFgDim }
+            RollingDigit { digit: root.ss[0]; pixelSize: root.fontSize * 0.7; color: Theme.barFgDim(root.cfg) }
+            RollingDigit { digit: root.ss[1]; pixelSize: root.fontSize * 0.7; color: Theme.barFgDim(root.cfg) }
         }
     }
 }

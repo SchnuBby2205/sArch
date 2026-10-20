@@ -6,11 +6,45 @@ Live-System auf die Platte kopiert wird. Internet braucht erst die optionale Ers
 
 ## ISO bekommen
 
-### GitHub Actions (empfohlen)
+### Fertiges Release herunterladen
 
-1. Im Repo auf **Actions → „sArch ISO bauen“ → Run workflow** gehen, Branch (z. B. `sArch-QS`) und Kernel wählen.
-2. Nach ca. 1–2 Stunden liegt die ISO unter **Artifacts → `sarch-iso`** (14 Tage lang).
-   Alternativ baut ein Tag wie `iso-2026.10` automatisch: `git tag iso-2026.10 && git push origin iso-2026.10`.
+Unter **[Releases](https://github.com/SchnuBby2205/sArch/releases/latest)** liegt die ISO in Teilen
+(GitHub erlaubt pro Datei höchstens 2 GB). Alle `.part`-Dateien und die `.sha256`-Datei in **einen** Ordner
+laden und dort zusammensetzen. `sarch-JJJJ.MM.TT-x86_64.iso` durch den echten Namen ersetzen,
+die fertigen Befehle stehen auch im jeweiligen Release.
+
+**Linux**
+```bash
+cat sarch-JJJJ.MM.TT-x86_64.iso.part* > sarch-JJJJ.MM.TT-x86_64.iso
+sha256sum -c sarch-JJJJ.MM.TT-x86_64.iso.sha256        # muss "OK" melden
+```
+
+**Windows** (Eingabeaufforderung `cmd`, im Download-Ordner)
+```bat
+copy /b sarch-JJJJ.MM.TT-x86_64.iso.part1 + sarch-JJJJ.MM.TT-x86_64.iso.part2 sarch-JJJJ.MM.TT-x86_64.iso
+certutil -hashfile sarch-JJJJ.MM.TT-x86_64.iso SHA256
+```
+Die angezeigte Prüfsumme mit dem Inhalt der `.sha256`-Datei vergleichen (z. B. `type sarch-…iso.sha256`).
+In PowerShell funktioniert dasselbe mit `cmd /c copy /b …` bzw. `Get-FileHash sarch-…iso`.
+
+USB-Stick: unter Linux `dd` (siehe unten), unter Windows z. B. **Rufus** (bei Nachfrage „DD-Modus“ wählen)
+oder **balenaEtcher**.
+
+### Selbst bauen über GitHub Actions
+
+| Tag | Ergebnis |
+|---|---|
+| `iso-…` (z. B. `iso-2026.10.20`) | Testbuild – ISO als Artifact am Workflow-Lauf, 14 Tage |
+| `release-…` (z. B. `release-2026.11`) | GitHub-Release mit ISO in Teilen + Prüfsumme, bleibt dauerhaft |
+
+```bash
+git checkout sArch-QS && git pull
+git tag release-2026.11
+git push origin release-2026.11
+```
+
+Der Lauf ist unter **Actions → „sArch ISO bauen“** zu sehen. Auf `main` geht ein Testbuild auch ohne Tag
+über **Run workflow**.
 
 ### Lokal
 

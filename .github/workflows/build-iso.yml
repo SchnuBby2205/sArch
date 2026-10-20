@@ -9,12 +9,15 @@ on:
         required: true
   push:
     tags:
-      - "iso-*"
+      - "iso-*"       # Testbuild -> nur Artifact (14 Tage)
+      - "release-*"   # Release   -> GitHub-Release mit ISO in Teilen (< 2 GB je Datei)
 
 jobs:
   iso:
     runs-on: ubuntu-latest
     timeout-minutes: 240
+    permissions:
+      contents: write   # zum Anlegen des Releases
     steps:
       - name: Speicherplatz schaffen
         run: |
@@ -59,7 +62,8 @@ jobs:
             bash iso/build_iso.sh
           sudo chown -R "$(id -u):$(id -g)" iso/out iso/aurcache
 
-      - name: ISO hochladen
+      - name: ISO hochladen (Testbuild)
+        if: ${{ !startsWith(github.ref_name, 'release-') }}
         uses: actions/upload-artifact@v4
         with:
           name: sarch-iso
@@ -68,3 +72,47 @@ jobs:
             iso/out/*.sha256
           compression-level: 0
           retention-days: 14
+
+      # GitHub erlaubt pro Release-Datei höchstens 2 GB -> ISO in Teile zu 1900 MiB schneiden
+      - name: Release erstellen
+        if: ${{ startsWith(github.ref_name, 'release-') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          cd iso/out
+          iso=$(ls *.iso | head -n1)
+          split -b 1900M --numeric-suffixes=1 -a 1 "$iso" "$iso.part"
+          rm "$iso"
+          parts=$(ls "$iso".part* | sort -V)
+          linux_parts=$(echo $parts)
+          win_parts=$(echo $parts | sed 's/ / + /g')
+          cat > notes.md <<'NOTES'
+          Live-ISO mit Hyprland, Quickshell und grafischem Installer (Calamares). Branch: `@BRANCH@`
+
+          GitHub erlaubt pro Datei höchstens 2 GB, deshalb ist die ISO in Teile geschnitten.
+          **Alle `.part`-Dateien und die `.sha256`-Datei in einen Ordner laden**, dann zusammensetzen:
+
+          **Linux**
+          ```bash
+          cat @LINUX_PARTS@ > @ISO@
+          sha256sum -c @ISO@.sha256
+          ```
+
+          **Windows (Eingabeaufforderung / cmd)**
+          ```bat
+          copy /b @WIN_PARTS@ @ISO@
+          certutil -hashfile @ISO@ SHA256
+          ```
+          Die ausgegebene Prüfsumme muss mit der in `@ISO@.sha256` übereinstimmen.
+
+          Danach auf einen USB-Stick schreiben (Linux: `dd`, Windows: z. B. Rufus im DD-Modus oder balenaEtcher)
+          oder in einer VM testen. Anleitung: [iso/README.md](https://github.com/@REPO@/blob/@BRANCH@/iso/README.md)
+          NOTES
+          sed -i "s|^          ||; s|@ISO@|$iso|g; s|@LINUX_PARTS@|$linux_parts|g; s|@WIN_PARTS@|$win_parts|g; s|@BRANCH@|${{ steps.branch.outputs.name }}|g; s|@REPO@|${{ github.repository }}|g" notes.md
+          cat notes.md
+          gh release create "$TAG" $parts "$iso.sha256" \
+            --repo "${{ github.repository }}" \
+            --title "sArch ${TAG#release-}" \
+            --notes-file notes.md \
+            --latest

@@ -51,7 +51,7 @@ curl -fsSL https://raw.githubusercontent.com/SchnuBby2205/sArch/sArch-QS/bootstr
 
 ### Live-ISO mit grafischem Installer (Calamares)
 
-Statt des Skripts gibt es auch eine bootfähige ISO: Sie startet direkt in den sArch-Desktop und installiert per **Calamares** (offline, inkl. Partitionierung/LUKS, Benutzer, GRUB). Gebaut wird sie über **GitHub Actions** (Actions → „sArch ISO bauen“) oder lokal mit `./iso/build_local.sh`. Nach dem ersten Start bietet die Ersteinrichtung NVIDIA-Treiber, Zusatzprogramme und Backups an. Details: [iso/README.md](iso/README.md).
+Statt des Skripts gibt es auch eine bootfähige ISO: Sie startet direkt in den sArch-Desktop und installiert per **Calamares** (offline, inkl. Partitionierung/LUKS, Benutzer, GRUB). Fertige ISOs gibt es unter **[Releases](https://github.com/SchnuBby2205/sArch/releases/latest)** (in Teilen, zusammensetzen mit `cat sarch-*.iso.part* > sarch.iso` unter Linux bzw. `copy /b teil1 + teil2 sarch.iso` unter Windows). Selbst bauen geht über **GitHub Actions** (Tag `iso-…` = Testbuild, `release-…` = Release) oder lokal mit `./iso/build_local.sh`. Nach dem ersten Start bietet die Ersteinrichtung NVIDIA-Treiber, Zusatzprogramme und Backups an. Details: [iso/README.md](iso/README.md).
 
 ### Installations-Stages
 

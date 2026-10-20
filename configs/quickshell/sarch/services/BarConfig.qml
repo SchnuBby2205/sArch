@@ -20,7 +20,7 @@ Singleton {
         opacity: 0.86,            // Deckkraft des Hintergrunds
         clock: { seconds: false, h24: true, blink: true },
         date: { format: "ddd, d. MMM" },
-        workspaces: { count: 8, numbers: true },
+        workspaces: { count: 8, numbers: true, preview: true },
         audio: { percent: true },
         modules: [
             { id: "launcher", zone: "start" },
@@ -30,6 +30,7 @@ Singleton {
             { id: "wallpaper", zone: "end" },
             { id: "settings", zone: "end" },
             { id: "audio", zone: "end" },
+            { id: "notifications", zone: "end" },
             { id: "power", zone: "end" }
         ]
     })
@@ -43,6 +44,7 @@ Singleton {
         { id: "wallpaper", icon: "wallpaper", label: "Hintergrundbild", desc: "Öffnet die Wallpaper-Auswahl" },
         { id: "settings", icon: "settings", label: "Einstellungen", desc: "Öffnet die Einstellungen" },
         { id: "audio", icon: "volume_up", label: "Audio", desc: "Lautstärke · Klick: pavucontrol, Mausrad: lauter/leiser, Mitte: stumm" },
+        { id: "notifications", icon: "notifications", label: "Benachrichtigungen", desc: "Verlauf · Klick: Zentrale, Rechtsklick: Nicht stören, Mitte: Popups schließen" },
         { id: "power", icon: "power_settings_new", label: "Power-Menü", desc: "Öffnet das Power-Menü" }
     ]
 
@@ -69,6 +71,13 @@ Singleton {
         if (out.modules) {
             const seen = {};
             out.modules = out.modules.filter(m => m && m.id && !seen[m.id] && (seen[m.id] = true));
+            // neues Modul "notifications" in bestehenden Configs sichtbar machen (vor dem Power-Menü)
+            if (!seen.notifications) {
+                const p = out.modules.findIndex(m => m.id === "power" && m.zone !== "off");
+                const z = p >= 0 ? out.modules[p].zone : "end";
+                out.modules.splice(p >= 0 ? p : out.modules.length, 0, { id: "notifications", zone: z });
+                seen.notifications = true;
+            }
             for (const c of root.catalog)
                 if (!seen[c.id])
                     out.modules.push({ id: c.id, zone: "off" });

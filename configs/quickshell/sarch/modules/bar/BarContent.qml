@@ -23,6 +23,8 @@ Item {
     readonly property real radius: style === "docked" ? 0 : cfg.radius
     readonly property real stripThickness: thick + gap
     readonly property color bgColor: Theme.alpha(Theme.surface, cfg.opacity)
+    // Ränder blenden mit der Deckkraft aus (bei 0 % bleiben nur die Icons)
+    readonly property real edgeFade: Math.min(1, cfg.opacity / 0.3)
 
     // Rahmen der eigentlichen Bar innerhalb des Streifens
     readonly property real along: vertical ? height : width
@@ -70,7 +72,7 @@ Item {
             radius: root.radius
             color: root.bgColor
             border.width: 1
-            border.color: Theme.alpha(Theme.outline, 0.16)
+            border.color: Theme.alpha(Theme.outline, 0.16 * root.edgeFade)
             opacity: root.style === "islands" ? 0 : 1
             Behavior on opacity { Anim { curve: "effects"; duration: 350 } }
             Behavior on radius { Anim { curve: "spatial" } }
@@ -83,13 +85,13 @@ Item {
                 radius: Math.max(0, parent.radius - 1)
                 color: "transparent"
                 border.width: 1
-                border.color: Theme.alpha(Theme.primary, 0.08)
+                border.color: Theme.alpha(Theme.primary, 0.08 * root.edgeFade)
             }
         }
         // docked: nur eine Linie zur Bildschirmmitte hin
         Rectangle {
             visible: root.style === "docked"
-            color: Theme.alpha(Theme.primary, 0.25)
+            color: Theme.alpha(Theme.primary, 0.25 * root.edgeFade)
             width: root.vertical ? 1 : parent.width
             height: root.vertical ? parent.height : 1
             x: root.pos === "left" ? parent.width - 1 : 0

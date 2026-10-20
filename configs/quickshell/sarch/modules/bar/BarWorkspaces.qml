@@ -13,6 +13,7 @@ Item {
     property bool vertical: false
     property real thick: 40
     property var screen: null            // ShellScreen (null = fokussierter Monitor)
+    property bool preview: false         // Live-Vorschau in den Einstellungen -> kein Popup
 
     readonly property bool numbers: cfg?.workspaces?.numbers ?? true
     // markiert wird der Workspace, auf dem gerade der Cursor bzw. Fokus ist (monitorübergreifend)
@@ -47,6 +48,90 @@ Item {
 
     property real wheelAcc: 0
     // Hyprland 0.56 (Lua-Config): "dispatch" erwartet einen Lua-Ausdruck, kein "workspace 3" mehr
+    // ── Vorschau-Popup beim Überfahren ──
+    readonly property bool previewOn: !preview && (cfg?.workspaces?.preview ?? true)
+    property int pendingWs: 0
+    function hoverIn(id) {
+        if (!previewOn)
+            return;
+        pendingWs = id;
+        closeDelay.stop();
+        if (pv.shown)
+            pv.wsId = id;                // offen: direkt umschalten
+        else
+            openDelay.restart();
+    }
+    function hoverOut(id) {
+        if (id !== pendingWs)
+            return;                      // Wechsel zum Nachbarn: dessen hoverIn kam schon
+        openDelay.stop();
+        closeDelay.restart();
+    }
+    function hidePreview() {
+        openDelay.stop();
+        pv.shown = false;
+        hideLater.restart();
+    }
+    Timer {
+        id: openDelay
+
+        interval: 380
+        onTriggered: {
+            pv.wsId = root.pendingWs;
+            popup.visible = true;
+            pv.shown = true;
+        }
+    }
+    Timer {
+        id: closeDelay
+
+        interval: 220
+        onTriggered: if (!pvHover.hovered)
+            root.hidePreview()
+    }
+    Timer {
+        id: hideLater
+
+        interval: 160
+        onTriggered: if (!pv.shown)
+            popup.visible = false
+    }
+
+    readonly property string barPos: cfg?.position ?? "top"
+    readonly property int popEdge: barPos === "bottom" ? Edges.Top : barPos === "left" ? Edges.Right : barPos === "right" ? Edges.Left : Edges.Bottom
+
+    PopupWindow {
+        id: popup
+
+        visible: false
+        color: "transparent"
+        anchor.item: root
+        anchor.edges: root.popEdge
+        anchor.gravity: root.popEdge
+        implicitWidth: pv.implicitWidth + 20
+        implicitHeight: pv.implicitHeight + 20
+
+        WsPreview {
+            id: pv
+
+            x: 10
+            y: 10
+            transformOrigin: root.barPos === "bottom" ? Item.Bottom : root.barPos === "left" ? Item.Left : root.barPos === "right" ? Item.Right : Item.Top
+            onPicked: id => {
+                root.go(id);
+                root.hidePreview();
+            }
+            HoverHandler {
+                id: pvHover
+
+                onHoveredChanged: if (!hovered)
+                    closeDelay.restart()
+                else
+                    closeDelay.stop()
+            }
+        }
+    }
+
     function go(id) {
         const ws = /^\d+$/.test(String(id)) ? String(id) : `"${id}"`;
         Hyprland.dispatch(`hl.dsp.focus({ workspace = ${ws} })`);
@@ -186,7 +271,11 @@ Item {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.go(slot.wsId)
+                    onClicked: {
+                        root.hidePreview();
+                        root.go(slot.wsId);
+                    }
+                    onContainsMouseChanged: containsMouse ? root.hoverIn(slot.wsId) : root.hoverOut(slot.wsId)
                 }
             }
         }

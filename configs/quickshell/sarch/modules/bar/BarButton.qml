@@ -12,9 +12,12 @@ Item {
     property color accent: Theme.primary
     property string label: ""          // optionaler Text neben dem Icon (nur horizontal)
     property bool active: false
+    property int badge: 0               // Zähler oben rechts (0 = aus)
+    property real iconRotation: 0       // z. B. Glocke wackeln lassen
 
     signal clicked
     signal middleClicked
+    signal rightClicked
     signal wheel(int delta)
 
     readonly property real cell: thick - 10
@@ -36,8 +39,8 @@ Item {
 
             tint: root.accent
             hoverOpacity: 0.14
-            acceptedButtons: Qt.LeftButton | Qt.MiddleButton
-            onClicked: e => e.button === Qt.MiddleButton ? root.middleClicked() : root.clicked()
+            acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+            onClicked: e => e.button === Qt.MiddleButton ? root.middleClicked() : e.button === Qt.RightButton ? root.rightClicked() : root.clicked()
             onWheel: e => root.wheel(e.angleDelta.y)
         }
 
@@ -54,7 +57,7 @@ Item {
                 color: area.containsMouse || root.active ? root.accent : Theme.surfaceFg
                 anchors.verticalCenter: parent.verticalCenter
                 scale: area.pressed ? 0.8 : area.containsMouse ? 1.12 : 1
-                rotation: area.containsMouse && root.icon === "settings" ? 90 : 0
+                rotation: (area.containsMouse && root.icon === "settings" ? 90 : 0) + root.iconRotation
                 Behavior on scale { Anim { curve: "spatialFast" } }
                 Behavior on rotation { Anim { curve: "spatialSlow" } }
             }
@@ -68,6 +71,35 @@ Item {
                 color: Theme.surfaceFgDim
                 anchors.verticalCenter: parent.verticalCenter
             }
+        }
+    }
+
+    // Zähler (z. B. ungelesene Benachrichtigungen)
+    Rectangle {
+        id: badgeBox
+
+        readonly property bool on: root.badge > 0
+        anchors.horizontalCenter: bg.horizontalCenter
+        anchors.horizontalCenterOffset: root.cell * 0.28
+        anchors.verticalCenter: bg.verticalCenter
+        anchors.verticalCenterOffset: -root.cell * 0.26
+        width: Math.max(16, badgeTxt.implicitWidth + 8)
+        height: 16
+        radius: 8
+        color: root.accent
+        border.width: 2
+        border.color: Theme.surface
+        scale: on ? 1 : 0
+        Behavior on scale { Anim { curve: "spatialFast" } }
+
+        Txt {
+            id: badgeTxt
+
+            anchors.centerIn: parent
+            text: root.badge > 9 ? "9+" : String(root.badge)
+            font.pixelSize: 9
+            font.weight: Font.Bold
+            color: Theme.surface
         }
     }
 }

@@ -8,5 +8,4 @@ if [[ -n "$U" ]]; then
 else
     echo "[sarch-user] kein Benutzer gefunden" >&2
 fi
-rm -rf /opt/sArch /usr/share/sArch
 exit 0

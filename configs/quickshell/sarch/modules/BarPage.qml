@@ -394,7 +394,7 @@ Item {
                     order: 6
                     icon: "opacity"
                     title: Backend.t("qs_bar_opacity", "Deckkraft")
-                    from: 30; to: 100; stepSize: 1; suffix: " %"
+                    from: 0; to: 100; stepSize: 1; suffix: " %"
                     value: Math.round(bp.draft.opacity * 100)
                     original: Math.round(bp.original.opacity * 100)
                     onMoved: v => bp.set("opacity", v / 100)

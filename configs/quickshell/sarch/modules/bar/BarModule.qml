@@ -21,6 +21,7 @@ Loader {
         case "clock": return clockComp;
         case "date": return dateComp;
         case "audio": return audioComp;
+        case "notifications": return notifComp;
         case "launcher":
         case "wallpaper":
         case "settings":
@@ -31,7 +32,7 @@ Loader {
 
     Component {
         id: wsComp
-        BarWorkspaces { cfg: root.cfg; vertical: root.vertical; thick: root.thick; screen: root.screen }
+        BarWorkspaces { cfg: root.cfg; vertical: root.vertical; thick: root.thick; screen: root.screen; preview: root.preview }
     }
     Component {
         id: clockComp
@@ -40,6 +41,10 @@ Loader {
     Component {
         id: dateComp
         BarDate { cfg: root.cfg; vertical: root.vertical; thick: root.thick }
+    }
+    Component {
+        id: notifComp
+        BarNotifs { cfg: root.cfg; vertical: root.vertical; thick: root.thick; preview: root.preview }
     }
     Component {
         id: audioComp

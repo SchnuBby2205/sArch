@@ -37,19 +37,4 @@ Item {
         onMiddleClicked: Quickshell.execDetached([root.volScript, "toggle"])
         onWheel: d => Quickshell.execDetached([root.volScript, d > 0 ? "5%+" : "5%-", "unmute"])
     }
-
-    // Pegel als feine Linie unter dem Icon
-    Rectangle {
-        visible: !!root.sink
-        anchors.horizontalCenter: root.vertical ? parent.horizontalCenter : undefined
-        anchors.bottom: parent.bottom
-        anchors.bottomMargin: root.vertical ? 2 : 6
-        x: root.vertical ? 0 : 10
-        width: (root.vertical ? root.thick - 18 : btn.implicitWidth - 20) * Math.min(1, root.volume)
-        height: 2
-        radius: 1
-        color: root.muted ? Theme.error : Theme.primary
-        opacity: 0.6
-        Behavior on width { Anim { curve: "spatialFast" } }
-    }
 }

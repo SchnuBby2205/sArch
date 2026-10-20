@@ -35,7 +35,7 @@ Item {
         radius: zoneRoot.host.cfg.radius
         color: zoneRoot.host.bgColor
         border.width: 1
-        border.color: Theme.alpha(Theme.outline, 0.16)
+        border.color: Theme.alpha(Theme.outline, 0.16 * zoneRoot.host.edgeFade)
         opacity: zoneRoot.islands && !zoneRoot.empty ? 1 : 0
         Behavior on opacity { Anim { curve: "effects"; duration: 350 } }
     }

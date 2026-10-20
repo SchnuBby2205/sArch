@@ -299,6 +299,11 @@ Card {
                 checked: root.page.draft.workspaces.numbers
                 onToggled: v => root.page.set("workspaces.numbers", v)
             }
+            Toggle {
+                label: Backend.t("qs_bar_ws_preview", "Vorschau beim Überfahren")
+                checked: root.page.draft.workspaces.preview ?? true
+                onToggled: v => root.page.set("workspaces.preview", v)
+            }
             Row {
                 spacing: 14
                 Txt {

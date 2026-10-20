@@ -23,7 +23,16 @@ Item {
     readonly property string script: `${Quickshell.env("HOME")}/.config/sArch/bin/sarch_power_action.sh`
     readonly property string user: Quickshell.env("USER") || ""
 
-    readonly property var actions: [
+    // Ruhezustand nur anbieten, wenn er eingerichtet ist (resume= in der Kernel-Kommandozeile)
+    readonly property bool canHibernate: cmdline.text().indexOf("resume=") >= 0
+    FileView {
+        id: cmdline
+
+        path: "/proc/cmdline"
+        printErrors: false
+    }
+    readonly property var actions: allActions.filter(a => a.id !== "hibernate" || canHibernate)
+    readonly property var allActions: [
         { id: "lock", icon: "lock", label: Backend.t("qs_pw_lock", "Sperren"), key: "L", confirm: false, accent: "primary" },
         { id: "suspend", icon: "bedtime", label: Backend.t("qs_pw_suspend", "Bereitschaft"), key: "S", confirm: false, accent: "primary" },
         { id: "hibernate", icon: "mode_standby", label: Backend.t("qs_pw_hibernate", "Ruhezustand"), key: "H", confirm: false, accent: "primary" },

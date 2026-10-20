@@ -5,6 +5,7 @@
 //   Einstellungen:     qs -c sarch ipc call settings toggle ""   | open wallpaper | close
 //   App-Launcher:      qs -c sarch ipc call launcher toggle      | open | close
 //   Powermenü:         qs -c sarch ipc call power toggle         | open | close
+//   Benachrichtigungen: qs -c sarch ipc call notifications toggle | dnd | clear
 //   Bequemer:          bin/sarch_settings.sh [seite], bin/sarch_launcher.sh, bin/sarch_power.sh
 
 import QtQuick
@@ -14,6 +15,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import qs.modules
 import qs.modules.bar
+import qs.modules.notifications
 import qs.services
 
 ShellRoot {
@@ -22,6 +24,8 @@ ShellRoot {
     property bool shown: false              // Einstellungen
     property bool launcherShown: false
     property bool powerShown: false
+    property bool notifShown: false          // Benachrichtigungszentrale
+    property var notifScreen: Quickshell.screens[0]
     property var targetScreen: Quickshell.screens[0]
 
     function focusedScreen() {
@@ -40,6 +44,8 @@ ShellRoot {
             launcher.requestClose();
         if (keep !== "power" && powerShown)
             power.requestClose();
+        if (keep !== "notifications" && notifShown)
+            center.requestClose();
     }
 
     function open(page) {
@@ -84,6 +90,18 @@ ShellRoot {
             openPower();
     }
 
+    function toggleNotifications() {
+        if (notifShown && center.open) {
+            center.requestClose();
+            return;
+        }
+        closeOthers("notifications");
+        if (!notifShown)
+            targetScreen = focusedScreen();
+        notifShown = true;
+        Qt.callLater(() => center.show());
+    }
+
     // ── Bar auf jedem Bildschirm ──
     Variants {
         model: Quickshell.screens
@@ -102,6 +120,35 @@ ShellRoot {
         }
         function onPowerRequested() {
             shell.togglePower();
+        }
+    }
+
+    Connections {
+        target: Notifs
+        function onCenterRequested() {
+            shell.toggleNotifications();
+        }
+    }
+    // Popups erscheinen auf dem Monitor, auf dem gerade gearbeitet wird
+    Connections {
+        target: Notifs.popupModel
+        function onCountChanged() {
+            if (Notifs.popupModel.count === 1)
+                shell.notifScreen = shell.focusedScreen();
+        }
+    }
+
+    IpcHandler {
+        target: "notifications"
+
+        function toggle(): void {
+            shell.toggleNotifications();
+        }
+        function dnd(): void {
+            Notifs.setDnd(!Notifs.dnd);
+        }
+        function clear(): void {
+            Notifs.clearPopups();
         }
     }
 
@@ -221,6 +268,53 @@ ShellRoot {
             anchors.fill: parent
             onOpenChanged: Ui.powerOpen = open
             onClosed: shell.powerShown = false
+        }
+    }
+
+    // ── Benachrichtigungen: Popups ──
+    PanelWindow {
+        visible: Notifs.popupModel.count > 0
+        screen: shell.notifScreen
+        color: "transparent"
+        anchors {
+            top: true
+            right: true
+        }
+        implicitWidth: popups.implicitWidth
+        implicitHeight: popups.implicitHeight
+        exclusiveZone: 0
+        WlrLayershell.namespace: "sarch-notifications"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
+
+        NotifPopups {
+            id: popups
+
+            anchors.fill: parent
+        }
+    }
+
+    // ── Benachrichtigungszentrale ──
+    PanelWindow {
+        visible: shell.notifShown
+        screen: shell.targetScreen
+        color: "transparent"
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+        exclusiveZone: 0
+        WlrLayershell.namespace: "sarch-notification-center"
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: shell.notifShown ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+
+        NotifCenter {
+            id: center
+
+            anchors.fill: parent
+            onClosed: shell.notifShown = false
         }
     }
 }

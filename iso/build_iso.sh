@@ -45,15 +45,15 @@ fi
 # -----------------------------------------------------------------------------
 log "Build-Umgebung vorbereiten"
 # -----------------------------------------------------------------------------
-git config --global --add safe.directory '*'
 sed -i '/^\[multilib\]/,/^Include/ s/^#//; /^#\[multilib\]/,/^#Include/ s/^#//' /etc/pacman.conf
 grep -q '^\[multilib\]' /etc/pacman.conf || printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> /etc/pacman.conf
 sed -i 's/^#\?ParallelDownloads.*/ParallelDownloads = 10/' /etc/pacman.conf
 pacman-key --init >/dev/null 2>&1 || true
 pacman-key --populate archlinux >/dev/null 2>&1 || true
 pacman -Syu --noconfirm --needed archiso git base-devel sudo curl pacman-contrib
+git config --global --add safe.directory '*'
 BRANCH=${SARCH_BRANCH:-$(git -C "$REPO" rev-parse --abbrev-ref HEAD 2>/dev/null || echo main)}
-[[ "$BRANCH" == HEAD ]] && BRANCH=${GITHUB_REF_NAME:-main}
+[[ "$BRANCH" == HEAD || "$BRANCH" == iso-* ]] && BRANCH=main
 info "Branch: $BRANCH   Kernel: $KERNEL"
 
 # -----------------------------------------------------------------------------

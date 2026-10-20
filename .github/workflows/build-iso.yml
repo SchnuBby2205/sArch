@@ -35,13 +35,26 @@ jobs:
           key: sarch-aur-${{ github.run_id }}
           restore-keys: sarch-aur-
 
+      # bei Tag-Builds ist ref_name der Tag – ~/sArch soll aber den Branch verfolgen
+      - name: Branch ermitteln
+        id: branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.ref_type }}" == branch ]]; then
+            b="${{ github.ref_name }}"
+          else
+            b=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/branches-where-head" --jq '.[0].name' 2>/dev/null || true)
+          fi
+          echo "name=${b:-main}" >> "$GITHUB_OUTPUT"
+          echo "Branch: ${b:-main}"
+
       - name: ISO im Arch-Container bauen
         run: |
           docker run --rm --privileged \
             -v "$GITHUB_WORKSPACE:/src" -w /src \
             -e SARCH_KERNEL="${{ github.event.inputs.kernel || 'linux-lts' }}" \
-            -e SARCH_BRANCH="${{ github.ref_name }}" \
-            -e GITHUB_REF_NAME="${{ github.ref_name }}" \
+            -e SARCH_BRANCH="${{ steps.branch.outputs.name }}" \
             archlinux/archlinux:latest \
             bash iso/build_iso.sh
           sudo chown -R "$(id -u):$(id -g)" iso/out iso/aurcache

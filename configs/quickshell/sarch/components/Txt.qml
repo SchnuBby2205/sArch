@@ -5,7 +5,9 @@ Text {
     property bool mono: false
 
     color: Theme.surfaceFg
-    font.family: mono ? Theme.mono : Theme.sans
+    // überall die Oberflächen-Schrift; "mono" sorgt nur für gleich breite Ziffern (Werte, Zähler)
+    font.family: Theme.sans
+    font.features: mono ? { "tnum": 1 } : ({})
     font.pixelSize: Theme.size.body
     elide: Text.ElideRight
     verticalAlignment: Text.AlignVCenter

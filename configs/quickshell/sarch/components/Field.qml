@@ -82,10 +82,13 @@ Rectangle {
         color: Theme.surfaceFg
         selectionColor: Theme.alpha(Theme.primary, 0.4)
         selectedTextColor: Theme.surfaceFg
-        font.family: root.mono ? Theme.mono : Theme.sans
+        // Oberflächen-Schrift auch in Wert-/Code-Feldern (mono = nur gleich breite Ziffern)
+        font.family: Theme.sans
+        font.features: root.mono ? { "tnum": 1 } : ({})
         font.pixelSize: root.fontSize
         clip: true
         selectByMouse: true
+        activeFocusOnTab: true          // Tab / Shift+Tab: nächstes / vorheriges Feld
         onTextEdited: root.edited()
         Keys.onPressed: e => {
             if (root.keyHandler)

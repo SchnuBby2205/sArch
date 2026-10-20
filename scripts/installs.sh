@@ -370,7 +370,7 @@ installISOFirstboot() { Banner; checkDebugFlag
   if [[ "$online" == true ]]; then
     # schnellste deutsche Mirrors; Fehler hier sind nicht schlimm (Liste von der Installation bleibt)
     [[ "$debug" == false ]] && myPrint step Running "Mirrors..."
-      ( dryRun runCMDS 1 Sorting "German mirrors..." 0 20 20 "timeout 120 reflector --country Germany --protocol https --latest 10 --sort rate --connection-timeout 3 --download-timeout 5 --save /etc/pacman.d/mirrorlist $debugstring" ) \
+      ( dryRun runCMDS 1 Sorting "German mirrors..." 0 20 20 "reflector --country Germany --protocol https --latest 10 --sort rate --save /etc/pacman.d/mirrorlist $debugstring" ) \
         || myPrint print yellow "reflector fehlgeschlagen - nehme die vorhandene Mirrorliste.\n"
     [[ "$debug" == false ]] && myPrint step ok
     bash -c "sudo pacman -Syy $debugstring"

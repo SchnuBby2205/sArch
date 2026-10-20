@@ -299,6 +299,8 @@ Card {
             }
         }
         SSlider {
+            id: sizeSlider
+
             width: root.width - 36 - 3 * 10 - 38 * 2 - 76
             anchors.verticalCenter: parent.verticalCenter
             from: root.minSize
@@ -309,6 +311,14 @@ Card {
             onMoved: v => {
                 root.size = v;
                 root.edited();
+            }
+            // Zurücksetzen / Plus-Minus: Regler nachziehen (eigene Bewegung löst die Bindung)
+            Connections {
+                target: root
+                function onSizeChanged() {
+                    if (sizeSlider.value !== root.size)
+                        sizeSlider.value = root.size;
+                }
             }
         }
     }

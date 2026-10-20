@@ -50,10 +50,9 @@ Item {
             text: root.value
             mono: root.mono
             modified: root.isModified
-            onEdited: {
-                root.value = text;
-                root.changed(text);
-            }
+            // Wert nicht selbst setzen: der Aufrufer übernimmt ihn und gibt ihn über die Bindung
+            // zurück – so kommt auch "Zurücksetzen" im Feld an
+            onEdited: root.changed(text)
             onAccepted: root.submitted()
             Connections {
                 target: root
@@ -74,10 +73,7 @@ Item {
             value: root.value
             mono: root.mono
             modified: root.isModified
-            onPicked: v => {
-                root.value = v;
-                root.changed(v);
-            }
+            onPicked: v => root.changed(v)
         }
     }
 
@@ -108,10 +104,7 @@ Item {
                 options: root.opts
                 value: root.value
                 segWidth: Math.max(56, Math.min(110, (parent.width - 8) / Math.max(1, root.opts.length)))
-                onPicked: v => {
-                    root.value = v;
-                    root.changed(v);
-                }
+                onPicked: v => root.changed(v)
             }
         }
     }

@@ -22,6 +22,7 @@ Item {
     property bool thumbing: false
     property bool applying: false
     property int hoverSwatch: -1
+    property bool transOpen: false              // Panel "Übergang"
 
     readonly property var shown: {
         const q = (query || Ui.search).trim().toLowerCase();
@@ -549,6 +550,12 @@ Item {
                 }
             }
             IconButton {
+                icon: "animation"
+                active: page.transOpen
+                tooltip: Backend.t("qs_wp_transition", "Übergang beim Wechsel")
+                onClicked: page.transOpen = !page.transOpen
+            }
+            IconButton {
                 icon: "my_location"
                 tooltip: Backend.t("qs_wp_goto_active", "Zum aktiven Bild")
                 onClicked: page.selectPath(Theme.wallpaper, false)
@@ -727,6 +734,241 @@ Item {
             Txt {
                 text: Backend.t("wp_empty", "Keine Hintergrundbilder gefunden in {dir}", { dir: page.dir })
                 color: Theme.surfaceFgDim
+            }
+        }
+    }
+
+    // ── Panel: Übergang beim Wallpaper-Wechsel (awww) ───────────────────────
+    MouseArea {
+        anchors.fill: parent
+        visible: page.transOpen
+        z: 50
+        onClicked: page.transOpen = false
+    }
+    Rectangle {
+        id: trans
+
+        z: 51
+        width: 560
+        height: transCol.implicitHeight + 36
+        anchors.right: toolbar.right
+        y: toolbar.y - height - 8          // klappt nach oben über das Vorschaubild auf
+        radius: Theme.radius.xl
+        color: Theme.alpha(Theme.surfaceContainer, 0.98)
+        border.width: 1
+        border.color: Theme.alpha(Theme.outline, 0.25)
+        transformOrigin: Item.BottomRight
+        opacity: page.transOpen ? 1 : 0
+        scale: page.transOpen ? 1 : 0.9
+        visible: opacity > 0
+        Behavior on opacity { Anim { curve: "effects"; duration: page.transOpen ? 220 : 140 } }
+        Behavior on scale { Anim { curve: page.transOpen ? "spatial" : "emphasizedAccel"; duration: page.transOpen ? 420 : 160 } }
+
+        MouseArea {
+            anchors.fill: parent     // Klicks im Panel nicht zum Schließen durchreichen
+        }
+
+        property string hoverDesc: ""
+
+        Column {
+            id: transCol
+
+            x: 18
+            y: 18
+            width: parent.width - 36
+            spacing: 14
+
+            // Kopf
+            Item {
+                width: parent.width
+                height: 36
+                Row {
+                    spacing: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    Rectangle {
+                        width: 36
+                        height: 36
+                        radius: 12
+                        color: Theme.secondaryContainer
+                        Icon {
+                            anchors.centerIn: parent
+                            icon: "animation"
+                            size: 20
+                            color: Theme.secondaryContainerFg
+                        }
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        Txt {
+                            text: Backend.t("qs_wp_transition", "Übergang beim Wechsel")
+                            font.pixelSize: Theme.size.label
+                            font.weight: Font.Medium
+                        }
+                        Txt {
+                            text: trans.hoverDesc !== "" ? trans.hoverDesc : (WallTrans.types.find(t => t.id === WallTrans.type)?.desc ?? "")
+                            font.pixelSize: Theme.size.tiny
+                            color: Theme.surfaceFgDim
+                        }
+                    }
+                }
+                IconButton {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    icon: "close"
+                    size: 32
+                    onClicked: page.transOpen = false
+                }
+            }
+
+            // Effekte
+            Grid {
+                width: parent.width
+                columns: 5
+                spacing: 8
+
+                Repeater {
+                    model: WallTrans.types
+
+                    Rectangle {
+                        id: tt
+
+                        required property var modelData
+                        readonly property bool sel: WallTrans.type === modelData.id
+                        width: (transCol.width - 4 * 8) / 5
+                        height: 72
+                        radius: sel ? 18 : 14
+                        color: sel ? Theme.primaryContainer : ttArea.containsMouse ? Theme.surfaceHighest : Theme.alpha(Theme.surfaceHigh, 0.8)
+                        border.width: sel ? 2 : 0
+                        border.color: Theme.primary
+                        Behavior on color { CAnim {} }
+                        Behavior on radius { Anim { curve: "spatialFast" } }
+
+                        Column {
+                            anchors.centerIn: parent
+                            spacing: 5
+                            Icon {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                icon: tt.modelData.icon
+                                size: 24
+                                fill: tt.sel || ttArea.containsMouse ? 1 : 0
+                                color: tt.sel ? Theme.primaryContainerFg : Theme.surfaceFg
+                                scale: ttArea.pressed ? 0.8 : ttArea.containsMouse ? 1.15 : 1
+                                rotation: ttArea.containsMouse && tt.modelData.id === "random" ? 180 : 0
+                                Behavior on scale { Anim { curve: "spatialFast" } }
+                                Behavior on rotation { Anim { curve: "spatialSlow" } }
+                            }
+                            Txt {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: tt.modelData.label
+                                font.pixelSize: Theme.size.small
+                                font.weight: tt.sel ? Font.DemiBold : Font.Normal
+                                color: tt.sel ? Theme.primaryContainerFg : Theme.surfaceFgDim
+                            }
+                        }
+                        StateLayer {
+                            id: ttArea
+
+                            radius: parent.radius
+                            tint: Theme.primary
+                            onClicked: WallTrans.set("type", tt.modelData.id)
+                            onContainsMouseChanged: trans.hoverDesc = containsMouse ? tt.modelData.desc : ""
+                        }
+                    }
+                }
+            }
+
+            // Dauer
+            Row {
+                spacing: 14
+                Txt {
+                    width: 110
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.t("qs_wp_duration", "Dauer")
+                    color: Theme.surfaceFgDim
+                }
+                SSlider {
+                    id: durSlider
+
+                    width: transCol.width - 110 - 14 - 70 - 14
+                    anchors.verticalCenter: parent.verticalCenter
+                    from: 0.4
+                    to: 4
+                    stepSize: 0.1
+                    value: WallTrans.duration
+                    onMoved: v => WallTrans.set("duration", v)
+                    Connections {
+                        target: WallTrans
+                        function onDurationChanged() {
+                            if (Math.abs(durSlider.value - WallTrans.duration) > 0.01)
+                                durSlider.value = WallTrans.duration;
+                        }
+                    }
+                }
+                Txt {
+                    width: 70
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: WallTrans.duration.toFixed(1) + " s"
+                    mono: true
+                    font.weight: Font.Bold
+                    color: Theme.primary
+                }
+            }
+
+            // Kurve
+            Row {
+                spacing: 14
+                Txt {
+                    width: 110
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.t("qs_wp_curve", "Verlauf")
+                    color: Theme.surfaceFgDim
+                }
+                Segmented {
+                    options: WallTrans.curves.map(c => c.id)
+                    labels: WallTrans.curves.map(c => c.label)
+                    value: WallTrans.bezier
+                    segWidth: (transCol.width - 124 - 10) / 4
+                    onPicked: v => WallTrans.set("bezier", v)
+                }
+            }
+
+            // Mauszeiger
+            Row {
+                spacing: 14
+                opacity: ["random", "grow", "outer"].indexOf(WallTrans.type) >= 0 ? 1 : 0.4
+                Txt {
+                    width: 110
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.t("qs_wp_cursor", "Am Mauszeiger")
+                    color: Theme.surfaceFgDim
+                }
+                Segmented {
+                    options: ["false", "true"]
+                    labels: [Backend.t("qs_off", "Aus"), Backend.t("qs_on", "An")]
+                    value: String(WallTrans.cursor)
+                    segWidth: 90
+                    onPicked: v => WallTrans.set("cursor", v === "true")
+                }
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: "Kreis öffnet sich dort, wo die Maus ist"
+                    font.pixelSize: Theme.size.tiny
+                    color: Theme.surfaceFgDim
+                }
+            }
+
+            // Ausprobieren
+            Item {
+                width: parent.width
+                height: 40
+                Btn {
+                    anchors.right: parent.right
+                    icon: "play_arrow"
+                    text: Backend.t("qs_wp_try", "Ausprobieren")
+                    variant: "tonal"
+                    disabled: Theme.wallpaper === ""
+                    onClicked: WallTrans.tryNow()
+                }
             }
         }
     }

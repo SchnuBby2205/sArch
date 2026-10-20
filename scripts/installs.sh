@@ -436,6 +436,8 @@ _applyRandomWallpaper() {
   magick "$wp" -thumbnail 500x500^ -gravity center -extent 500x500 -quality 70 "${thumbDir}curr"
   magick "$wp" -thumbnail 1000x500^ -gravity center -extent 1000x500 -quality 70 "${thumbDir}curr_wide"
   matugen image "$wp"
+  # Bild setzen (matugen erzeugt nur die Farben) – mit der eingestellten Transition
+  "$HOME/.config/sArch/bin/sarch_wallpaper_set.sh" "$wp" 2>/dev/null || awww img "$wp" 2>/dev/null || true
   # merkt sich die Settings-App als aktuelles Hintergrundbild (Pfad, Farb-Index)
   mkdir -p "$HOME/.cache/sArch" && printf '%s\n0\n' "$wp" > "$HOME/.cache/sArch/current_wallpaper"
 }

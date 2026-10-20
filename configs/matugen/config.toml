@@ -5,9 +5,11 @@
 #set=true
 
 # NEW SYNTAX
+# Das Wallpaper setzt nicht mehr matugen, sondern bin/sarch_wallpaper_set.sh – mit der Transition aus
+# Einstellungen → Hintergrund → Übergang (auch "Zufällig"). matugen erzeugt nur noch die Farben.
 [config.wallpaper]
-command="awww img --transition-type center --transition-step 15 --transition-fps 60 {{ image }}"
-set=true
+command="awww img --transition-type grow {{ image }}"
+set=false
 
 [templates.hyprland]
 input_path = '~/.config/matugen/templates/hyprland-colors.lua'

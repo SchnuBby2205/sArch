@@ -1018,7 +1018,14 @@ def matugen_source_colors(wp: str, n: int = 5) -> list:
     return re.findall(r'#[0-9A-Fa-f]{6}', out)[:n]
 
 def apply_wallpaper(wp: str, idx: int, cache_dir: str, color: str = "") -> tuple:
-    """matugen + Vorschaubilder für rofi + optional Razer-Farbe. Gibt (ok, Fehlertext) zurück."""
+    """Wallpaper setzen (mit Transition) + matugen + Vorschaubilder für rofi + optional Razer-Farbe.
+    Gibt (ok, Fehlertext) zurück."""
+    # Bild sofort mit der eingestellten Transition setzen (läuft parallel zu matugen)
+    setter = os.path.expanduser("~/.config/sArch/bin/sarch_wallpaper_set.sh")
+    if os.access(setter, os.X_OK):
+        _spawn([setter, wp])
+    elif shutil.which("awww"):
+        _spawn(["awww", "img", wp, "--transition-type", "grow"])
     try:
         r = subprocess.run(["matugen", "image", wp, "--source-color-index", str(idx)],
                            stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=180)

@@ -93,6 +93,9 @@ id "$BUILDER" &>/dev/null || useradd -m "$BUILDER"
 echo "$BUILDER ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/90-sarchbuild
 chmod 440 /etc/sudoers.d/90-sarchbuild
 BH=$(getent passwd "$BUILDER" | cut -d: -f6)
+install -d -o "$BUILDER" -g "$BUILDER" "$BH/aur"
+# keine -debug-Pakete (spart beim Calamares-Build Zeit)
+sed -i -E '/^OPTIONS=/ s/([( ])debug([ )])/\1!debug\2/' /etc/makepkg.conf
 asBuilder() { sudo -u "$BUILDER" env HOME="$BH" MAKEFLAGS="-j$(nproc)" "$@"; }
 
 # Cache: schon gebaute AUR-Pakete vorab installieren -> yay --needed baut nur, was im AUR neuer ist

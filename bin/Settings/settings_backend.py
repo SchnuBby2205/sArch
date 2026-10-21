@@ -101,7 +101,7 @@ LEGACY_RULES = {
         "appender": lambda c, v: append_layer_rule(c, v),
         "fields": [
             {"key": "name", "label": "Name", "type": "text"},
-            {"key": "class", "label": "Klasse (Regex)", "type": "text"},
+            {"key": "namespace", "label": "Namespace (Regex)", "type": "text"},
             {"key": "blur", "label": "Blur", "type": "dropdown", "options": ["", "true", "false"]},
         ]},
 }

@@ -808,11 +808,12 @@ def read_layer_rules(config_file: str) -> list:
 def _build_layer_rule(fields: dict) -> str:
     skip = {"_line"}
     name  = fields.get("name","")
-    cls   = fields.get("class","")
+    # Layer matchen nur über den Namespace ("class" aus alten Einträgen wird übernommen)
+    ns    = fields.get("namespace","") or fields.get("class","")
     parts = [f'name = "{name}"']
-    if cls: parts.append(f'match = {{ class = "{cls}" }}')
+    if ns: parts.append(f'match = {{ namespace = "{ns}" }}')
     for k,v in fields.items():
-        if k not in skip | {"name","class","match"}:
+        if k not in skip | {"name","class","namespace","match"}:
             if v not in ("true","false") and not re.match(r'^[\d.]+$', v):
                 v = f'"{v}"'
             parts.append(f"{k} = {v}")

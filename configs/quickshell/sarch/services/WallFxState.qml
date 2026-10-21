@@ -9,13 +9,15 @@ import Quickshell
 Singleton {
     id: root
 
-    property bool active: false
+    property bool active: false          // Overlay sichtbar
+    property bool preparing: false       // Bilder werden (im Hintergrund) dekodiert
     property string oldSrc: ""
     property string newSrc: ""
     property string newPath: ""
     property string mode: "slice"
     property real duration: 1.6
     property int token: 0
+    property string prefetch: ""         // wahrscheinliches nächstes Bild (Picker/Einstellungen) vorab dekodieren
 
     function url(p) {
         return p === "" ? "" : p.startsWith("file://") ? p : "file://" + p;
@@ -27,17 +29,33 @@ Singleton {
         mode = type === "flip" ? "flip" : "slice";
         duration = Math.max(0.4, Math.min(6, Number(dur) || 1.6));
         token += 1;
+        active = false;
+        preparing = true;                 // WallFx meldet ready(), sobald die Bilder dekodiert sind
+        prepTimeout.restart();
+    }
+    // Bilder sind geladen: Overlay zeigen, darunter das neue Bild setzen, Animation läuft an
+    function ready(tok) {
+        if (!preparing || tok !== token)
+            return;
+        preparing = false;
+        prepTimeout.stop();
         active = true;
         swap.restart();
-        finish.interval = duration * 1000 + 200 + 350;   // Startverzögerung + Puffer
+        finish.interval = duration * 1000 + 120 + 400;   // Startverzögerung + Puffer
         finish.restart();
+    }
+    Timer {
+        id: prepTimeout
+
+        interval: 1500                    // Bild lädt nicht -> trotzdem weitermachen
+        onTriggered: root.ready(root.token)
     }
 
     // neues Bild unter dem Overlay setzen, sobald das Overlay steht
     Timer {
         id: swap
 
-        interval: 180          // Overlay muss das alte Bild schon zeigen, sonst blitzt das neue kurz auf
+        interval: 70           // ein paar Frames, bis das Overlay das alte Bild zeigt (sonst blitzt das neue auf)
         onTriggered: Quickshell.execDetached(["awww", "img", root.newPath, "--transition-type", "simple", "--transition-step", "255"])
     }
     Timer {

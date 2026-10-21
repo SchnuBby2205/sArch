@@ -212,6 +212,8 @@ ShellRoot {
 
             WallFx {
                 anchors.fill: parent
+                screenW: modelData.width
+                screenH: modelData.height
             }
         }
     }

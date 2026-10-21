@@ -149,7 +149,7 @@ Item {
     }
     function run(path, i, hex, close) {
         const started = WallTrans.setNow(path);
-        Backend.call(["set-wallpaper", path, String(i), hex || ""].concat(started ? ["noset"] : []), res => {
+        WallTrans.afterStart(() => Backend.call(["set-wallpaper", path, String(i), hex || ""].concat(started ? ["noset"] : []), res => {
             applying = false;
             if (res.ok) {
                 Theme.wallpaper = path;
@@ -163,12 +163,13 @@ Item {
                 Theme.previewAccent = "";
                 Ui.error(Backend.t("wp_failed", "Hintergrundbild konnte nicht gesetzt werden"), [res.error || "?"]);
             }
-        });
+        }));
     }
 
     onSelectedChanged: {
         hero.show(selected);
         fetchColors(selected);
+        WallFxState.prefetch = selected;
         Theme.previewWallpaper = selected;
     }
     onShownChanged: Qt.callLater(() => selectPath(selected, true))

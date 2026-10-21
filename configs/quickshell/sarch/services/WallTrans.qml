@@ -50,8 +50,39 @@ Singleton {
             return false;                  // gleiches Bild (nur andere Akzentfarbe): kein Übergang
         saveTimer.stop();
         save();                            // geänderte Einstellungen sicher übernehmen
-        Quickshell.execDetached([setter, path]);
+        // Typ hier auswürfeln (wie bin/sarch_wallpaper_set.sh), damit Zerschneiden/Kacheln direkt
+        // in Quickshell starten – ohne Umweg Skript -> "qs ipc call" (kostete eine spürbare Pause)
+        let t = type;
+        if (t === "random") {
+            const pool = ["grow", "outer", "wave", "wipe", "center", "any", "fade", "slide", "slice", "flip", "slice", "flip"];
+            t = pool[Math.floor(Math.random() * pool.length)];
+        }
+        if ((t === "slice" || t === "flip") && Theme.wallpaper !== "") {
+            WallFxState.start(Theme.wallpaper, path, t, duration);
+            return true;
+        }
+        Quickshell.execDetached(["env", `SARCH_WP_TYPE=${t}`, setter, path]);
         return true;
+    }
+    // cb erst ausführen, wenn der Übergang läuft (matugen & Co. sollen ihm keine CPU wegnehmen)
+    function afterStart(cb) {
+        if (!WallFxState.preparing) {
+            cb();
+            return;
+        }
+        pendingCbs.push(cb);
+    }
+    property var pendingCbs: []
+    Connections {
+        target: WallFxState
+        function onPreparingChanged() {
+            if (WallFxState.preparing)
+                return;
+            const cbs = root.pendingCbs;
+            root.pendingCbs = [];
+            for (const cb of cbs)
+                cb();
+        }
     }
     function set(key, value) {
         root[key] = value;

@@ -12,6 +12,46 @@ Item {
     property string mode: WallFxState.mode
     property real duration: WallFxState.duration
     property int token: WallFxState.token
+    // Bildschirmgröße (das Fenster ist vor dem ersten Einblenden noch 0×0 groß)
+    property real screenW: 1920
+    property real screenH: 1080
+    readonly property real sw: width > 0 ? width : screenW
+    readonly property real sh: height > 0 ? height : screenH
+    // Kacheln erst anlegen, wenn die Bilder im Cache sind (sonst dekodiert jede Kachel synchron)
+    readonly property bool showTiles: WallFxState.active || !autoRun
+
+    // Bilder vorab im Hintergrund dekodieren – gleicher Cache-Schlüssel (Quelle + Größe) wie die Kacheln
+    Image {
+        id: preOld
+
+        visible: false
+        asynchronous: true
+        cache: true
+        // ohne laufenden Übergang: das aktuelle Wallpaper warm halten (ist beim nächsten Wechsel das "alte")
+        source: fx.oldSrc !== "" && (WallFxState.preparing || WallFxState.active) ? fx.oldSrc : WallFxState.url(Theme.wallpaper)
+        sourceSize.width: fx.sw
+        sourceSize.height: fx.sh
+    }
+    Image {
+        id: preNew
+
+        visible: false
+        asynchronous: true
+        cache: true
+        source: (WallFxState.preparing || WallFxState.active) ? (fx.mode === "flip" ? fx.newSrc : "") : WallFxState.url(WallFxState.prefetch)
+        sourceSize.width: fx.sw
+        sourceSize.height: fx.sh
+    }
+    function done(img) {
+        return img.status === Image.Ready || img.status === Image.Error || String(img.source) === "";
+    }
+    readonly property bool loaded: String(preOld.source) === oldSrc && done(preOld)
+        && (mode !== "flip" || (String(preNew.source) === newSrc && done(preNew)))
+    onLoadedChanged: report()
+    function report() {
+        if (autoRun && loaded && WallFxState.preparing)
+            WallFxState.ready(token);
+    }
 
     // Fortschritt 0..1 (im Test direkt setzbar)
     property real t: 0
@@ -27,13 +67,22 @@ Item {
     onTokenChanged: if (autoRun) {
         t = 0;
         run.stop();
-        startDelay.restart();
+        Qt.callLater(report);          // Bilder können schon im Cache sein
     }
-    // erst loslegen, wenn awww das neue Bild darunter gesetzt hat (WallFxState: swap nach 180 ms)
+    Connections {
+        target: WallFxState
+        function onActiveChanged() {
+            if (WallFxState.active && fx.autoRun) {
+                fx.t = 0;
+                startDelay.restart();
+            }
+        }
+    }
+    // erst loslegen, wenn awww das neue Bild darunter gesetzt hat (WallFxState: swap nach 70 ms)
     Timer {
         id: startDelay
 
-        interval: 200
+        interval: 120
         onTriggered: run.restart()
     }
 
@@ -70,7 +119,7 @@ Item {
             rotation: slice.angle
 
             Repeater {
-                model: slice.visible ? slice.count : 0
+                model: slice.visible && fx.showTiles ? slice.count : 0
 
                 Item {
                     id: strip
@@ -112,10 +161,10 @@ Item {
                             rotation: -slice.angle
                             source: fx.oldSrc
                             fillMode: Image.PreserveAspectCrop
-                            sourceSize.width: fx.width
-                            sourceSize.height: fx.height
+                            sourceSize.width: fx.sw
+                            sourceSize.height: fx.sh
                             cache: true
-                            asynchronous: false
+                            asynchronous: false            // kommt aus dem Cache (vorab geladen)
                             smooth: true
                         }
                     }
@@ -137,7 +186,7 @@ Item {
         readonly property real th: fx.height / rows
 
         Repeater {
-            model: flip.visible ? flip.cols * flip.rows : 0
+            model: flip.visible && fx.showTiles ? flip.cols * flip.rows : 0
 
             Flipable {
                 id: tile
@@ -175,8 +224,8 @@ Item {
                         height: fx.height
                         source: fx.oldSrc
                         fillMode: Image.PreserveAspectCrop
-                        sourceSize.width: fx.width
-                        sourceSize.height: fx.height
+                        sourceSize.width: fx.sw
+                        sourceSize.height: fx.sh
                         cache: true
                     }
                     Rectangle {
@@ -196,8 +245,8 @@ Item {
                         height: fx.height
                         source: fx.newSrc
                         fillMode: Image.PreserveAspectCrop
-                        sourceSize.width: fx.width
-                        sourceSize.height: fx.height
+                        sourceSize.width: fx.sw
+                        sourceSize.height: fx.sh
                         cache: true
                     }
                     Rectangle {

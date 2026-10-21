@@ -92,8 +92,10 @@ Item {
             colorCache = c;
         });
     }
-    onCurChanged: if (cur)
-        fetchColors(cur.path)
+    onCurChanged: if (cur) {
+        fetchColors(cur.path);
+        WallFxState.prefetch = cur.path;     // für Kacheln/Zerschneiden vorab dekodieren
+    }
 
     function move(d) {
         if (shown.length === 0)
@@ -129,7 +131,7 @@ Item {
         const p = pending;
         pending = null;
         const started = WallTrans.setNow(p.path);
-        Backend.call(["set-wallpaper", p.path, String(p.idx), p.hex].concat(started ? ["noset"] : []), res => {
+        WallTrans.afterStart(() => Backend.call(["set-wallpaper", p.path, String(p.idx), p.hex].concat(started ? ["noset"] : []), res => {
             if (res.ok) {
                 Theme.wallpaper = p.path;
                 root.activeIndex = p.idx;
@@ -139,7 +141,7 @@ Item {
                 Quickshell.execDetached(["notify-send", "-a", "sArch", "-u", "critical",
                     Backend.tr("Hintergrundbild konnte nicht gesetzt werden"), String(res.error || "?")]);
             }
-        });
+        }));
     }
 
     // ── Scrim ──

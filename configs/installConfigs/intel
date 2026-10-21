@@ -1,0 +1,7 @@
+Intel drivers...
+5
+mesa{,-utils} 
+lib32{-mesa,-vulkan-intel,-vulkan-icd-loader} 
+vulkan{-intel,-icd-loader} 
+intel-media-driver 
+libva-utils

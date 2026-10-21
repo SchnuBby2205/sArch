@@ -264,10 +264,19 @@ EOF
 installConfigs() { Banner; checkDebugFlag
   bash -c "sudo pacman -Syy $debugstring"
   [[ "$debug" == false ]] && myPrint step Running "Final steps..."
-    readList "$sARCH_INSTALLCONFIGS/$gpu"
-    install="${list[*]}"
-    # nvidia-dkms braucht die Header zum laufenden Kernel, sonst wird kein Modul gebaut
-    [[ "$gpu" == nvidia ]] && install+=" ${kernel}-headers"
+    # Grafiktreiber: gpu kann mehrere enthalten (Hybrid, z. B. "intel nvidia")
+    local g install=""
+    for g in ${gpu:-amd}; do
+      readList "$sARCH_INSTALLCONFIGS/$g"
+      install+=" ${list[*]}"
+    done
+    name="GPU drivers (${gpu:-amd})..."
+    if [[ " $gpu " == *" nvidia "* ]]; then
+      # nvidia-dkms braucht die Header zum laufenden Kernel, sonst wird kein Modul gebaut
+      install+=" ${kernel}-headers"
+      # Hybrid: prime-run startet Programme auf der NVIDIA-Karte
+      [[ "$gpu" != nvidia ]] && install+=" nvidia-prime"
+    fi
     dryRun runCMDS 0 Installing "$name" 0 $value 20 "$pacmanRun $install $debugstring"
     dryRun runCMDS 0 Installing "dxvk-bin..." 5 10 20 "$yayRun dxvk-bin $debugstring"
     # Steam wird nicht gestartet (das Update-Fenster würde den Vollbild-Installer verdecken),
@@ -348,7 +357,7 @@ _removeFirstbootAutostart() {
 }
 
 installISOFirstboot() { Banner; checkDebugFlag
-  local c
+  local c extra
   # Log muss dem Benutzer gehören (ein früherer Lauf kann es als root angelegt haben)
   if [[ -n "${logFile:-}" && -e "$logFile" && ! -w "$logFile" ]]; then
     sudo chown "$(id -u):$(id -g)" "$logFile"
@@ -392,7 +401,9 @@ installISOFirstboot() { Banner; checkDebugFlag
       if [[ "$c" == 0 ]]; then
         [[ "$debug" == false ]] && myPrint step Installing "NVIDIA..."
           readList "$sARCH_INSTALLCONFIGS/nvidia"
-          ( dryRun runCMDS 0 Installing "$name" 0 20 20 "$pacmanRun ${list[*]} $(_isoKernel)-headers $debugstring" ) \
+          extra=""
+          [[ "$(detectGPU)" != nvidia ]] && extra=" nvidia-prime"     # Hybrid (Intel/AMD + NVIDIA)
+          ( dryRun runCMDS 0 Installing "$name" 0 20 20 "$pacmanRun ${list[*]} $(_isoKernel)-headers$extra $debugstring" ) \
             || myPrint print red "NVIDIA-Treiber konnten nicht installiert werden (siehe $logFile).\n"
         [[ "$debug" == false ]] && myPrint step ok
       fi

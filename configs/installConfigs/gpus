@@ -1,4 +1,7 @@
 gpus
 0
 amd
+intel
 nvidia
+intel nvidia
+amd nvidia

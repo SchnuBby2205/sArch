@@ -61,6 +61,57 @@ setSetting() {
     printf '%s="%s"\n' "$k" "$v" >> "$f"
 }
 
+# ── Hardware-Erkennung ───────────────────────────────────────────────────────
+# detectCPU -> intel-ucode | amd-ucode | "" (unbekannt)
+detectCPU() {
+    case "$(grep -m1 vendor_id /proc/cpuinfo 2>/dev/null)" in
+        *GenuineIntel*) echo intel-ucode ;;
+        *AuthenticAMD*) echo amd-ucode ;;
+    esac
+}
+# detectGPU -> z. B. "amd", "intel nvidia" (Reihenfolge intel amd nvidia) | "" (nichts erkannt, z. B. VM)
+# liest /sys (PCI-Klasse 0x03xxxx = Grafik), braucht also kein lspci
+detectGPU() {
+    local d c v intel="" amd="" nvidia=""
+    for d in "${SARCH_SYSFS:-/sys}"/bus/pci/devices/*; do
+        [[ -r "$d/class" && -r "$d/vendor" ]] || continue
+        c=$(<"$d/class"); v=$(<"$d/vendor")
+        [[ "$c" == 0x03* ]] || continue
+        case "$v" in
+            0x8086) intel=intel ;;
+            0x1002|0x1022) amd=amd ;;
+            0x10de) nvidia=nvidia ;;
+        esac
+    done
+    echo $intel $amd $nvidia
+}
+_hwLabel() {
+    case "$1" in
+        intel-ucode) echo "Intel" ;;
+        amd-ucode) echo "AMD" ;;
+        *) local g out=() ; for g in $1; do case "$g" in intel) out+=("Intel");; amd) out+=("AMD");; nvidia) out+=("NVIDIA");; esac; done
+           local IFS=+; echo "${out[*]}" ;;
+    esac
+}
+# Erkannten Wert vorschlagen; "Andere Auswahl" öffnet die normale Liste
+_chooseDetected() {
+    local v=$1 det idx
+    if [[ "$v" == cpu ]]; then det=$(detectCPU); else det=$(detectGPU); fi
+    if [[ -z "$det" ]]; then
+        _chooseFromList "$v"
+        return
+    fi
+    idx=$(list "${v^^} erkannt: $(_hwLabel "$det") - übernehmen?" "Ja ($det)" "Andere Auswahl") || exit 1
+    printf '\n'
+    if [[ "$idx" == 0 ]]; then
+        printf -v "$v" '%s' "$det"
+        setSetting "$v" "$det"
+    else
+        Banner
+        _chooseFromList "$v"
+    fi
+}
+
 # Partition wählen (keine leere Liste, keine Doppelbelegung boot/swap/root)
 _choosePartition() {
     local p=$1 q idx dup
@@ -144,12 +195,12 @@ checkInstallSettings() {
         done
     fi
 
-    # --- CPU / GPU
+    # --- CPU / GPU (Vorschlag aus der Hardware-Erkennung, kann geändert werden)
     if [[ -z "$only" || "$only" =~ ^(cpu|gpu)$ ]]; then
         iter=(cpu gpu)
         [[ -n "$only" ]] && iter=("$only")
         for v in "${iter[@]}"; do
-            [[ -z "${!v:-}" || -n "$only" ]] && _chooseFromList "$v"
+            [[ -z "${!v:-}" || -n "$only" ]] && _chooseDetected "$v"
             Banner
         done
     fi

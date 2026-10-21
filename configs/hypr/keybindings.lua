@@ -54,9 +54,5 @@ hl.bind(mainMod .. " + ALT + mouse_up", hl.dsp.layout("move +col"), { descriptio
 hl.bind(mainMod .. " + ALT + mouse_down", hl.dsp.layout("move -col"), { description = "(Scrolling Layout): Scrollt nach rechts." })
 hl.bind(mainMod .. " + ALT + P", hl.dsp.exec_cmd("grimblast save area ~/Bilder/screenshot_$(date +%Y-%m-%d_%H-%M-%S).png"), { description = "Screenshot erstellen." })
 
--- neru Keybinds
-hl.bind(mainMod .. " + SPACE", hl.dsp.exec_cmd("~/Downloads/neru-linux-amd64/bin/neru recursive_grid"), { description = "Öffnet das Neru recursive grid." })
-hl.bind(mainMod .. " + H", hl.dsp.exec_cmd("~/Downloads/neru-linux-amd64/bin/neru hints --action left_click"), { description = "Öffnet das Neru recursive grid.Schaltet Neru in den Hints Modus." })
-hl.bind(mainMod .. " + S", hl.dsp.exec_cmd("~/Downloads/neru-linux-amd64/bin/neru scroll"), { description = "Schaltet Neru in den Scroll Modus." })
 hl.bind(mainMod .. " + RETURN", hl.dsp.window.fullscreen(), { description = "Fenster Vollbild toggle." })
 

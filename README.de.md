@@ -121,7 +121,7 @@ sArch/
 ├── configs/
 │   ├── installConfigs/     # Einstellungen, Konstanten, Paket- & Auswahllisten
 │   ├── hypr/               # Hyprland (Lua-Config)
-│   ├── kitty/ rofi/ dunst/ nvim/ yazi/ btop/ qt5ct/ qt6ct/ neru/
+│   ├── kitty/ rofi/ dunst/ nvim/ yazi/ btop/ qt5ct/ qt6ct/
 │   └── matugen/            # Matugen-Config & Vorlagen
 ├── bin/                    # sarch_*-Hilfsskripte + Settings-Tool
 ├── fonts/                  # Mitgelieferte Schriften

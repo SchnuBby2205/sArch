@@ -43,7 +43,8 @@ hl.bind(mainMod .. " + CTRL + B", hl.dsp.exec_cmd("lutris lutris:rungameid/1"), 
 --
 hl.bind(mainMod .. " + A", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_launcher.sh"), { description = "Öffnet den App-Launcher." })
 hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh"), { description = "Öffnet das Settings Fenster." })
-hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh wallpaper"), { description = "Öffnet die Hintergrundbild Auswahl." })
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_wallpicker.sh"), { description = "Öffnet die Hintergrundbild Auswahl." })
+hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_settings.sh wallpaper"), { description = "Öffnet die Hintergrundbild Einstellungen." })
 hl.bind("F12", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%+ unmute"), { description = "Erhöht die Lautstärke um 5%." })
 hl.bind("F11", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh 5%- unmute"), { description = "Verringert die Lautstärke um 5%." })
 hl.bind("F10", hl.dsp.exec_cmd("~/.config/sArch/bin/sarch_change_volume.sh toggle"), { description = "Mute/Unmute." })

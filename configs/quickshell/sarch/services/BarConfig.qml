@@ -45,7 +45,7 @@ Singleton {
         { id: "workspaces", icon: "space_dashboard", label: Backend.tr("Workspaces"), desc: Backend.tr("Workspace-Anzeige · Klick wechselt, Mausrad blättert") },
         { id: "clock", icon: "schedule", label: Backend.tr("Uhrzeit"), desc: Backend.tr("Uhr mit rollenden Ziffern") },
         { id: "date", icon: "calendar_month", label: Backend.tr("Datum"), desc: Backend.tr("Datum im frei wählbaren Format") },
-        { id: "wallpaper", icon: "wallpaper", label: Backend.tr("Hintergrundbild"), desc: Backend.tr("Öffnet die Wallpaper-Auswahl") },
+        { id: "wallpaper", icon: "wallpaper", label: Backend.tr("Hintergrundbild"), desc: Backend.tr("Klick: Wallpaper-Picker, Rechtsklick: Einstellungsseite") },
         { id: "settings", icon: "settings", label: Backend.tr("Einstellungen"), desc: Backend.tr("Öffnet die Einstellungen") },
         { id: "audio", icon: "volume_up", label: Backend.tr("Audio"), desc: Backend.tr("Lautstärke · Klick: pavucontrol, Mausrad: lauter/leiser, Mitte: stumm") },
         { id: "notifications", icon: "notifications", label: Backend.tr("Benachrichtigungen"), desc: Backend.tr("Verlauf · Klick: Zentrale, Rechtsklick: Nicht stören, Mitte: Popups schließen") },

@@ -21,6 +21,9 @@ Singleton {
     signal openRequested(string page)   // Bar -> Einstellungsfenster öffnen
     signal powerRequested               // Bar -> Powermenü
     signal launcherRequested            // Bar -> App-Launcher
+    signal pickerRequested              // Bar / SUPER+W -> Wallpaper-Picker
+    signal closeRequested               // Seite -> Einstellungsfenster schließen (z. B. nach Wallpaper-Wahl)
+    property bool pickerOpen: false
     property bool launcherOpen: false
     property bool powerOpen: false
     signal requestApply

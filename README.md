@@ -60,7 +60,7 @@ There is also a bootable ISO: it boots straight into the sArch desktop and insta
 | 1 | **Base System** | live ISO | Asks for missing settings, formats and mounts the partitions (after typing `YES`), sets up mirrors with `reflector`, runs `pacstrap` |
 | 2 | **Arch-Chroot** | automatically inside `arch-chroot` | Timezone, locale, keymap, console font, GRUB, hostname, user, temporary install mode (passwordless sudo + tty1 autologin), NetworkManager; then reboot |
 | 3 | **Desktop** | automatic login on **tty1** | Enables multilib, installs system, audio and program packages plus `yay`, links configs, installs fonts, GTK theme and wallpapers, enables SDDM; then reboot |
-| 4 | **Configs** | first Hyprland start (SDDM autologin, fullscreen kitty) | GPU drivers (AMD/NVIDIA), `dxvk-bin`, Firefox profile (created without opening Firefox), optionally backups / personal specifics, first wallpaper + Matugen colors, **root and user passwords**, install mode removed; then reboot |
+| 4 | **Configs** | first Hyprland start (SDDM autologin, fullscreen kitty) | GPU drivers (AMD/Intel/NVIDIA, also hybrid e.g. `intel nvidia` + `nvidia-prime`), `dxvk-bin`, Firefox profile (created without opening Firefox), optionally backups / personal specifics, first wallpaper + Matugen colors, **root and user passwords**, install mode removed; then reboot |
 
 Every stage hands over to the next one by itself (chroot call, `.bashrc` hook on tty1, Hyprland autostart). The hooks are removed again once they've done their job.
 
@@ -100,7 +100,7 @@ The layout is recalculated for every screen, so it works on the TTY as well as i
 
 - **[Matugen](https://github.com/InioX/matugen)** generates the color scheme from the current wallpaper and fills the templates in `configs/matugen/templates/` (Hyprland, kitty, rofi, dunst, btop, yazi, GTK, Qt and Firefox via pywalfox).
 - **`themes/Matugen/`** is the GTK 3/4 theme that picks up those colors; it is installed to `~/.themes`.
-- Wallpapers are cloned to `~/Bilder/Wallpapers`. The **Settings app** (page *Hintergrund*, `SUPER + W`) switches the wallpaper and re-runs Matugen with the chosen accent color.
+- Wallpapers are cloned to `~/Bilder/Wallpapers`. `SUPER + W` opens the **wallpaper picker** (film strip: ← → select, Enter apply, 1–5 with accent color) – it closes right away so the transition is visible. The full page is in the **Settings app** (*Hintergrund*, `SUPER + SHIFT + W` or right-click the bar icon); there, *Transition → Close after* closes the settings after picking.
 - **Language:** the Quickshell UI (settings, bar, launcher, notifications, power menu) follows the system language (`LANG`): German for `de_*`, English otherwise. Force it with `SARCH_SETTINGS_LANG=en` (or `de`), e.g. `hl.env("SARCH_SETTINGS_LANG", "en")` in `configs/hypr/env.lua`. Translations live in `configs/quickshell/sarch/i18n/<lang>.json` (German source text → translation).
 
 ---
@@ -141,7 +141,7 @@ Display name...      # line 1: label on the progress screen
 package-a package-b  # remaining lines: packages (brace expansion works)
 ```
 
-`cpus`, `gpus`, `kernels`, `timezones`, `locales` and `keymaps` provide the choices for the settings menu. An `Other` entry allows free text input.
+`cpus`, `gpus`, `kernels`, `timezones`, `locales` and `keymaps` provide the choices for the settings menu. CPU and GPU are detected first (`/proc/cpuinfo`, PCI class in `/sys`) and offered as a suggestion; `gpu` may list several drivers (`amd`, `intel`, `nvidia` – one list file each). An `Other` entry allows free text input.
 
 ---
 

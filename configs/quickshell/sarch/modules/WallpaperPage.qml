@@ -109,6 +109,13 @@ Item {
         if (hex)
             Theme.previewAccent = hex;
         const path = selected;
+        // Option "Nach Auswahl schließen": Fenster erst ausblenden, dann setzen – der Übergang ist frei sichtbar
+        if (WallTrans.closeSettings) {
+            Ui.closeRequested();
+            closeApply.args = [path, i, hex || ""];
+            closeApply.restart();
+            return;
+        }
         Backend.call(["set-wallpaper", path, String(i), hex || ""], res => {
             applying = false;
             if (res.ok) {
@@ -123,6 +130,29 @@ Item {
                 Ui.error(Backend.t("wp_failed", "Hintergrundbild konnte nicht gesetzt werden"), [res.error || "?"]);
             }
         });
+    }
+
+    Timer {
+        id: closeApply
+
+        property var args: []
+        interval: 260
+        onTriggered: {
+            const [path, i, hex] = args;
+            Backend.call(["set-wallpaper", path, String(i), hex], res => {
+                page.applying = false;
+                if (res.ok) {
+                    Theme.wallpaper = path;
+                    page.activeIndex = i;
+                    Theme.reloadColors();
+                } else {
+                    Theme.preview = null;
+                    Theme.previewAccent = "";
+                    Ui.error(Backend.t("wp_failed", "Hintergrundbild konnte nicht gesetzt werden"), [res.error || "?"]);
+                }
+                clearPreview.restart();
+            });
+        }
     }
 
     onSelectedChanged: {
@@ -967,6 +997,30 @@ Item {
                 Txt {
                     anchors.verticalCenter: parent.verticalCenter
                     text: Backend.tr("Kreis öffnet sich dort, wo die Maus ist")
+                    font.pixelSize: Theme.size.tiny
+                    color: Theme.surfaceFgDim
+                }
+            }
+
+            // Einstellungen nach der Wahl schließen
+            Row {
+                spacing: 14
+                Txt {
+                    width: 110
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.tr("Schließen")
+                    color: Theme.surfaceFgDim
+                }
+                Segmented {
+                    options: ["false", "true"]
+                    labels: [Backend.t("qs_off", "Aus"), Backend.t("qs_on", "An")]
+                    value: String(WallTrans.closeSettings)
+                    segWidth: 90
+                    onPicked: v => WallTrans.set("closeSettings", v === "true")
+                }
+                Txt {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.tr("Fenster schließt vor dem Übergang")
                     font.pixelSize: Theme.size.tiny
                     color: Theme.surfaceFgDim
                 }

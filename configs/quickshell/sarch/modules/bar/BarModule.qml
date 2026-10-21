@@ -59,13 +59,17 @@ Loader {
             icon: BarConfig.info(root.moduleId).icon
             accent: root.moduleId === "power" ? Theme.error : root.moduleId === "wallpaper" ? Theme.tertiary : Theme.primary
             active: (root.moduleId === "launcher" && Ui.launcherOpen) || (root.moduleId === "power" && Ui.powerOpen)
+                || (root.moduleId === "wallpaper" && Ui.pickerOpen)
+            // Rechtsklick auf das Wallpaper-Icon: Einstellungsseite statt Picker
+            onRightClicked: if (!root.preview && root.moduleId === "wallpaper")
+                Ui.openRequested("wallpaper")
             onClicked: {
                 if (root.preview)
                     return;
                 if (root.moduleId === "launcher")
                     Ui.launcherRequested();
                 else if (root.moduleId === "wallpaper")
-                    Ui.openRequested("wallpaper");
+                    Ui.pickerRequested();
                 else if (root.moduleId === "settings")
                     Ui.openRequested("");
                 else if (root.moduleId === "power")

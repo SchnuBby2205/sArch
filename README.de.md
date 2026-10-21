@@ -60,7 +60,7 @@ Statt des Skripts gibt es auch eine bootfähige ISO: Sie startet direkt in den s
 | 1 | **Base System** | Live-ISO | Fragt fehlende Einstellungen ab, formatiert und mountet die Partitionen (nach Eingabe von `YES`), richtet die Mirrors mit `reflector` ein, führt `pacstrap` aus |
 | 2 | **Arch-Chroot** | automatisch in `arch-chroot` | Zeitzone, Locale, Tastaturlayout, Konsolenschrift, GRUB, Hostname, Benutzer, temporärer Install-Modus (sudo ohne Passwort + Autologin auf tty1), NetworkManager; danach Neustart |
 | 3 | **Desktop** | automatischer Login auf **tty1** | Aktiviert multilib, installiert System-, Audio- und Programmpakete sowie `yay`, verlinkt die Configs, installiert Schriften, GTK-Theme und Hintergrundbilder, aktiviert SDDM; danach Neustart |
-| 4 | **Configs** | erster Hyprland-Start (SDDM-Autologin, kitty im Vollbild) | GPU-Treiber (AMD/NVIDIA), `dxvk-bin`, Firefox-Profil (angelegt, ohne Firefox zu öffnen), optional Backups / persönliche Anpassungen, erstes Hintergrundbild + Matugen-Farben, **Root- und Benutzerpasswort**, Install-Modus wird entfernt; danach Neustart |
+| 4 | **Configs** | erster Hyprland-Start (SDDM-Autologin, kitty im Vollbild) | GPU-Treiber (AMD/Intel/NVIDIA, auch Hybrid z. B. `intel nvidia` + `nvidia-prime`), `dxvk-bin`, Firefox-Profil (angelegt, ohne Firefox zu öffnen), optional Backups / persönliche Anpassungen, erstes Hintergrundbild + Matugen-Farben, **Root- und Benutzerpasswort**, Install-Modus wird entfernt; danach Neustart |
 
 Jede Stage übergibt selbstständig an die nächste (chroot-Aufruf, `.bashrc`-Hook auf tty1, Hyprland-Autostart). Die Hooks werden wieder entfernt, sobald sie ihren Zweck erfüllt haben.
 
@@ -100,7 +100,7 @@ Das Layout wird für jeden Bildschirm neu berechnet und funktioniert daher sowoh
 
 - **[Matugen](https://github.com/InioX/matugen)** erzeugt das Farbschema aus dem aktuellen Hintergrundbild und füllt die Vorlagen in `configs/matugen/templates/` (Hyprland, kitty, rofi, dunst, btop, yazi, GTK, Qt und Firefox über pywalfox).
 - **`themes/Matugen/`** ist das GTK-3/4-Theme, das diese Farben übernimmt; es wird nach `~/.themes` installiert.
-- Die Hintergrundbilder werden nach `~/Bilder/Wallpapers` geklont. Die **Settings-App** (Seite *Hintergrund*, `SUPER + W`) wechselt das Hintergrundbild und lässt Matugen mit der gewählten Akzentfarbe neu laufen.
+- Die Hintergrundbilder werden nach `~/Bilder/Wallpapers` geklont. `SUPER + W` öffnet den **Wallpaper-Picker** (Filmstreifen: ← → wählen, Enter übernehmen, 1–5 mit Akzentfarbe) – er schließt sich sofort, damit der Übergang sichtbar ist. Die ganze Seite gibt es in der **Settings-App** (*Hintergrund*, `SUPER + SHIFT + W` oder Rechtsklick aufs Bar-Icon); dort schließt *Übergang → Schließen* die Einstellungen nach der Wahl. Matugen läuft jeweils mit der gewählten Akzentfarbe neu.
 - **Sprache:** Die Quickshell-Oberfläche (Einstellungen, Bar, Launcher, Benachrichtigungen, Power-Menü) folgt der Systemsprache (`LANG`): Deutsch bei `de_*`, sonst Englisch. Erzwingen mit `SARCH_SETTINGS_LANG=en` (oder `de`), z. B. `hl.env("SARCH_SETTINGS_LANG", "en")` in `configs/hypr/env.lua`. Die Übersetzungen liegen in `configs/quickshell/sarch/i18n/<sprache>.json` (deutscher Quelltext → Übersetzung).
 
 ---
@@ -141,7 +141,7 @@ Anzeigename...       # Zeile 1: Beschriftung im Fortschrittsbildschirm
 paket-a paket-b      # weitere Zeilen: Pakete (Brace-Expansion funktioniert)
 ```
 
-`cpus`, `gpus`, `kernels`, `timezones`, `locales` und `keymaps` liefern die Auswahl für das Einstellungsmenü. Ein Eintrag `Other` erlaubt eine freie Eingabe.
+`cpus`, `gpus`, `kernels`, `timezones`, `locales` und `keymaps` liefern die Auswahl für das Einstellungsmenü. CPU und GPU werden vorher erkannt (`/proc/cpuinfo`, PCI-Klasse in `/sys`) und als Vorschlag angeboten; `gpu` darf mehrere Treiber enthalten (`amd`, `intel`, `nvidia` – je eine Listendatei). Ein Eintrag `Other` erlaubt eine freie Eingabe.
 
 ---
 

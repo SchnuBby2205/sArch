@@ -6,6 +6,7 @@
 //   App-Launcher:      qs -c sarch ipc call launcher toggle      | open | close
 //   Powermenü:         qs -c sarch ipc call power toggle         | open | close
 //   Benachrichtigungen: qs -c sarch ipc call notifications toggle | dnd | clear
+//   Wallpaper-Picker:  qs -c sarch ipc call wallpicker toggle    | open | close   (bin/sarch_wallpicker.sh)
 //   Wallpaper-Effekt:  qs -c sarch ipc call wallpaper transition <alt> <neu> slice|flip <sekunden>
 //   Bequemer:          bin/sarch_settings.sh [seite], bin/sarch_launcher.sh, bin/sarch_power.sh
 
@@ -26,6 +27,7 @@ ShellRoot {
     property bool launcherShown: false
     property bool powerShown: false
     property bool notifShown: false          // Benachrichtigungszentrale
+    property bool pickerShown: false         // Wallpaper-Picker
     property var notifScreen: Quickshell.screens[0]
     property var targetScreen: Quickshell.screens[0]
 
@@ -47,6 +49,8 @@ ShellRoot {
             power.requestClose();
         if (keep !== "notifications" && notifShown)
             center.requestClose();
+        if (keep !== "picker" && pickerShown)
+            picker.requestClose();
     }
 
     function open(page) {
@@ -91,6 +95,20 @@ ShellRoot {
             openPower();
     }
 
+    function openPicker() {
+        closeOthers("picker");
+        if (!pickerShown)
+            targetScreen = focusedScreen();
+        pickerShown = true;
+        Qt.callLater(() => picker.show());
+    }
+    function togglePicker() {
+        if (pickerShown && picker.open)
+            picker.requestClose();
+        else
+            openPicker();
+    }
+
     function toggleNotifications() {
         if (notifShown && center.open) {
             center.requestClose();
@@ -122,6 +140,13 @@ ShellRoot {
         function onPowerRequested() {
             shell.togglePower();
         }
+        function onPickerRequested() {
+            shell.togglePicker();
+        }
+        function onCloseRequested() {
+            if (shell.shown)
+                ui.requestClose(true);
+        }
     }
 
     Connections {
@@ -144,6 +169,21 @@ ShellRoot {
 
         function transition(oldImg: string, newImg: string, type: string, duration: real): void {
             WallFxState.start(oldImg, newImg, type, duration);
+        }
+    }
+
+    IpcHandler {
+        target: "wallpicker"
+
+        function toggle(): void {
+            shell.togglePicker();
+        }
+        function open(): void {
+            shell.openPicker();
+        }
+        function close(): void {
+            if (shell.pickerShown)
+                picker.requestClose();
         }
     }
 
@@ -306,6 +346,31 @@ ShellRoot {
             anchors.fill: parent
             onOpenChanged: Ui.powerOpen = open
             onClosed: shell.powerShown = false
+        }
+    }
+
+    // ── Wallpaper-Picker ──
+    PanelWindow {
+        visible: shell.pickerShown
+        screen: shell.targetScreen
+        color: "transparent"
+        anchors {
+            top: true
+            bottom: true
+            left: true
+            right: true
+        }
+        WlrLayershell.namespace: "sarch-wallpicker"
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore
+        WlrLayershell.layer: WlrLayer.Overlay
+        WlrLayershell.keyboardFocus: shell.pickerShown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+        WallPicker {
+            id: picker
+
+            anchors.fill: parent
+            onOpenChanged: Ui.pickerOpen = open
+            onClosed: shell.pickerShown = false
         }
     }
 

@@ -16,6 +16,7 @@ Singleton {
     property real duration: 1.6
     property string bezier: ".54,0,.34,.99"
     property bool cursor: true
+    property bool closeSettings: false   // Einstellungen nach Wallpaper-Wahl schließen (Übergang sichtbar)
 
     // Effekte (Reihenfolge = Anzeige)
     readonly property var types: [
@@ -40,7 +41,7 @@ Singleton {
     ]
 
     function save() {
-        file.setText(`TYPE=${type}\nDURATION=${duration.toFixed(1)}\nBEZIER=${bezier}\nCURSOR=${cursor}\nFPS=auto\n`);
+        file.setText(`TYPE=${type}\nDURATION=${duration.toFixed(1)}\nBEZIER=${bezier}\nCURSOR=${cursor}\nFPS=auto\nCLOSE=${closeSettings}\n`);
     }
     function set(key, value) {
         root[key] = value;
@@ -87,6 +88,8 @@ Singleton {
                     root.bezier = v;
                 else if (k === "CURSOR")
                     root.cursor = v !== "false";
+                else if (k === "CLOSE")
+                    root.closeSettings = v === "true";
             }
         }
     }

@@ -111,7 +111,7 @@ Item {
         pick(i, 0, "");
     }
 
-    // übernehmen: Übergang sofort starten, der Picker blendet sich parallel aus
+    // übernehmen: Picker schnell ausblenden, direkt danach startet der Übergang
     function pick(i, idx, hex) {
         const w = shown[i];
         if (!w)
@@ -120,7 +120,14 @@ Item {
         if (w.path === Theme.wallpaper && idx === activeIndex)
             return;
         const cols = colorCache[w.path] ?? [];
-        const p = { path: w.path, idx: idx, hex: hex || cols[idx] || "" };
+        // erst setzen, wenn der Picker weg ist: der Übergang (v. a. Zerschneiden/Kacheln) lädt das
+        // Bild in voller Größe – parallel zur Ausblend-Animation ließ das den Picker kurz hängen
+        pending = { path: w.path, idx: idx, hex: hex || cols[idx] || "" };
+    }
+    property var pending: null
+    onClosed: if (pending) {
+        const p = pending;
+        pending = null;
         const started = WallTrans.setNow(p.path);
         Backend.call(["set-wallpaper", p.path, String(p.idx), p.hex].concat(started ? ["noset"] : []), res => {
             if (res.ok) {
@@ -140,7 +147,7 @@ Item {
         anchors.fill: parent
         color: Qt.rgba(0, 0, 0, 0.32)
         opacity: root.open ? 1 : 0
-        Behavior on opacity { Anim { curve: "standard"; duration: root.open ? 380 : 220 } }
+        Behavior on opacity { Anim { curve: "standard"; duration: root.open ? 380 : 160 } }
 
         MouseArea {
             anchors.fill: parent
@@ -160,10 +167,10 @@ Item {
         y: root.height - height - 36 + (root.open ? 0 : 90)
         opacity: root.open ? 1 : 0
 
-        Behavior on y { Anim { curve: root.open ? "spatialSlow" : "emphasizedAccel"; duration: root.open ? 620 : 220 } }
+        Behavior on y { Anim { curve: root.open ? "spatialSlow" : "emphasizedAccel"; duration: root.open ? 620 : 160 } }
         Behavior on opacity {
             SequentialAnimation {
-                Anim { curve: root.open ? "effects" : "emphasizedAccel"; duration: root.open ? 260 : 220 }
+                Anim { curve: root.open ? "effects" : "emphasizedAccel"; duration: root.open ? 260 : 160 }
                 ScriptAction { script: if (!root.open) root.closed() }
             }
         }

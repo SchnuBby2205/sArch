@@ -129,11 +129,26 @@ Item {
         if (hex)
             Theme.previewAccent = hex;
         const path = selected;
-        // Übergang sofort starten; Option "Schließen": Fenster blendet sich parallel aus
-        const started = WallTrans.setNow(path);
+        // Übergang sofort starten; Option "Schließen": erst das Fenster ausblenden (sonst ruckelt die
+        // Ausblend-Animation, während der Übergang das große Bild lädt), dann sofort setzen
         const close = WallTrans.closeSettings;
-        if (close)
+        if (close) {
             Ui.closeRequested();
+            closeApply.args = [path, i, hex || ""];
+            closeApply.restart();
+            return;
+        }
+        run(path, i, hex, false);
+    }
+    Timer {
+        id: closeApply
+
+        property var args: []
+        interval: 320          // Ausblenden der Einstellungen (300 ms) abwarten
+        onTriggered: page.run(args[0], args[1], args[2], true)
+    }
+    function run(path, i, hex, close) {
+        const started = WallTrans.setNow(path);
         Backend.call(["set-wallpaper", path, String(i), hex || ""].concat(started ? ["noset"] : []), res => {
             applying = false;
             if (res.ok) {

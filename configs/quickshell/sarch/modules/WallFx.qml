@@ -29,11 +29,11 @@ Item {
         run.stop();
         startDelay.restart();
     }
-    // erst loslegen, wenn awww das neue Bild darunter gesetzt hat (WallFxState: swap nach 260 ms)
+    // erst loslegen, wenn awww das neue Bild darunter gesetzt hat (WallFxState: swap nach 180 ms)
     Timer {
         id: startDelay
 
-        interval: 300
+        interval: 200
         onTriggered: run.restart()
     }
 

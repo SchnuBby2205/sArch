@@ -457,13 +457,16 @@ def cmd_wallpapers(ini, _args):
     wp_dir, _ = _wp_section(ini)
     cur, idx = read_current_wallpaper()
     items = []
+    ccache = core._load_color_cache()
     for wp in list_wallpapers(wp_dir):
         th = _qs_thumb(wp)
         fresh = os.path.exists(th) and os.path.getmtime(th) >= os.path.getmtime(wp)
         items.append({"path": wp, "name": os.path.splitext(os.path.basename(wp))[0],
-                      "thumb": th if fresh else ""})
+                      "thumb": th if fresh else "",
+                      "colors": core.cached_source_colors(wp, ccache)})   # None = noch nicht berechnet
     return {"ok": True, "dir": wp_dir, "current": cur, "index": idx, "items": items,
-            "missing": sum(1 for i in items if not i["thumb"])}
+            "missing": sum(1 for i in items if not i["thumb"]),
+            "missingColors": sum(1 for i in items if i["colors"] is None)}
 
 
 def cmd_thumbs(ini, _args):
@@ -488,7 +491,13 @@ def cmd_thumbs(ini, _args):
 
 
 def cmd_colors(_ini, args):
-    return {"ok": True, "path": args[0], "colors": matugen_source_colors(args[0])}
+    return {"ok": True, "path": args[0], "colors": core.wallpaper_colors(args[0])}
+
+
+def cmd_colors_all(ini, _args):
+    """Farben für alle Wallpaper (fehlende werden parallel berechnet und gecacht)."""
+    wp_dir, _ = _wp_section(ini)
+    return {"ok": True, "colors": core.warm_wallpaper_colors(list_wallpapers(wp_dir))}
 
 
 def _extract_scheme(data: dict, mode: str = "dark") -> dict:
@@ -530,8 +539,9 @@ def cmd_scheme(_ini, args):
 def cmd_set_wallpaper(ini, args):
     wp, idx = args[0], int(args[1]) if len(args) > 1 else 0
     color = args[2] if len(args) > 2 else ""
+    set_image = not (len(args) > 3 and args[3] == "noset")    # "noset": Bild wurde schon gesetzt
     _, cache = _wp_section(ini)
-    ok, err = apply_wallpaper(wp, idx, cache, color)
+    ok, err = apply_wallpaper(wp, idx, cache, color, set_image)
     return {"ok": ok, "error": err, "path": wp, "index": idx}
 
 
@@ -630,7 +640,7 @@ def cmd_apply_fonts(ini, args):
 
 COMMANDS = {
     "model": cmd_model, "apply": cmd_apply, "delete": cmd_delete, "create": cmd_create,
-    "wallpapers": cmd_wallpapers, "thumbs": cmd_thumbs, "colors": cmd_colors,
+    "wallpapers": cmd_wallpapers, "thumbs": cmd_thumbs, "colors": cmd_colors, "colors-all": cmd_colors_all,
     "scheme": cmd_scheme, "set-wallpaper": cmd_set_wallpaper,
     "fonts": cmd_fonts, "apply-fonts": cmd_apply_fonts,
     "bar": cmd_bar, "apply-bar": cmd_apply_bar,

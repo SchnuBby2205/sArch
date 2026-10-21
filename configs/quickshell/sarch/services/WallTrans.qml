@@ -43,6 +43,16 @@ Singleton {
     function save() {
         file.setText(`TYPE=${type}\nDURATION=${duration.toFixed(1)}\nBEZIER=${bezier}\nCURSOR=${cursor}\nFPS=auto\nCLOSE=${closeSettings}\n`);
     }
+    // Bild sofort mit dem Übergang setzen (ohne Umweg über das Python-Backend).
+    // true = gestartet; das Backend wird danach mit "noset" nur noch für matugen & Co. aufgerufen.
+    function setNow(path) {
+        if (!path || path === Theme.wallpaper)
+            return false;                  // gleiches Bild (nur andere Akzentfarbe): kein Übergang
+        saveTimer.stop();
+        save();                            // geänderte Einstellungen sicher übernehmen
+        Quickshell.execDetached([setter, path]);
+        return true;
+    }
     function set(key, value) {
         root[key] = value;
         saveTimer.restart();

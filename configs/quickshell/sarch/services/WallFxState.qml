@@ -29,7 +29,7 @@ Singleton {
         token += 1;
         active = true;
         swap.restart();
-        finish.interval = duration * 1000 + 300 + 350;   // Startverzögerung + Puffer
+        finish.interval = duration * 1000 + 200 + 350;   // Startverzögerung + Puffer
         finish.restart();
     }
 
@@ -37,7 +37,7 @@ Singleton {
     Timer {
         id: swap
 
-        interval: 260          // Overlay muss das alte Bild schon zeigen, sonst blitzt das neue kurz auf
+        interval: 180          // Overlay muss das alte Bild schon zeigen, sonst blitzt das neue kurz auf
         onTriggered: Quickshell.execDetached(["awww", "img", root.newPath, "--transition-type", "simple", "--transition-step", "255"])
     }
     Timer {

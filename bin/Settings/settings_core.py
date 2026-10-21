@@ -1000,30 +1000,140 @@ def _save_current_wallpaper(path: str, idx: int):
     except OSError:
         pass
 
-def matugen_source_colors(wp: str, n: int = 5) -> list:
-    """Kandidaten für die Quellfarbe. matugen gibt sie nur auf einem TTY aus,
-    daher wie im alten Skript über 'script' mit kurzem Timeout."""
-    inner = f"timeout 1 matugen image {shlex.quote(wp)} --dry-run 2>&1; true"
-    fd, tmp = tempfile.mkstemp(prefix="sarch-matugen-")
-    os.close(fd)
+def matugen_source_colors(wp: str, n: int = 5, timeout: float = 3.0) -> list:
+    """Kandidaten für die Quellfarbe. matugen zeigt sie nur auf einem TTY an und wartet dann
+    auf eine Auswahl – deshalb in einem Pseudo-Terminal starten, die Ausgabe mitlesen und
+    abbrechen, sobald die Farben da sind (statt pauschal 1 s Timeout)."""
+    import pty, select, signal, time
+    hexre = re.compile(r'#[0-9A-Fa-f]{6}')
     try:
-        subprocess.run(["script", "-q", "-c", inner, tmp], stdin=subprocess.DEVNULL,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=15)
-        with open(tmp, errors="replace") as f:
-            out = f.read()
-    except (OSError, subprocess.SubprocessError):
-        out = ""
+        master, slave = pty.openpty()
+    except OSError:
+        return []
+    try:
+        proc = subprocess.Popen(["matugen", "image", wp, "--dry-run"], stdin=slave, stdout=slave,
+                                stderr=slave, close_fds=True, start_new_session=True)
+    except OSError:
+        os.close(master); os.close(slave)
+        return []
+    os.close(slave)
+    out, found, last_new = "", [], None
+    deadline = time.monotonic() + timeout
+    try:
+        while True:
+            now = time.monotonic()
+            if now >= deadline or len(found) >= n:
+                break
+            # weniger als n Farben: kurz nach der letzten neuen Farbe aufhören
+            if last_new is not None and now - last_new > 0.15:
+                break
+            r, _, _ = select.select([master], [], [], 0.05)
+            if not r:
+                if proc.poll() is not None:
+                    break
+                continue
+            try:
+                chunk = os.read(master, 4096)
+            except OSError:              # EIO: Prozess beendet
+                break
+            if not chunk:
+                break
+            out += chunk.decode(errors="replace")
+            cur = []
+            for c in hexre.findall(out):
+                c = c.lower()
+                if c not in cur:
+                    cur.append(c)
+            if len(cur) > len(found):
+                found, last_new = cur, time.monotonic()
     finally:
+        if proc.poll() is None:
+            try: os.killpg(proc.pid, signal.SIGKILL)
+            except OSError: pass
+        try: proc.wait(timeout=1)
+        except subprocess.SubprocessError: pass
+        os.close(master)
+    return found[:n]
+
+# ── Farb-Cache (Pfad + Änderungszeit -> Farben), damit Picker und Einstellungen sofort Farben haben ──
+COLOR_CACHE = os.path.expanduser("~/.cache/sArch/wallpaper-colors.json")
+
+def _load_color_cache() -> dict:
+    try:
+        with open(COLOR_CACHE) as f:
+            d = json.load(f)
+        return d if isinstance(d, dict) else {}
+    except (OSError, ValueError):
+        return {}
+
+def _save_color_cache(updates: dict) -> None:
+    """Neue Einträge einmischen (andere Prozesse können gleichzeitig schreiben) und atomar speichern."""
+    if not updates:
+        return
+    d = _load_color_cache()
+    d.update(updates)
+    # Einträge für gelöschte Bilder aufräumen
+    d = {k: v for k, v in d.items() if os.path.exists(k)}
+    os.makedirs(os.path.dirname(COLOR_CACHE), exist_ok=True)
+    tmp = f"{COLOR_CACHE}.{os.getpid()}.tmp"
+    try:
+        with open(tmp, "w") as f:
+            json.dump(d, f)
+        os.replace(tmp, COLOR_CACHE)
+    except OSError:
         try: os.unlink(tmp)
         except OSError: pass
-    return re.findall(r'#[0-9A-Fa-f]{6}', out)[:n]
 
-def apply_wallpaper(wp: str, idx: int, cache_dir: str, color: str = "") -> tuple:
+def _mtime(p: str) -> float:
+    try: return os.path.getmtime(p)
+    except OSError: return -1.0
+
+def cached_source_colors(wp: str, cache: dict = None):
+    """Farben aus dem Cache oder None, wenn das Bild neu/geändert ist."""
+    e = (cache if cache is not None else _load_color_cache()).get(wp)
+    if isinstance(e, dict) and e.get("mtime") == _mtime(wp) and isinstance(e.get("colors"), list):
+        return e["colors"]
+    return None
+
+def wallpaper_colors(wp: str) -> list:
+    cols = cached_source_colors(wp)
+    if cols is None:
+        cols = matugen_source_colors(wp)
+        if cols:                                   # leeres Ergebnis nicht merken (z. B. matugen fehlte)
+            _save_color_cache({wp: {"mtime": _mtime(wp), "colors": cols}})
+    return cols
+
+def warm_wallpaper_colors(paths: list, workers: int = 4) -> dict:
+    """Fehlende Farben parallel berechnen und speichern; liefert {pfad: farben} für alle."""
+    from concurrent.futures import ThreadPoolExecutor
+    cache = _load_color_cache()
+    result, missing = {}, []
+    for p in paths:
+        c = cached_source_colors(p, cache)
+        if c is None:
+            missing.append(p)
+        else:
+            result[p] = c
+    if missing:
+        with ThreadPoolExecutor(max_workers=max(1, min(workers, len(missing)))) as ex:
+            got = list(ex.map(matugen_source_colors, missing))
+        upd = {}
+        for p, c in zip(missing, got):
+            result[p] = c
+            if c:
+                upd[p] = {"mtime": _mtime(p), "colors": c}
+        _save_color_cache(upd)
+    return result
+
+def apply_wallpaper(wp: str, idx: int, cache_dir: str, color: str = "", set_image: bool = True) -> tuple:
     """Wallpaper setzen (mit Transition) + matugen + Vorschaubilder für rofi + optional Razer-Farbe.
+    set_image=False: das Bild hat der Aufrufer schon gesetzt (Quickshell startet den Übergang direkt).
     Gibt (ok, Fehlertext) zurück."""
     # Bild sofort mit der eingestellten Transition setzen (läuft parallel zu matugen)
     setter = os.path.expanduser("~/.config/sArch/bin/sarch_wallpaper_set.sh")
-    if os.access(setter, os.X_OK):
+    if not set_image:
+        pass
+    elif os.access(setter, os.X_OK):
         _spawn([setter, wp])
     elif shutil.which("awww"):
         _spawn(["awww", "img", wp, "--transition-type", "grow"])

@@ -15,6 +15,7 @@ Item {
     property int activeIndex: 0                 // Farbindex des aktiven Wallpapers
     property var colorCache: ({})
     property bool thumbing: false
+    property bool warming: false
     property bool loading: false
 
     signal closed
@@ -46,6 +47,25 @@ Item {
                 return;
             items = res.items;
             activeIndex = res.index || 0;
+            // Farben aus dem Backend-Cache sofort übernehmen, fehlende im Hintergrund berechnen
+            const cc = Object.assign({}, colorCache);
+            for (const w of res.items)
+                if (w.colors)
+                    cc[w.path] = w.colors;
+            colorCache = cc;
+            if (res.missingColors > 0 && !warming) {
+                warming = true;
+                Backend.call(["colors-all"], r => {
+                    warming = false;
+                    if (!r.ok)
+                        return;
+                    const c2 = Object.assign({}, colorCache);
+                    for (const p in r.colors)
+                        if ((r.colors[p] || []).length || c2[p] === undefined)
+                            c2[p] = r.colors[p];
+                    colorCache = c2;
+                });
+            }
             if (res.current)
                 Theme.wallpaper = res.current;
             Qt.callLater(() => focusPath(res.current || Theme.wallpaper));
@@ -91,42 +111,28 @@ Item {
         pick(i, 0, "");
     }
 
-    // übernehmen: Picker zuerst schließen, dann setzen – sonst verdeckt er den Übergang
-    property var pending: null
+    // übernehmen: Übergang sofort starten, der Picker blendet sich parallel aus
     function pick(i, idx, hex) {
         const w = shown[i];
         if (!w)
             return;
-        if (w.path === Theme.wallpaper && idx === activeIndex) {
-            requestClose();
-            return;
-        }
-        const cols = colorCache[w.path] ?? [];
-        pending = { path: w.path, idx: idx, hex: hex || cols[idx] || "" };
         requestClose();
-        applyTimer.restart();
-    }
-    Timer {
-        id: applyTimer
-
-        interval: 260
-        onTriggered: {
-            const p = root.pending;
-            root.pending = null;
-            if (!p)
-                return;
-            Backend.call(["set-wallpaper", p.path, String(p.idx), p.hex], res => {
-                if (res.ok) {
-                    Theme.wallpaper = p.path;
-                    root.activeIndex = p.idx;
-                    Theme.reloadColors();
-                } else {
-                    console.warn("sarch wallpaper:", res.error);
-                    Quickshell.execDetached(["notify-send", "-a", "sArch", "-u", "critical",
-                        Backend.tr("Hintergrundbild konnte nicht gesetzt werden"), String(res.error || "?")]);
-                }
-            });
-        }
+        if (w.path === Theme.wallpaper && idx === activeIndex)
+            return;
+        const cols = colorCache[w.path] ?? [];
+        const p = { path: w.path, idx: idx, hex: hex || cols[idx] || "" };
+        const started = WallTrans.setNow(p.path);
+        Backend.call(["set-wallpaper", p.path, String(p.idx), p.hex].concat(started ? ["noset"] : []), res => {
+            if (res.ok) {
+                Theme.wallpaper = p.path;
+                root.activeIndex = p.idx;
+                Theme.reloadColors();
+            } else {
+                console.warn("sarch wallpaper:", res.error);
+                Quickshell.execDetached(["notify-send", "-a", "sArch", "-u", "critical",
+                    Backend.tr("Hintergrundbild konnte nicht gesetzt werden"), String(res.error || "?")]);
+            }
+        });
     }
 
     // ── Scrim ──

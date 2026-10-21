@@ -20,6 +20,7 @@ Item {
     property var schemeCache: ({})
     property bool loading: true
     property bool thumbing: false
+    property bool warming: false
     property bool applying: false
     property int hoverSwatch: -1
     property bool transOpen: false              // Panel "Übergang"
@@ -40,6 +41,25 @@ Item {
             dir = res.dir;
             items = res.items;
             activeIndex = res.index || 0;
+            // Farben aus dem Backend-Cache sofort übernehmen, fehlende im Hintergrund berechnen
+            const cc = Object.assign({}, colorCache);
+            for (const w of res.items)
+                if (w.colors)
+                    cc[w.path] = w.colors;
+            colorCache = cc;
+            if (res.missingColors > 0 && !warming) {
+                warming = true;
+                Backend.call(["colors-all"], r => {
+                    warming = false;
+                    if (!r.ok)
+                        return;
+                    const c2 = Object.assign({}, colorCache);
+                    for (const p in r.colors)
+                        if ((r.colors[p] || []).length || c2[p] === undefined)
+                            c2[p] = r.colors[p];
+                    colorCache = c2;
+                });
+            }
             if (res.current)
                 Theme.wallpaper = res.current;
             const want = keepSelection && selected ? selected : (res.current || (items[0]?.path ?? ""));
@@ -109,19 +129,18 @@ Item {
         if (hex)
             Theme.previewAccent = hex;
         const path = selected;
-        // Option "Nach Auswahl schließen": Fenster erst ausblenden, dann setzen – der Übergang ist frei sichtbar
-        if (WallTrans.closeSettings) {
+        // Übergang sofort starten; Option "Schließen": Fenster blendet sich parallel aus
+        const started = WallTrans.setNow(path);
+        const close = WallTrans.closeSettings;
+        if (close)
             Ui.closeRequested();
-            closeApply.args = [path, i, hex || ""];
-            closeApply.restart();
-            return;
-        }
-        Backend.call(["set-wallpaper", path, String(i), hex || ""], res => {
+        Backend.call(["set-wallpaper", path, String(i), hex || ""].concat(started ? ["noset"] : []), res => {
             applying = false;
             if (res.ok) {
                 Theme.wallpaper = path;
                 activeIndex = i;
-                Ui.toast(Backend.t("wp_applied", "Hintergrundbild geändert: {name}", { name: path.split("/").pop() }), "wallpaper");
+                if (!close)
+                    Ui.toast(Backend.t("wp_applied", "Hintergrundbild geändert: {name}", { name: path.split("/").pop() }), "wallpaper");
                 clearPreview.restart();   // falls kein qs-colors Template läuft
                 Theme.reloadColors();
             } else {
@@ -130,29 +149,6 @@ Item {
                 Ui.error(Backend.t("wp_failed", "Hintergrundbild konnte nicht gesetzt werden"), [res.error || "?"]);
             }
         });
-    }
-
-    Timer {
-        id: closeApply
-
-        property var args: []
-        interval: 260
-        onTriggered: {
-            const [path, i, hex] = args;
-            Backend.call(["set-wallpaper", path, String(i), hex], res => {
-                page.applying = false;
-                if (res.ok) {
-                    Theme.wallpaper = path;
-                    page.activeIndex = i;
-                    Theme.reloadColors();
-                } else {
-                    Theme.preview = null;
-                    Theme.previewAccent = "";
-                    Ui.error(Backend.t("wp_failed", "Hintergrundbild konnte nicht gesetzt werden"), [res.error || "?"]);
-                }
-                clearPreview.restart();
-            });
-        }
     }
 
     onSelectedChanged: {

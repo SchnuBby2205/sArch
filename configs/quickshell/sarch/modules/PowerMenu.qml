@@ -220,7 +220,7 @@ Item {
         }
         Txt {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: Time.now.toLocaleDateString(Qt.locale("de_DE"), "dddd, d. MMMM yyyy")
+            text: Time.now.toLocaleDateString(Qt.locale(Backend.locale), Backend.german ? "dddd, d. MMMM yyyy" : "dddd, MMMM d, yyyy")
             font.pixelSize: Theme.size.title + 2
             color: Theme.surfaceFgDim
         }

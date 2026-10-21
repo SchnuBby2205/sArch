@@ -184,7 +184,7 @@ Item {
                     Txt {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - when.width - 34
-                        text: root.app || "Benachrichtigung"
+                        text: root.app || Backend.tr("Benachrichtigung")
                         font.pixelSize: Theme.size.tiny
                         font.weight: Font.DemiBold
                         font.letterSpacing: 0.4

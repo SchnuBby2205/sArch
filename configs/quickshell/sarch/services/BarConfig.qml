@@ -41,15 +41,15 @@ Singleton {
 
     // Katalog aller Module (Reihenfolge = Anzeige in den Einstellungen)
     readonly property var catalog: [
-        { id: "launcher", icon: "apps", label: "App-Launcher", desc: "Öffnet den App-Launcher" },
-        { id: "workspaces", icon: "space_dashboard", label: "Workspaces", desc: "Workspace-Anzeige · Klick wechselt, Mausrad blättert" },
-        { id: "clock", icon: "schedule", label: "Uhrzeit", desc: "Uhr mit rollenden Ziffern" },
-        { id: "date", icon: "calendar_month", label: "Datum", desc: "Datum im frei wählbaren Format" },
-        { id: "wallpaper", icon: "wallpaper", label: "Hintergrundbild", desc: "Öffnet die Wallpaper-Auswahl" },
-        { id: "settings", icon: "settings", label: "Einstellungen", desc: "Öffnet die Einstellungen" },
-        { id: "audio", icon: "volume_up", label: "Audio", desc: "Lautstärke · Klick: pavucontrol, Mausrad: lauter/leiser, Mitte: stumm" },
-        { id: "notifications", icon: "notifications", label: "Benachrichtigungen", desc: "Verlauf · Klick: Zentrale, Rechtsklick: Nicht stören, Mitte: Popups schließen" },
-        { id: "power", icon: "power_settings_new", label: "Power-Menü", desc: "Öffnet das Power-Menü" }
+        { id: "launcher", icon: "apps", label: Backend.tr("App-Launcher"), desc: Backend.tr("Öffnet den App-Launcher") },
+        { id: "workspaces", icon: "space_dashboard", label: Backend.tr("Workspaces"), desc: Backend.tr("Workspace-Anzeige · Klick wechselt, Mausrad blättert") },
+        { id: "clock", icon: "schedule", label: Backend.tr("Uhrzeit"), desc: Backend.tr("Uhr mit rollenden Ziffern") },
+        { id: "date", icon: "calendar_month", label: Backend.tr("Datum"), desc: Backend.tr("Datum im frei wählbaren Format") },
+        { id: "wallpaper", icon: "wallpaper", label: Backend.tr("Hintergrundbild"), desc: Backend.tr("Öffnet die Wallpaper-Auswahl") },
+        { id: "settings", icon: "settings", label: Backend.tr("Einstellungen"), desc: Backend.tr("Öffnet die Einstellungen") },
+        { id: "audio", icon: "volume_up", label: Backend.tr("Audio"), desc: Backend.tr("Lautstärke · Klick: pavucontrol, Mausrad: lauter/leiser, Mitte: stumm") },
+        { id: "notifications", icon: "notifications", label: Backend.tr("Benachrichtigungen"), desc: Backend.tr("Verlauf · Klick: Zentrale, Rechtsklick: Nicht stören, Mitte: Popups schließen") },
+        { id: "power", icon: "power_settings_new", label: Backend.tr("Power-Menü"), desc: Backend.tr("Öffnet das Power-Menü") }
     ]
 
     function info(id) {

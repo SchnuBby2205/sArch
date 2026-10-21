@@ -966,7 +966,7 @@ Item {
                 }
                 Txt {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "Kreis öffnet sich dort, wo die Maus ist"
+                    text: Backend.tr("Kreis öffnet sich dort, wo die Maus ist")
                     font.pixelSize: Theme.size.tiny
                     color: Theme.surfaceFgDim
                 }

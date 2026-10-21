@@ -103,12 +103,12 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
                 Txt {
-                    text: "Benachrichtigungen"
+                    text: Backend.tr("Benachrichtigungen")
                     font.pixelSize: Theme.size.title
                     font.weight: Font.DemiBold
                 }
                 Txt {
-                    text: Notifs.dnd ? "Nicht stören ist an" : Notifs.historyModel.count === 0 ? "Alles erledigt" : `${Notifs.historyModel.count} im Verlauf`
+                    text: Notifs.dnd ? Backend.tr("Nicht stören ist an") : Notifs.historyModel.count === 0 ? Backend.tr("Alles erledigt") : Backend.tr("{n} im Verlauf", { n: Notifs.historyModel.count })
                     font.pixelSize: Theme.size.small
                     color: Notifs.dnd ? Theme.tertiary : Theme.surfaceFgDim
                 }
@@ -154,7 +154,7 @@ Item {
                     }
                     Txt {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Nicht stören"
+                        text: Backend.tr("Nicht stören")
                         font.weight: Font.DemiBold
                         font.pixelSize: Theme.size.small + 1
                         color: Notifs.dnd ? Theme.surface : Theme.surfaceFg
@@ -189,7 +189,7 @@ Item {
                     }
                     Txt {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "Alle löschen"
+                        text: Backend.tr("Alle löschen")
                         font.weight: Font.DemiBold
                         font.pixelSize: Theme.size.small + 1
                         color: Theme.error
@@ -317,13 +317,13 @@ Item {
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Keine Benachrichtigungen"
+                    text: Backend.tr("Keine Benachrichtigungen")
                     font.pixelSize: Theme.size.label
                     font.weight: Font.DemiBold
                 }
                 Txt {
                     anchors.horizontalCenter: parent.horizontalCenter
-                    text: "Neue Meldungen erscheinen hier."
+                    text: Backend.tr("Neue Meldungen erscheinen hier.")
                     color: Theme.surfaceFgDim
                     font.pixelSize: Theme.size.small
                 }

@@ -121,7 +121,7 @@ Card {
 
                 Txt {
                     width: Math.min(implicitWidth, parent.width - 20)
-                    text: root.title
+                    text: Backend.tr(root.title)
                     font.pixelSize: Theme.size.label
                     font.weight: Font.Medium
                 }
@@ -201,7 +201,7 @@ Card {
                 tooltip: Backend.t("tooltip_delete", "Eintrag löschen")
                 onClicked: Ui.confirm({
                     title: Backend.t("delete_heading", "Wirklich löschen?"),
-                    body: Backend.t("delete_body", "\"{title}\" wird dauerhaft aus der Datei entfernt.", { title: root.title }),
+                    body: Backend.t("delete_body", "\"{title}\" wird dauerhaft aus der Datei entfernt.", { title: Backend.tr(root.title) }),
                     ok: Backend.t("btn_delete", "Löschen"),
                     danger: true,
                     icon: "delete"

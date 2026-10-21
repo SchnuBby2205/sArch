@@ -101,6 +101,7 @@ Das Layout wird für jeden Bildschirm neu berechnet und funktioniert daher sowoh
 - **[Matugen](https://github.com/InioX/matugen)** erzeugt das Farbschema aus dem aktuellen Hintergrundbild und füllt die Vorlagen in `configs/matugen/templates/` (Hyprland, kitty, rofi, dunst, btop, yazi, GTK, Qt und Firefox über pywalfox).
 - **`themes/Matugen/`** ist das GTK-3/4-Theme, das diese Farben übernimmt; es wird nach `~/.themes` installiert.
 - Die Hintergrundbilder werden nach `~/Bilder/Wallpapers` geklont. Die **Settings-App** (Seite *Hintergrund*, `SUPER + W`) wechselt das Hintergrundbild und lässt Matugen mit der gewählten Akzentfarbe neu laufen.
+- **Sprache:** Die Quickshell-Oberfläche (Einstellungen, Bar, Launcher, Benachrichtigungen, Power-Menü) folgt der Systemsprache (`LANG`): Deutsch bei `de_*`, sonst Englisch. Erzwingen mit `SARCH_SETTINGS_LANG=en` (oder `de`), z. B. `hl.env("SARCH_SETTINGS_LANG", "en")` in `configs/hypr/env.lua`. Die Übersetzungen liegen in `configs/quickshell/sarch/i18n/<sprache>.json` (deutscher Quelltext → Übersetzung).
 
 ---
 

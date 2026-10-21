@@ -71,7 +71,7 @@ Item {
         }
         Txt {
             anchors.verticalCenter: parent.verticalCenter
-            text: root.wins.length === 0 ? "Leer" : root.wins.length === 1 ? "1 Fenster" : `${root.wins.length} Fenster`
+            text: root.wins.length === 0 ? Backend.tr("Leer") : root.wins.length === 1 ? Backend.tr("1 Fenster") : Backend.tr("{n} Fenster", { n: root.wins.length })
             font.pixelSize: Theme.size.small + 1
             font.weight: Font.DemiBold
         }
@@ -220,7 +220,7 @@ Item {
             }
             Txt {
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: "Keine Fenster"
+                text: Backend.tr("Keine Fenster")
                 font.pixelSize: Theme.size.small
                 color: Theme.surfaceFgDim
             }

@@ -247,7 +247,7 @@ Card {
                         color: Theme.surfaceFgDim
                     }
                     Txt {
-                        text: Time.now.toLocaleDateString(Qt.locale("de_DE"), root.page.draft.date.format)
+                        text: Time.now.toLocaleDateString(Qt.locale(Backend.locale), root.page.draft.date.format)
                         font.pixelSize: Theme.size.label
                         font.weight: Font.DemiBold
                         color: Theme.primary
@@ -273,7 +273,7 @@ Card {
                         Txt {
                             id: chipTxt
                             anchors.centerIn: parent
-                            text: Time.now.toLocaleDateString(Qt.locale("de_DE"), chip.modelData)
+                            text: Time.now.toLocaleDateString(Qt.locale(Backend.locale), chip.modelData)
                             font.pixelSize: Theme.size.small
                             color: chip.sel ? Theme.secondaryContainerFg : Theme.surfaceFg
                         }
@@ -408,9 +408,9 @@ Card {
 
             Txt {
                 anchors.verticalCenter: parent.verticalCenter
-                text: ({ "top-left": "Oben links", "top-center": "Oben Mitte", "top-right": "Oben rechts",
-                         "middle-left": "Mitte links", "middle-center": "Mitte", "middle-right": "Mitte rechts",
-                         "bottom-left": "Unten links", "bottom-center": "Unten Mitte", "bottom-right": "Unten rechts" })[root.page.draft.notifications?.position ?? "top-right"] ?? ""
+                text: ({ "top-left": Backend.tr("Oben links"), "top-center": Backend.tr("Oben Mitte"), "top-right": Backend.tr("Oben rechts"),
+                         "middle-left": Backend.tr("Mitte links"), "middle-center": Backend.tr("Mitte"), "middle-right": Backend.tr("Mitte rechts"),
+                         "bottom-left": Backend.tr("Unten links"), "bottom-center": Backend.tr("Unten Mitte"), "bottom-right": Backend.tr("Unten rechts") })[root.page.draft.notifications?.position ?? "top-right"] ?? ""
                 font.weight: Font.DemiBold
                 color: Theme.primary
             }

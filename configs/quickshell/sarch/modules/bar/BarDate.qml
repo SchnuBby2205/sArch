@@ -10,7 +10,7 @@ Item {
     property bool vertical: false
     property real thick: 40
 
-    readonly property var loc: Qt.locale("de_DE")
+    readonly property var loc: Qt.locale(Backend.locale)
     readonly property string fmt: cfg?.date?.format || "ddd, d. MMM"
     readonly property string dayKey: Time.now.toDateString()
 

@@ -81,17 +81,17 @@ Singleton {
     function ago(ms, now) {
         const d = Math.max(0, (now - ms) / 1000);
         if (d < 60)
-            return "jetzt";
+            return Backend.tr("jetzt");
         if (d < 3600)
-            return `vor ${Math.floor(d / 60)} Min.`;
+            return Backend.tr("vor {n} Min.", { n: Math.floor(d / 60) });
         const t = new Date(ms), n = new Date(now);
         const hm = Qt.formatTime(t, "hh:mm");
         if (t.toDateString() === n.toDateString())
             return hm;
         const y = new Date(now - 86400000);
         if (t.toDateString() === y.toDateString())
-            return `gestern ${hm}`;
-        return Qt.formatDateTime(t, "dd.MM. hh:mm");
+            return Backend.tr("gestern {t}", { t: hm });
+        return Qt.formatDateTime(t, Backend.german ? "dd.MM. hh:mm" : "MMM d, hh:mm");
     }
 
     // ── Server ───────────────────────────────────────────────────────────────

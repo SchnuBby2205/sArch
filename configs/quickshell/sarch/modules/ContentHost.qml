@@ -88,7 +88,7 @@ Item {
             Txt {
                 id: title
 
-                text: Ui.current
+                text: root.category?.title ?? Backend.tr(Ui.current)
                 font.pixelSize: Theme.size.headline + 4
                 font.weight: Font.Bold
 

@@ -101,6 +101,7 @@ The layout is recalculated for every screen, so it works on the TTY as well as i
 - **[Matugen](https://github.com/InioX/matugen)** generates the color scheme from the current wallpaper and fills the templates in `configs/matugen/templates/` (Hyprland, kitty, rofi, dunst, btop, yazi, GTK, Qt and Firefox via pywalfox).
 - **`themes/Matugen/`** is the GTK 3/4 theme that picks up those colors; it is installed to `~/.themes`.
 - Wallpapers are cloned to `~/Bilder/Wallpapers`. The **Settings app** (page *Hintergrund*, `SUPER + W`) switches the wallpaper and re-runs Matugen with the chosen accent color.
+- **Language:** the Quickshell UI (settings, bar, launcher, notifications, power menu) follows the system language (`LANG`): German for `de_*`, English otherwise. Force it with `SARCH_SETTINGS_LANG=en` (or `de`), e.g. `hl.env("SARCH_SETTINGS_LANG", "en")` in `configs/hypr/env.lua`. Translations live in `configs/quickshell/sarch/i18n/<lang>.json` (German source text → translation).
 
 ---
 

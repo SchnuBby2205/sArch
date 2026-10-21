@@ -14,7 +14,7 @@ Item {
         const out = [];
         for (const c of Backend.categories) {
             const n = q === "" ? 0 : matchCount(c, q);
-            if (q === "" || n > 0 || c.name.toLowerCase().includes(q))
+            if (q === "" || n > 0 || (c.title || c.name).toLowerCase().includes(q))
                 out.push({ cat: c, matches: n });
         }
         return out;
@@ -216,7 +216,7 @@ Item {
                 x: 52
                 width: parent.width - 52 - badge.width - 16
                 anchors.verticalCenter: parent.verticalCenter
-                text: row.modelData.cat.name
+                text: row.modelData.cat.title ?? row.modelData.cat.name
                 font.pixelSize: Theme.size.label - 1
                 font.weight: row.selected ? Font.DemiBold : Font.Normal
                 color: row.selected ? Theme.secondaryContainerFg : Theme.surfaceFg

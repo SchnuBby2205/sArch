@@ -416,22 +416,22 @@ Item {
                 order: 7
                 icon: "format_color_text"
                 title: Backend.t("qs_bar_text_color", "Schrift- und Icon-Farbe")
-                autoHint: "Automatisch: Wallpaper-Schrift, auf heller Bar dunkel"
+                autoHint: Backend.tr("Automatisch: Wallpaper-Schrift, auf heller Bar dunkel")
                 roles: [
-                    { spec: "", label: "Automatisch" },
-                    { spec: "role:surfaceFg", label: "Schrift" },
-                    { spec: "role:surfaceFgDim", label: "Schrift gedämpft" },
-                    { spec: "role:primary", label: "Akzent" },
-                    { spec: "role:secondary", label: "Sekundär" },
-                    { spec: "role:tertiary", label: "Tertiär" },
-                    { spec: "role:primaryContainerFg", label: "Primär hell" },
-                    { spec: "role:surface", label: "Fläche (dunkel)" }
+                    { spec: "", label: Backend.tr("Automatisch") },
+                    { spec: "role:surfaceFg", label: Backend.tr("Schrift") },
+                    { spec: "role:surfaceFgDim", label: Backend.tr("Schrift gedämpft") },
+                    { spec: "role:primary", label: Backend.tr("Akzent") },
+                    { spec: "role:secondary", label: Backend.tr("Sekundär") },
+                    { spec: "role:tertiary", label: Backend.tr("Tertiär") },
+                    { spec: "role:primaryContainerFg", label: Backend.tr("Primär hell") },
+                    { spec: "role:surface", label: Backend.tr("Fläche (dunkel)") }
                 ]
                 fixed: ["#ffffff", "#e6e0e9", "#cdd6f4", "#eceff4", "#f5c2e7", "#a6e3a1", "#f9e2af", "#89b4fa", "#585b70", "#000000"]
                 resolve: spec => spec === "" ? Theme.barFg(Object.assign({}, bp.draft, { textColor: "" })) : Theme.barColor(spec)
                 // Kontrast zur gewählten Hintergrundfarbe
                 warn: (bp.draft.opacity ?? 1) >= 0.35 && Theme.contrastRatio(shown, Theme.barColor(bp.draft.color)) < 3
-                    ? "Wenig Kontrast zur Hintergrundfarbe – Schrift ist evtl. schlecht lesbar." : ""
+                    ? Backend.tr("Wenig Kontrast zur Hintergrundfarbe – Schrift ist evtl. schlecht lesbar.") : ""
                 value: bp.draft.textColor ?? ""
                 original: bp.original.textColor ?? ""
                 onPicked: v => bp.set("textColor", v)
@@ -651,7 +651,7 @@ Item {
         property string title: ""
         property string value: ""
         property string original: ""
-        property string autoHint: "Automatisch: Farbe aus dem Wallpaper"
+        property string autoHint: Backend.tr("Automatisch: Farbe aus dem Wallpaper")
         property string warn: ""
         property var resolve: spec => Theme.barColor(spec)
         signal picked(string v)
@@ -660,14 +660,14 @@ Item {
         readonly property color shown: resolve(value)
 
         property var roles: [
-            { spec: "", label: "Automatisch" },
-            { spec: "role:surfaceContainer", label: "Fläche" },
-            { spec: "role:surfaceHighest", label: "Fläche hell" },
-            { spec: "role:primaryContainer", label: "Primär" },
-            { spec: "role:secondaryContainer", label: "Sekundär" },
-            { spec: "role:tertiaryContainer", label: "Tertiär" },
-            { spec: "role:primary", label: "Akzent" },
-            { spec: "role:tertiary", label: "Akzent 2" }
+            { spec: "", label: Backend.tr("Automatisch") },
+            { spec: "role:surfaceContainer", label: Backend.tr("Fläche") },
+            { spec: "role:surfaceHighest", label: Backend.tr("Fläche hell") },
+            { spec: "role:primaryContainer", label: Backend.tr("Primär") },
+            { spec: "role:secondaryContainer", label: Backend.tr("Sekundär") },
+            { spec: "role:tertiaryContainer", label: Backend.tr("Tertiär") },
+            { spec: "role:primary", label: Backend.tr("Akzent") },
+            { spec: "role:tertiary", label: Backend.tr("Akzent 2") }
         ]
         property var fixed: ["#000000", "#11111b", "#1e1e2e", "#2e3440", "#1a1b26", "#282828", "#0f2a2e", "#2a0f1f", "#3b2f63", "#ffffff"]
 
@@ -691,7 +691,7 @@ Item {
             spacing: 10
             Txt {
                 anchors.verticalCenter: parent.verticalCenter
-                text: colc.value === "" ? "Automatisch" : colc.value.startsWith("role:") ? "Wallpaper · " + (colc.roles.find(r => r.spec === colc.value)?.label ?? "") : colc.value.toUpperCase()
+                text: colc.value === "" ? Backend.tr("Automatisch") : colc.value.startsWith("role:") ? Backend.tr("Wallpaper · ") + (colc.roles.find(r => r.spec === colc.value)?.label ?? "") : colc.value.toUpperCase()
                 mono: colc.value.startsWith("#")
                 font.pixelSize: Theme.size.small
                 color: Theme.surfaceFgDim
@@ -716,7 +716,7 @@ Item {
             spacing: 10
 
             Txt {
-                text: "Aus dem Wallpaper – passt sich beim Wechsel an"
+                text: Backend.tr("Aus dem Wallpaper – passt sich beim Wechsel an")
                 font.pixelSize: Theme.size.tiny
                 font.weight: Font.DemiBold
                 color: Theme.surfaceFgDim
@@ -738,7 +738,7 @@ Item {
             }
 
             Txt {
-                text: "Feste Farbe"
+                text: Backend.tr("Feste Farbe")
                 font.pixelSize: Theme.size.tiny
                 font.weight: Font.DemiBold
                 color: Theme.surfaceFgDim

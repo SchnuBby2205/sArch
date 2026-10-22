@@ -417,7 +417,7 @@ ShellRoot {
             left: true
             right: true
         }
-        exclusiveZone: 0
+        WlrLayershell.exclusionMode: ExclusionMode.Ignore      // über die ganze Fläche (auch die Bar) – wie die Einstellungen
         WlrLayershell.namespace: "sarch-notification-center"
         WlrLayershell.layer: WlrLayer.Overlay
         WlrLayershell.keyboardFocus: shell.notifShown ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None

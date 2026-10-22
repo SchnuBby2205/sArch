@@ -33,16 +33,28 @@ Item {
         anchors.fill: parent
         onClicked: root.requestClose()
     }
-    // kein Abdunkeln des Desktops – die Zentrale schwebt nur rechts darüber
+    // Abdunkeln wie bei Einstellungen und Wallpaper-Picker (das Fenster liegt über dem ganzen Bildschirm, auch über der Bar)
+    Rectangle {
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.42)
+        opacity: Math.min(1, root.t)
+    }
+
+    // Platz für die Bar lassen, damit das Panel unter/neben ihr erscheint
+    readonly property string barPos: BarConfig.current.position ?? "top"
+    readonly property real barSpace: (BarConfig.current.size ?? 42) + (BarConfig.current.margin ?? 8)
+    readonly property real insetTop: barPos === "top" ? barSpace : 0
+    readonly property real insetBottom: barPos === "bottom" ? barSpace : 0
+    readonly property real insetRight: barPos === "right" ? barSpace : 0
 
     Item {
         id: panel
 
         readonly property real w: Math.min(440, root.width - 24)
         width: w
-        height: root.height - 24
-        y: 12
-        x: root.width - 12 - w + (1 - root.t) * (w + 40)
+        height: root.height - 24 - root.insetTop - root.insetBottom
+        y: 12 + root.insetTop
+        x: root.width - 12 - root.insetRight - w + (1 - root.t) * (w + 40 + root.insetRight)
         opacity: Math.min(1, root.t * 1.6)
 
         MouseArea {

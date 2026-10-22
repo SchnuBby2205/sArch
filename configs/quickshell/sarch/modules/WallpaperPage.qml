@@ -24,6 +24,7 @@ Item {
     property bool applying: false
     property int hoverSwatch: -1
     property bool transOpen: false              // Panel "Übergang"
+    property bool ambiOpen: false               // Panel "Ambilight"
 
     readonly property var shown: {
         const q = (query || Ui.search).trim().toLowerCase();
@@ -593,10 +594,22 @@ Item {
                 }
             }
             IconButton {
+                icon: "flare"
+                active: page.ambiOpen || UiPrefs.ambilight
+                tooltip: Backend.tr("Ambilight")
+                onClicked: {
+                    page.transOpen = false;
+                    page.ambiOpen = !page.ambiOpen;
+                }
+            }
+            IconButton {
                 icon: "animation"
                 active: page.transOpen
                 tooltip: Backend.t("qs_wp_transition", "Übergang beim Wechsel")
-                onClicked: page.transOpen = !page.transOpen
+                onClicked: {
+                    page.ambiOpen = false;
+                    page.transOpen = !page.transOpen;
+                }
             }
             IconButton {
                 icon: "my_location"
@@ -1037,6 +1050,152 @@ Item {
                 }
             }
 
+        }
+    }
+
+    // ── Panel: Ambilight (Leuchten in den Wallpaper-Farben rund um die Fenster) ─────────
+    MouseArea {
+        anchors.fill: parent
+        visible: page.ambiOpen
+        z: 50
+        onClicked: page.ambiOpen = false
+    }
+    Rectangle {
+        id: ambiPanel
+
+        z: 51
+        width: 520
+        height: ambiCol.implicitHeight + 36
+        anchors.right: toolbar.right
+        y: Math.max(4, toolbar.y - height - 8)
+        radius: Theme.radius.xl
+        color: Theme.alpha(Theme.surfaceContainer, 0.98)
+        border.width: 1
+        border.color: Theme.alpha(Theme.outline, 0.25)
+        transformOrigin: Item.BottomRight
+        opacity: page.ambiOpen ? 1 : 0
+        scale: page.ambiOpen ? 1 : 0.9
+        visible: opacity > 0
+        Behavior on opacity { Anim { curve: "effects"; duration: page.ambiOpen ? 220 : 140 } }
+        Behavior on scale { Anim { curve: page.ambiOpen ? "spatial" : "emphasizedAccel"; duration: page.ambiOpen ? 420 : 160 } }
+
+        MouseArea {
+            anchors.fill: parent
+        }
+
+        Column {
+            id: ambiCol
+
+            x: 18
+            y: 18
+            width: parent.width - 36
+            spacing: 14
+
+            Item {
+                width: parent.width
+                height: 36
+                Row {
+                    spacing: 12
+                    anchors.verticalCenter: parent.verticalCenter
+                    Rectangle {
+                        width: 36
+                        height: 36
+                        radius: 12
+                        color: Theme.secondaryContainer
+                        Icon {
+                            anchors.centerIn: parent
+                            icon: "flare"
+                            size: 20
+                            color: Theme.secondaryContainerFg
+                        }
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        Txt {
+                            text: Backend.tr("Ambilight")
+                            font.pixelSize: Theme.size.label
+                            font.weight: Font.Medium
+                        }
+                        Txt {
+                            text: Backend.tr("Leuchten in den Wallpaper-Farben rund um die Fenster")
+                            font.pixelSize: Theme.size.tiny
+                            color: Theme.surfaceFgDim
+                        }
+                    }
+                }
+                IconButton {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    icon: "close"
+                    size: 34
+                    onClicked: page.ambiOpen = false
+                }
+            }
+
+            Row {
+                spacing: 14
+                Txt {
+                    width: 110
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: Backend.tr("Ambilight")
+                    color: Theme.surfaceFgDim
+                }
+                Segmented {
+                    options: ["false", "true"]
+                    labels: [Backend.t("qs_off", "Aus"), Backend.t("qs_on", "An")]
+                    value: String(UiPrefs.ambilight)
+                    segWidth: 90
+                    onPicked: v => UiPrefs.set("ambilight", v === "true")
+                }
+            }
+
+            Repeater {
+                model: [
+                    { key: "ambilightStrength", label: Backend.tr("Stärke"), from: 0.1, to: 1, step: 0.05, pct: true },
+                    { key: "ambilightSize", label: Backend.tr("Ausdehnung"), from: 0.5, to: 2, step: 0.1, pct: true }
+                ]
+                Row {
+                    id: ar
+
+                    required property var modelData
+                    spacing: 14
+                    opacity: UiPrefs.ambilight ? 1 : 0.4
+                    Txt {
+                        width: 110
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: ar.modelData.label
+                        color: Theme.surfaceFgDim
+                    }
+                    SSlider {
+                        id: ambSlider
+
+                        width: ambiCol.width - 110 - 14 - 70 - 14
+                        anchors.verticalCenter: parent.verticalCenter
+                        from: ar.modelData.from
+                        to: ar.modelData.to
+                        stepSize: ar.modelData.step
+                        value: UiPrefs[ar.modelData.key]
+                        onMoved: v => UiPrefs.set(ar.modelData.key, v)
+                        Connections {
+                            target: UiPrefs
+                            function onAmbilightStrengthChanged() { ambSlider.sync(); }
+                            function onAmbilightSizeChanged() { ambSlider.sync(); }
+                        }
+                        function sync() {
+                            if (Math.abs(value - UiPrefs[ar.modelData.key]) > 0.001)
+                                value = UiPrefs[ar.modelData.key];
+                        }
+                    }
+                    Txt {
+                        width: 70
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: Math.round(UiPrefs[ar.modelData.key] * 100) + " %"
+                        mono: true
+                        font.weight: Font.Bold
+                        color: Theme.primary
+                    }
+                }
+            }
         }
     }
 }

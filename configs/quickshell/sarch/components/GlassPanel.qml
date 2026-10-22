@@ -10,6 +10,15 @@ Item {
     property real tint: 0.80
     property bool shadow: true
     property real blurAmount: 1.0
+    property bool ambient: false        // Ambilight erlaubt (an/aus: Einstellungen → Hintergrund)
+
+    Ambilight {
+        id: ambi
+
+        anchors.fill: parent
+        radius: root.radius
+        visible: root.ambient && opacity > 0.01
+    }
 
     Rectangle {
         id: shadowSrc
@@ -21,7 +30,7 @@ Item {
         layer.enabled: true
     }
     MultiEffect {
-        visible: root.shadow
+        visible: root.shadow && !(root.ambient && ambi.on)    // mit Ambilight kein schwarzer Schatten
         anchors.fill: shadowSrc
         source: shadowSrc
         shadowEnabled: true
@@ -53,6 +62,7 @@ Item {
     MultiEffect {
         anchors.fill: parent
         source: wp
+        autoPaddingEnabled: false      // kein Auslaufen über den Rand – das Leuchten macht Ambilight (einstellbar)
         blurEnabled: true
         blur: root.blurAmount
         blurMax: 64

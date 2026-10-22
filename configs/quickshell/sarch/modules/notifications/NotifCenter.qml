@@ -62,6 +62,7 @@ Item {
         }
 
         GlassPanel {
+            ambient: true
             anchors.fill: parent
             radius: Theme.radius.xl
             tint: 0.80           // wie die Einstellungen: das Wallpaper schimmert durch

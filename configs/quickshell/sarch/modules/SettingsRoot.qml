@@ -135,6 +135,15 @@ Item {
             anchors.fill: parent
         } // Klicks nicht zum Scrim
 
+        // Ambilight (Einstellungen → Hintergrund), folgt auch der Wallpaper-Vorschau
+        Ambilight {
+            id: ambi
+
+            anchors.fill: parent
+            radius: Theme.radius.xl
+            source: Theme.previewWallpaper !== "" ? Theme.previewWallpaper : Theme.wallpaper
+        }
+
         // Schatten
         Rectangle {
             id: shadowSrc
@@ -146,6 +155,7 @@ Item {
             layer.enabled: true
         }
         MultiEffect {
+            visible: !ambi.on
             anchors.fill: shadowSrc
             source: shadowSrc
             shadowEnabled: true
@@ -209,6 +219,7 @@ Item {
             MultiEffect {
                 anchors.fill: parent
                 source: bgImages
+                autoPaddingEnabled: false      // kein Auslaufen über den Rand – das Leuchten macht Ambilight (einstellbar)
                 blurEnabled: true
                 blur: 1.0
                 blurMax: 64

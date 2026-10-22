@@ -182,6 +182,7 @@ Item {
         }
 
         GlassPanel {
+            ambient: true
             anchors.fill: parent
             radius: Theme.radius.xl
             tint: 0.82

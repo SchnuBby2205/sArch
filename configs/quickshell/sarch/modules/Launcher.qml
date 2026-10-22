@@ -128,6 +128,7 @@ Item {
         } // Klicks nicht zum Scrim
 
         GlassPanel {
+            ambient: true
             anchors.fill: parent
             tint: 0.82
         }

@@ -45,9 +45,16 @@ Singleton {
     }
     // Bild sofort mit dem Übergang setzen (ohne Umweg über das Python-Backend).
     // true = gestartet; das Backend wird danach mit "noset" nur noch für matugen & Co. aufgerufen.
+    // zuletzt sichtbar gesetztes Bild (Theme.wallpaper folgt erst, wenn das Backend fertig ist)
+    property string shown: ""
+    function current() {
+        return shown !== "" ? shown : Theme.wallpaper;
+    }
     function setNow(path) {
-        if (!path || path === Theme.wallpaper)
+        if (!path || path === current())
             return false;                  // gleiches Bild (nur andere Akzentfarbe): kein Übergang
+        const old = current();
+        shown = path;
         saveTimer.stop();
         save();                            // geänderte Einstellungen sicher übernehmen
         // Typ hier auswürfeln (wie bin/sarch_wallpaper_set.sh), damit Zerschneiden/Kacheln direkt
@@ -57,13 +64,55 @@ Singleton {
             const pool = ["grow", "outer", "wave", "wipe", "center", "any", "fade", "slide", "slice", "flip", "slice", "flip"];
             t = pool[Math.floor(Math.random() * pool.length)];
         }
-        if ((t === "slice" || t === "flip") && Theme.wallpaper !== "") {
-            WallFxState.start(Theme.wallpaper, path, t, duration);
+        if ((t === "slice" || t === "flip") && old !== "") {
+            WallFxState.start(old, path, t, duration);
             return true;
         }
         Quickshell.execDetached(["env", `SARCH_WP_TYPE=${t}`, setter, path]);
         return true;
     }
+    // Wallpaper übernehmen: Übergang sofort, danach das Backend (matugen, Farben, Vorschaubilder).
+    // Backend-Aufrufe laufen nacheinander und nur der letzte Wunsch zählt – sonst konnte ein älterer,
+    // langsamerer matugen-Lauf die gerade gewählte Akzentfarbe wieder überschreiben.
+    // cb(res): res.superseded = durch eine neuere Auswahl ersetzt
+    property bool applyBusy: false
+    property var applyNext: null
+    function applyWallpaper(path, idx, hex, cb) {
+        const job = { path: path, idx: idx, hex: hex || "", noset: setNow(path), cb: cb || null };
+        afterStart(() => queueApply(job));
+    }
+    function queueApply(job) {
+        if (applyBusy) {
+            if (applyNext) {
+                job.noset = job.noset || (applyNext.noset && applyNext.path === job.path);
+                if (applyNext.cb)
+                    applyNext.cb({ ok: true, superseded: true });
+            }
+            applyNext = job;
+            return;
+        }
+        runApply(job);
+    }
+    function runApply(job) {
+        applyBusy = true;
+        Backend.call(["set-wallpaper", job.path, String(job.idx), job.hex].concat(job.noset ? ["noset"] : []), res => {
+            applyBusy = false;
+            if (res.ok) {
+                Theme.wallpaper = job.path;
+                if (shown === job.path)
+                    shown = "";
+            }
+            const next = applyNext;
+            applyNext = null;
+            if (job.cb)
+                job.cb(next ? Object.assign({}, res, { superseded: true }) : res);
+            if (next)
+                runApply(next);
+            else if (res.ok)
+                Theme.reloadColors();
+        });
+    }
+
     // cb erst ausführen, wenn der Übergang läuft (matugen & Co. sollen ihm keine CPU wegnehmen)
     function afterStart(cb) {
         if (!WallFxState.preparing) {

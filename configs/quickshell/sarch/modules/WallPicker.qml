@@ -119,7 +119,7 @@ Item {
         if (!w)
             return;
         requestClose();
-        if (w.path === Theme.wallpaper && idx === activeIndex)
+        if (w.path === WallTrans.current() && idx === activeIndex)
             return;
         const cols = colorCache[w.path] ?? [];
         // erst setzen, wenn der Picker weg ist: der Übergang (v. a. Zerschneiden/Kacheln) lädt das
@@ -130,18 +130,17 @@ Item {
     onClosed: if (pending) {
         const p = pending;
         pending = null;
-        const started = WallTrans.setNow(p.path);
-        WallTrans.afterStart(() => Backend.call(["set-wallpaper", p.path, String(p.idx), p.hex].concat(started ? ["noset"] : []), res => {
+        WallTrans.applyWallpaper(p.path, p.idx, p.hex, res => {
+            if (res.superseded)
+                return;
             if (res.ok) {
-                Theme.wallpaper = p.path;
                 root.activeIndex = p.idx;
-                Theme.reloadColors();
             } else {
                 console.warn("sarch wallpaper:", res.error);
                 Quickshell.execDetached(["notify-send", "-a", "sArch", "-u", "critical",
                     Backend.tr("Hintergrundbild konnte nicht gesetzt werden"), String(res.error || "?")]);
             }
-        }));
+        });
     }
 
     // ── Scrim ──

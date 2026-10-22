@@ -16,6 +16,13 @@ Item {
     property bool preview: false         // Live-Vorschau in den Einstellungen -> kein Popup
 
     readonly property bool numbers: cfg?.workspaces?.numbers ?? true
+    // feste Schriftfarbe in den Einstellungen -> auch Pille, Punkte, Ringe und Striche in dieser Farbe
+    readonly property bool customFg: {
+        const c = String(cfg?.textColor || "");
+        return c !== "" && c !== "auto";
+    }
+    readonly property color accent: customFg ? Theme.barFg(cfg) : Theme.primary
+    readonly property color onAccent: customFg ? (Theme.luminance(accent) > 0.45 ? "#1b1b1f" : "#ffffff") : Theme.primaryFg
     // markiert wird der Workspace, auf dem gerade der Cursor bzw. Fokus ist (monitorübergreifend)
     readonly property int activeId: Hyprland.focusedWorkspace?.id ?? Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1
     // auf anderen Monitoren gerade sichtbare Workspaces (bekommen einen Ring)
@@ -172,7 +179,7 @@ Item {
             width: root.vertical ? root.cell : edgeB - edgeA
             height: root.vertical ? edgeB - edgeA : root.cell
             radius: root.cell / 2
-            color: Theme.primary
+            color: root.accent
 
             Behavior on edgeA { enabled: pill.ready; Anim { id: aAnim; curve: "spatial" } }
             Behavior on edgeB { enabled: pill.ready; Anim { id: bAnim; curve: "spatial" } }
@@ -232,7 +239,7 @@ Item {
                     radius: width / 2
                     color: "transparent"
                     border.width: 2
-                    border.color: Theme.primary
+                    border.color: root.accent
                     opacity: !slot.isActive && root.visibleIds[slot.wsId] ? 0.55 : 0
                     scale: opacity > 0 ? 1 : 0.6
                     Behavior on opacity { Anim { curve: "effects" } }
@@ -246,7 +253,7 @@ Item {
                     width: slot.isActive ? root.cell * 0.34 : slot.isOccupied ? root.cell * 0.34 : root.cell * 0.2
                     height: width
                     radius: width / 2
-                    color: slot.isActive ? Theme.primaryFg : Theme.barFg(root.cfg)
+                    color: slot.isActive ? root.onAccent : Theme.barFg(root.cfg)
                     opacity: slot.isActive ? 1 : slot.isOccupied ? 0.75 : 0.28
                     Behavior on width { Anim { curve: "spatialFast" } }
                     Behavior on opacity { Anim { curve: "effects" } }
@@ -259,7 +266,7 @@ Item {
                     text: slot.wsId
                     font.pixelSize: Math.round(Math.min(root.cell * 0.46 * Theme.fontScale, root.cell * 0.72))
                     font.weight: slot.isActive || slot.isOccupied ? Font.Bold : Font.Normal
-                    color: slot.isActive ? Theme.primaryFg : Theme.barFg(root.cfg)
+                    color: slot.isActive ? root.onAccent : Theme.barFg(root.cfg)
                     opacity: slot.isActive ? 1 : slot.isOccupied ? 0.9 : 0.35
                     scale: wsArea.containsMouse && !slot.isActive ? 1.2 : 1
                     Behavior on scale { Anim { curve: "spatialFast" } }
@@ -272,7 +279,7 @@ Item {
                     width: root.vertical ? 3 : root.cell * 0.3
                     height: root.vertical ? root.cell * 0.3 : 3
                     radius: 1.5
-                    color: Theme.primary
+                    color: root.accent
                     opacity: 0.7
                     x: root.vertical ? parent.width - width : (parent.width - width) / 2
                     y: root.vertical ? (parent.height - height) / 2 : parent.height - height

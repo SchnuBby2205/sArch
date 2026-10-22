@@ -123,8 +123,8 @@ Item {
     }
 
     function apply(i, hex) {
-        if (applying || !selected)
-            return;
+        if (!selected)
+            return;                       // mehrfaches Klicken ist erlaubt: die letzte Wahl gewinnt
         applying = true;
         if (hex)
             Theme.previewAccent = hex;
@@ -148,22 +148,21 @@ Item {
         onTriggered: page.run(args[0], args[1], args[2], true)
     }
     function run(path, i, hex, close) {
-        const started = WallTrans.setNow(path);
-        WallTrans.afterStart(() => Backend.call(["set-wallpaper", path, String(i), hex || ""].concat(started ? ["noset"] : []), res => {
+        WallTrans.applyWallpaper(path, i, hex || "", res => {
+            if (res.superseded)
+                return;                   // eine neuere Auswahl läuft noch
             applying = false;
             if (res.ok) {
-                Theme.wallpaper = path;
                 activeIndex = i;
                 if (!close)
                     Ui.toast(Backend.t("wp_applied", "Hintergrundbild geändert: {name}", { name: path.split("/").pop() }), "wallpaper");
                 clearPreview.restart();   // falls kein qs-colors Template läuft
-                Theme.reloadColors();
             } else {
                 Theme.preview = null;
                 Theme.previewAccent = "";
                 Ui.error(Backend.t("wp_failed", "Hintergrundbild konnte nicht gesetzt werden"), [res.error || "?"]);
             }
-        }));
+        });
     }
 
     onSelectedChanged: {

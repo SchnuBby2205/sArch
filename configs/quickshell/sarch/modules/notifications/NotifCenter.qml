@@ -33,11 +33,7 @@ Item {
         anchors.fill: parent
         onClicked: root.requestClose()
     }
-    Rectangle {
-        anchors.fill: parent
-        color: "black"
-        opacity: 0.18 * root.t
-    }
+    // kein Abdunkeln des Desktops – die Zentrale schwebt nur rechts darüber
 
     Item {
         id: panel

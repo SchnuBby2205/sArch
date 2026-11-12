@@ -1,9 +1,15 @@
-[[mgr.prepend_keymap]]
-on = ["g", "i"]
-run = "shell --block -- lazygit"
-desc = "lazygit im aktuellen Ordner"
+#[[mgr.prepend_keymap]]
+#on = ["g", "i"]
+#run = "shell --block -- lazygit"
+#desc = "lazygit im aktuellen Ordner"
+#
+#[[mgr.prepend_keymap]]
+#on = ["g", "r"]
+#run = "cd /programmieren/repos"
+#desc = "Gehe zu /programmieren/repos"
 
-[[mgr.prepend_keymap]]
-on = ["g", "r"]
-run = "cd /programmieren/repos"
-desc = "Gehe zu /programmieren/repos"
+[mgr]
+prepend_keymap = [
+  { on = ["g", "i"],  run = "shell --block -- lazygit", desc = "lazygit im aktuellen Ordner" },
+  { on = ["g", "r"], run = "cd /programmieren/repos", desc = "Gehe zu /programmieren/repos" },
+]

@@ -38,7 +38,7 @@ oder **balenaEtcher**.
 | `release-…` (z. B. `release-2026.11`) | GitHub-Release mit ISO in Teilen + Prüfsumme, bleibt dauerhaft |
 
 ```bash
-git checkout sArch-QS && git pull
+git checkout main && git pull
 git tag release-2026.11
 git push origin release-2026.11
 ```

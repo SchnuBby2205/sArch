@@ -6,4 +6,5 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd("~/.config/sArch/bin/sarch_wallpaper_restore.sh")
     -- nur auf der Live-ISO: Installer (Calamares) anbieten
     hl.exec_cmd("[ -e /etc/sarch-live ] && sarch-install")
+    hl.exec_cmd("udiskie --automount --notify --no-tray")
 end)
